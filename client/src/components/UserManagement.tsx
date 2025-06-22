@@ -1,0 +1,479 @@
+import { useState } from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Plus, Search, Users, UserCog, Crown, Shield, Edit, Trash2, AlertCircle } from "lucide-react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { isUnauthorizedError } from "@/lib/authUtils";
+import type { User } from "@shared/schema";
+
+const updateRoleSchema = z.object({
+  role: z.enum(["admin", "sales"]),
+});
+
+type UpdateRoleData = z.infer<typeof updateRoleSchema>;
+
+export default function UserManagement() {
+  const [searchTerm, setSearchTerm] = useState("");
+  const [roleFilter, setRoleFilter] = useState("all");
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [isRoleDialogOpen, setIsRoleDialogOpen] = useState(false);
+  const { user: currentUser } = useAuth();
+  const { toast } = useToast();
+
+  const { data: users, isLoading } = useQuery({
+    queryKey: ["/api/users"],
+  });
+
+  const { data: targets } = useQuery({
+    queryKey: ["/api/targets"],
+  });
+
+  const { data: teamPerformance } = useQuery({
+    queryKey: ["/api/analytics/team-performance"],
+  });
+
+  const form = useForm<UpdateRoleData>({
+    resolver: zodResolver(updateRoleSchema),
+    defaultValues: {
+      role: "sales",
+    },
+  });
+
+  const updateRoleMutation = useMutation({
+    mutationFn: async ({ userId, role }: { userId: string; role: string }) => {
+      await apiRequest("PATCH", `/api/users/${userId}/role`, { role });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+      setIsRoleDialogOpen(false);
+      setSelectedUser(null);
+      form.reset();
+      toast({
+        title: "Success",
+        description: "User role updated successfully",
+      });
+    },
+    onError: (error) => {
+      if (isUnauthorizedError(error)) {
+        toast({
+          title: "Unauthorized",
+          description: "You are logged out. Logging in again...",
+          variant: "destructive",
+        });
+        setTimeout(() => {
+          window.location.href = "/api/login";
+        }, 500);
+        return;
+      }
+      toast({
+        title: "Error",
+        description: "Failed to update user role",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const onSubmit = (data: UpdateRoleData) => {
+    if (selectedUser) {
+      updateRoleMutation.mutate({
+        userId: selectedUser.id,
+        role: data.role,
+      });
+    }
+  };
+
+  const handleEditRole = (user: User) => {
+    setSelectedUser(user);
+    form.setValue("role", user.role as "admin" | "sales");
+    setIsRoleDialogOpen(true);
+  };
+
+  const filteredUsers = users?.filter((user) => {
+    const matchesSearch = 
+      user.firstName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.lastName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.email?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesRole = roleFilter === "all" || user.role === roleFilter;
+    return matchesSearch && matchesRole;
+  }) || [];
+
+  const getUserStats = (user: User) => {
+    const userTargets = targets?.filter(t => t.userId === user.id) || [];
+    const userPerformance = teamPerformance?.find(p => p.user.id === user.id);
+    
+    return {
+      activeTargets: userTargets.length,
+      dealsCount: userPerformance?.dealsCount || 0,
+      revenue: userPerformance?.revenue || 0,
+      targetProgress: userPerformance?.targetProgress || 0,
+    };
+  };
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD",
+    }).format(amount);
+  };
+
+  const getRoleIcon = (role: string) => {
+    return role === "admin" ? Crown : Users;
+  };
+
+  const getRoleBadge = (role: string) => {
+    return role === "admin" ? (
+      <Badge className="bg-primary-100 text-primary-700">
+        <Crown className="w-3 h-3 mr-1" />
+        Admin
+      </Badge>
+    ) : (
+      <Badge variant="secondary">
+        <Users className="w-3 h-3 mr-1" />
+        Sales
+      </Badge>
+    );
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex-1 overflow-auto p-6">
+        <div className="animate-pulse space-y-4">
+          <div className="h-8 bg-gray-200 rounded w-1/4"></div>
+          <div className="h-10 bg-gray-200 rounded"></div>
+          <div className="space-y-3">
+            {[...Array(5)].map((_, i) => (
+              <div key={i} className="h-16 bg-gray-200 rounded"></div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const adminCount = users?.filter(u => u.role === "admin").length || 0;
+  const salesCount = users?.filter(u => u.role === "sales").length || 0;
+  const usersWithoutTargets = users?.filter(u => 
+    u.role === "sales" && !targets?.some(t => t.userId === u.id)
+  ).length || 0;
+
+  return (
+    <>
+      {/* Header */}
+      <header className="bg-white shadow-sm border-b border-gray-200 px-6 py-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">User Management</h1>
+            <p className="text-gray-600">Manage team members and their roles</p>
+          </div>
+          <div className="flex items-center space-x-4">
+            <div className="text-sm text-gray-600">
+              {adminCount} Admins • {salesCount} Sales Users
+            </div>
+          </div>
+        </div>
+      </header>
+
+      {/* Content */}
+      <div className="flex-1 overflow-auto p-6">
+        {/* Alert for users without targets */}
+        {usersWithoutTargets > 0 && (
+          <Alert className="mb-6 bg-yellow-50 border-yellow-200">
+            <AlertCircle className="h-4 w-4 text-yellow-500" />
+            <AlertDescription className="text-yellow-700">
+              <div className="flex items-start justify-between">
+                <div>
+                  <h3 className="font-medium text-yellow-800">Action Required</h3>
+                  <p className="text-sm mt-1">
+                    {usersWithoutTargets} sales team members don't have targets assigned. 
+                    Consider setting targets to help track their performance.
+                  </p>
+                </div>
+                <Button variant="link" className="text-yellow-700 hover:text-yellow-800 p-0">
+                  Go to Targets →
+                </Button>
+              </div>
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-600">Total Users</p>
+                  <p className="text-2xl font-bold text-gray-900">{users?.length || 0}</p>
+                </div>
+                <div className="w-12 h-12 bg-primary-100 rounded-lg flex items-center justify-center">
+                  <Users className="w-6 h-6 text-primary-600" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-600">Administrators</p>
+                  <p className="text-2xl font-bold text-gray-900">{adminCount}</p>
+                </div>
+                <div className="w-12 h-12 bg-warning-100 rounded-lg flex items-center justify-center">
+                  <Crown className="w-6 h-6 text-warning-600" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-600">Sales Team</p>
+                  <p className="text-2xl font-bold text-gray-900">{salesCount}</p>
+                </div>
+                <div className="w-12 h-12 bg-success-100 rounded-lg flex items-center justify-center">
+                  <Users className="w-6 h-6 text-success-600" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-600">Without Targets</p>
+                  <p className="text-2xl font-bold text-gray-900">{usersWithoutTargets}</p>
+                </div>
+                <div className="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center">
+                  <AlertCircle className="w-6 h-6 text-yellow-600" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Filters */}
+        <Card className="mb-6">
+          <CardContent className="pt-6">
+            <div className="flex items-center space-x-4">
+              <div className="flex-1">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                  <Input
+                    placeholder="Search users..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+              </div>
+              <Select value={roleFilter} onValueChange={setRoleFilter}>
+                <SelectTrigger className="w-48">
+                  <SelectValue placeholder="Filter by role" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Roles</SelectItem>
+                  <SelectItem value="admin">Administrators</SelectItem>
+                  <SelectItem value="sales">Sales Team</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Users Table */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Team Members ({filteredUsers.length})</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>User</TableHead>
+                  <TableHead>Role</TableHead>
+                  <TableHead>Active Targets</TableHead>
+                  <TableHead>Deals Closed</TableHead>
+                  <TableHead>Revenue</TableHead>
+                  <TableHead>Target Progress</TableHead>
+                  <TableHead>Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredUsers.map((user) => {
+                  const stats = getUserStats(user);
+                  const RoleIcon = getRoleIcon(user.role);
+                  const isCurrentUser = user.id === currentUser?.id;
+
+                  return (
+                    <TableRow key={user.id}>
+                      <TableCell>
+                        <div className="flex items-center space-x-3">
+                          <div className="w-10 h-10 bg-primary-100 rounded-full flex items-center justify-center">
+                            {user.profileImageUrl ? (
+                              <img
+                                src={user.profileImageUrl}
+                                alt={`${user.firstName} ${user.lastName}`}
+                                className="w-10 h-10 rounded-full object-cover"
+                              />
+                            ) : (
+                              <RoleIcon className="w-5 h-5 text-primary-600" />
+                            )}
+                          </div>
+                          <div>
+                            <p className="font-medium text-gray-900">
+                              {user.firstName} {user.lastName}
+                              {isCurrentUser && <span className="text-xs text-gray-500 ml-2">(You)</span>}
+                            </p>
+                            <p className="text-sm text-gray-500">{user.email}</p>
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        {getRoleBadge(user.role)}
+                      </TableCell>
+                      <TableCell>
+                        <span className="font-medium">{stats.activeTargets}</span>
+                      </TableCell>
+                      <TableCell>
+                        <span className="font-medium">{stats.dealsCount}</span>
+                      </TableCell>
+                      <TableCell>
+                        <span className="font-medium">{formatCurrency(stats.revenue)}</span>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center space-x-2">
+                          <div className="w-16 bg-gray-200 rounded-full h-2">
+                            <div 
+                              className={`h-2 rounded-full ${
+                                stats.targetProgress >= 75 ? 'bg-success-500' : 
+                                stats.targetProgress >= 50 ? 'bg-warning-500' : 'bg-gray-400'
+                              }`}
+                              style={{ width: `${Math.min(stats.targetProgress, 100)}%` }}
+                            ></div>
+                          </div>
+                          <span className="text-sm font-medium text-gray-600">
+                            {stats.targetProgress.toFixed(0)}%
+                          </span>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center space-x-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleEditRole(user)}
+                            disabled={isCurrentUser}
+                          >
+                            <Edit className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+
+        {/* Role Update Dialog */}
+        <Dialog open={isRoleDialogOpen} onOpenChange={setIsRoleDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Update User Role</DialogTitle>
+            </DialogHeader>
+            {selectedUser && (
+              <div className="space-y-4">
+                <div className="flex items-center space-x-3 p-4 bg-gray-50 rounded-lg">
+                  <div className="w-10 h-10 bg-primary-100 rounded-full flex items-center justify-center">
+                    {selectedUser.profileImageUrl ? (
+                      <img
+                        src={selectedUser.profileImageUrl}
+                        alt={`${selectedUser.firstName} ${selectedUser.lastName}`}
+                        className="w-10 h-10 rounded-full object-cover"
+                      />
+                    ) : (
+                      <Users className="w-5 h-5 text-primary-600" />
+                    )}
+                  </div>
+                  <div>
+                    <p className="font-medium text-gray-900">
+                      {selectedUser.firstName} {selectedUser.lastName}
+                    </p>
+                    <p className="text-sm text-gray-500">{selectedUser.email}</p>
+                  </div>
+                </div>
+
+                <Form {...form}>
+                  <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                    <FormField
+                      control={form.control}
+                      name="role"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Role</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select role" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="admin">
+                                <div className="flex items-center space-x-2">
+                                  <Crown className="w-4 h-4" />
+                                  <span>Administrator</span>
+                                </div>
+                              </SelectItem>
+                              <SelectItem value="sales">
+                                <div className="flex items-center space-x-2">
+                                  <Users className="w-4 h-4" />
+                                  <span>Sales User</span>
+                                </div>
+                              </SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <div className="flex justify-end space-x-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => setIsRoleDialogOpen(false)}
+                      >
+                        Cancel
+                      </Button>
+                      <Button type="submit" disabled={updateRoleMutation.isPending}>
+                        {updateRoleMutation.isPending ? "Updating..." : "Update Role"}
+                      </Button>
+                    </div>
+                  </form>
+                </Form>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
+      </div>
+    </>
+  );
+}
