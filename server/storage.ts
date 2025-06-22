@@ -246,7 +246,7 @@ export class DatabaseStorage implements IStorage {
     const activeLeads = allLeads.filter(lead => !['closed_won', 'closed_lost'].includes(lead.stage));
     const closedWonLeads = allLeads.filter(lead => lead.stage === 'closed_won');
 
-    const totalRevenue = closedWonLeads.reduce((sum, lead) => sum + parseFloat(lead.value || '0'), 0);
+    const totalRevenue = closedWonLeads.reduce((sum, lead) => sum + (lead.value || 0), 0);
     const conversionRate = allLeads.length > 0 ? (closedWonLeads.length / allLeads.length) * 100 : 0;
 
     // Calculate target progress
@@ -254,7 +254,7 @@ export class DatabaseStorage implements IStorage {
     if (userId) {
       const currentTarget = await this.getCurrentTarget(userId, 'monthly');
       if (currentTarget) {
-        targetProgress = (totalRevenue / parseFloat(currentTarget.amount)) * 100;
+        targetProgress = (totalRevenue / currentTarget.targetValue) * 100;
       }
     }
 
@@ -278,10 +278,10 @@ export class DatabaseStorage implements IStorage {
     for (const user of allUsers) {
       const userLeads = await this.getLeadsByUser(user.id);
       const closedWonLeads = userLeads.filter(lead => lead.stage === 'closed_won');
-      const revenue = closedWonLeads.reduce((sum, lead) => sum + parseFloat(lead.value || '0'), 0);
+      const revenue = closedWonLeads.reduce((sum, lead) => sum + (lead.value || 0), 0);
 
       const currentTarget = await this.getCurrentTarget(user.id, 'monthly');
-      const targetProgress = currentTarget ? (revenue / parseFloat(currentTarget.amount)) * 100 : 0;
+      const targetProgress = currentTarget ? (revenue / currentTarget.targetValue) * 100 : 0;
 
       performance.push({
         user,

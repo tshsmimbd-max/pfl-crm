@@ -236,7 +236,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         userId: target.userId!,
         type: 'target_assigned',
         title: 'New Target Assigned',
-        message: `You have been assigned a new ${target.period} target of $${target.amount}`,
+        message: `You have been assigned a new ${target.period} target of ৳${target.targetValue}`,
       });
 
       res.json(target);
