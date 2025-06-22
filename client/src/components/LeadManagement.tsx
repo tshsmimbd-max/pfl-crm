@@ -34,12 +34,12 @@ export default function LeadManagement() {
   const form = useForm<InsertLead>({
     resolver: zodResolver(insertLeadSchema),
     defaultValues: {
-      name: "",
+      contactName: "",
       email: "",
       phone: "",
       company: "",
-      value: "0",
-      stage: "prospecting",
+      value: 0,
+      stage: "Prospecting",
       assignedTo: "",
     },
   });
