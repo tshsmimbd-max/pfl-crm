@@ -41,12 +41,12 @@ export const users = pgTable("users", {
 // Leads table
 export const leads = pgTable("leads", {
   id: serial("id").primaryKey(),
-  name: varchar("name").notNull(),
+  contactName: varchar("contact_name").notNull(),
   email: varchar("email").notNull(),
   phone: varchar("phone"),
   company: varchar("company").notNull(),
-  value: decimal("value", { precision: 10, scale: 2 }).notNull(),
-  stage: varchar("stage").notNull().default("prospecting"), // prospecting, qualification, proposal, negotiation, closed_won, closed_lost
+  value: integer("value").notNull(),
+  stage: varchar("stage").notNull().default("Prospecting"), // Prospecting, Qualified, Proposal, Negotiation, Closed Won, Closed Lost
   assignedTo: varchar("assigned_to").references(() => users.id),
   createdBy: varchar("created_by").references(() => users.id),
   createdAt: timestamp("created_at").defaultNow(),
@@ -70,10 +70,12 @@ export const interactions = pgTable("interactions", {
 export const targets = pgTable("targets", {
   id: serial("id").primaryKey(),
   userId: varchar("user_id").references(() => users.id),
+  targetType: varchar("target_type").notNull(), // revenue, leads, deals
+  targetValue: integer("target_value").notNull(),
   period: varchar("period").notNull(), // monthly, quarterly, annual
-  amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
-  startDate: timestamp("start_date").notNull(),
-  endDate: timestamp("end_date").notNull(),
+  description: text("description"),
+  startDate: timestamp("start_date").defaultNow(),
+  endDate: timestamp("end_date"),
   createdBy: varchar("created_by").references(() => users.id),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
