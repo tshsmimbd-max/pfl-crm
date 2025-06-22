@@ -21,6 +21,77 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Sample data initialization
+  app.post('/api/init-sample-data', isAuthenticated, async (req: any, res) => {
+    try {
+      const currentUserId = req.user.claims.sub;
+      
+      // Create sample admin user
+      const adminUser = await storage.upsertUser({
+        id: 'admin-001',
+        email: 'admin@paperfly.com',
+        firstName: 'Admin',
+        lastName: 'User',
+        profileImageUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=admin',
+        role: 'admin'
+      });
+
+      // Create sample sales users
+      const salesUser1 = await storage.upsertUser({
+        id: 'sales-001',
+        email: 'sales1@paperfly.com',
+        firstName: 'Rashid',
+        lastName: 'Ahmed',
+        profileImageUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=rashid',
+        role: 'sales'
+      });
+
+      const salesUser2 = await storage.upsertUser({
+        id: 'sales-002',
+        email: 'sales2@paperfly.com',
+        firstName: 'Fatima',
+        lastName: 'Khan',
+        profileImageUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=fatima',
+        role: 'sales'
+      });
+
+      // Create sample leads
+      const leads = [
+        { contactName: 'John Doe', email: 'john@techsolutions.com', company: 'Tech Solutions Ltd', phone: '+880-1234-567890', value: 50000, stage: 'Prospecting', assignedTo: 'sales-001' },
+        { contactName: 'Sarah Smith', email: 'sarah@digitalma.com', company: 'Digital Marketing Agency', phone: '+880-1234-567891', value: 75000, stage: 'Qualified', assignedTo: 'sales-001' },
+        { contactName: 'Mike Johnson', email: 'mike@ecomstart.com', company: 'E-commerce Startup', phone: '+880-1234-567892', value: 100000, stage: 'Proposal', assignedTo: 'sales-002' },
+        { contactName: 'Ahmed Hassan', email: 'ahmed@restaurant.com', company: 'Local Restaurant Chain', phone: '+880-1234-567893', value: 25000, stage: 'Negotiation', assignedTo: 'sales-002' },
+        { contactName: 'Dr. Rahman', email: 'rahman@clinic.com', company: 'Healthcare Clinic', phone: '+880-1234-567894', value: 60000, stage: 'Closed Won', assignedTo: 'sales-001' }
+      ];
+
+      for (const lead of leads) {
+        await storage.createLead(lead);
+      }
+
+      // Create sample targets
+      await storage.createTarget({
+        userId: 'sales-001',
+        targetType: 'revenue',
+        targetValue: 200000,
+        period: 'monthly',
+        description: 'Monthly revenue target for Rashid'
+      });
+
+      await storage.createTarget({
+        userId: 'sales-002',
+        targetType: 'revenue',
+        targetValue: 180000,
+        period: 'monthly',
+        description: 'Monthly revenue target for Fatima'
+      });
+
+      res.json({ message: 'Sample data initialized successfully' });
+    } catch (error) {
+      console.error("Error initializing sample data:", error);
+      res.status(500).json({ message: "Failed to initialize sample data" });
+    }
+  });
+
   // User management routes (Admin only)
   app.get('/api/users', isAuthenticated, async (req: any, res) => {
     try {

@@ -135,7 +135,8 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getLeadsByUser(userId: string): Promise<Lead[]> {
-    return await db.select().from(leads).where(eq(leads.assignedTo, userId));
+    const query = db.select().from(leads).where(eq(leads.assignedTo, userId));
+    return await query;
   }
 
   // Interaction operations
