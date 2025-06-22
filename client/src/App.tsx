@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { useAuth } from "@/hooks/useAuth";
 import NotFound from "@/pages/not-found";
 import Home from "@/pages/Home";
+import AuthPage from "@/pages/AuthPage";
 
 function Router() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -19,22 +20,7 @@ function Router() {
   }
 
   if (!isAuthenticated) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
-        <div className="max-w-md w-full bg-white rounded-lg shadow-xl p-8 text-center">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Paperfly CRM</h1>
-          <p className="text-gray-600 mb-8">Please log in to access your CRM dashboard</p>
-          <div className="space-y-3">
-            <a
-              href="/api/login"
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-lg transition-colors block"
-            >
-              Log In with Replit
-            </a>
-          </div>
-        </div>
-      </div>
-    );
+    return <AuthPage />;
   }
 
   return (
