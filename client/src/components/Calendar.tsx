@@ -320,7 +320,7 @@ export default function Calendar() {
                             <SelectContent>
                               {leads?.map((lead) => (
                                 <SelectItem key={lead.id} value={lead.id.toString()}>
-                                  {lead.name} - {lead.company}
+                                  {lead.contactName} - {lead.company}
                                 </SelectItem>
                               ))}
                             </SelectContent>
