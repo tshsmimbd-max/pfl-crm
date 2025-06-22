@@ -24,11 +24,8 @@ export default function PipelineManagement() {
     },
   });
 
-  const formatCurrency = (amount: string) => {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-    }).format(parseFloat(amount));
+  const formatCurrency = (amount: number) => {
+    return `৳${amount.toLocaleString()}`;
   };
 
   const getLeadsByStage = (stage: string) => {
@@ -36,7 +33,7 @@ export default function PipelineManagement() {
   };
 
   const calculateStageValue = (stage: string) => {
-    return getLeadsByStage(stage).reduce((sum, lead) => sum + parseFloat(lead.value || '0'), 0);
+    return getLeadsByStage(stage).reduce((sum, lead) => sum + (lead.value || 0), 0);
   };
 
   const onDragEnd = (result: any) => {
@@ -106,7 +103,7 @@ export default function PipelineManagement() {
           {stages.map((stage) => {
             const stageLeads = getLeadsByStage(stage.id);
             const stageValue = calculateStageValue(stage.id);
-            const totalValue = leads.reduce((sum, lead) => sum + parseFloat(lead.value || '0'), 0);
+            const totalValue = leads.reduce((sum, lead) => sum + (lead.value || 0), 0);
             const percentage = totalValue > 0 ? (stageValue / totalValue) * 100 : 0;
 
             return (

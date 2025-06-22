@@ -1,6 +1,9 @@
 import { useEffect, useState } from "react";
+import { useMutation } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { useLocation } from "wouter";
+import { Button } from "@/components/ui/button";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import Sidebar from "@/components/Sidebar";
 import Dashboard from "@/components/Dashboard";
 import LeadManagement from "@/components/LeadManagement";
@@ -18,6 +21,26 @@ export default function Home() {
   const [location] = useLocation();
   const { toast } = useToast();
   const [currentView, setCurrentView] = useState("dashboard");
+
+  const initSampleDataMutation = useMutation({
+    mutationFn: async () => {
+      await apiRequest("POST", "/api/init-sample-data", {});
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries();
+      toast({
+        title: "Success",
+        description: "Sample data has been initialized successfully!",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to initialize sample data. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
 
   useEffect(() => {
     if (!isLoading && !user) {
@@ -78,7 +101,30 @@ export default function Home() {
     <div className="min-h-screen flex bg-gray-50">
       <Sidebar user={user} currentView={currentView} setCurrentView={setCurrentView} />
       <main className="flex-1 flex flex-col overflow-hidden">
-        {renderContent()}
+        <div className="flex-1 p-6">
+          <div className="flex items-center justify-between mb-6">
+            <h1 className="text-2xl font-semibold text-gray-900">
+              {currentView.charAt(0).toUpperCase() + currentView.slice(1).replace('-', ' ')}
+            </h1>
+            <div className="flex items-center space-x-4">
+              <Button
+                onClick={() => initSampleDataMutation.mutate()}
+                disabled={initSampleDataMutation.isPending}
+                variant="outline"
+                size="sm"
+              >
+                {initSampleDataMutation.isPending ? "Loading..." : "Add Sample Data"}
+              </Button>
+              <a
+                href="/api/logout"
+                className="text-sm text-gray-500 hover:text-gray-700"
+              >
+                Log out
+              </a>
+            </div>
+          </div>
+          {renderContent()}
+        </div>
       </main>
       <NotificationSystem />
     </div>

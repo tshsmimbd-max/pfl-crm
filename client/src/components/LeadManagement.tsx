@@ -119,7 +119,7 @@ export default function LeadManagement() {
   };
 
   const filteredLeads = leads?.filter((lead) => {
-    const matchesSearch = lead.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    const matchesSearch = lead.contactName.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          lead.company.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          lead.email.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStage = stageFilter === "all" || lead.stage === stageFilter;
@@ -145,11 +145,8 @@ export default function LeadManagement() {
     }
   };
 
-  const formatCurrency = (amount: string) => {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-    }).format(parseFloat(amount));
+  const formatCurrency = (amount: number) => {
+    return `৳${amount.toLocaleString()}`;
   };
 
   if (isLoading) {
@@ -193,12 +190,12 @@ export default function LeadManagement() {
                   <div className="grid grid-cols-2 gap-4">
                     <FormField
                       control={form.control}
-                      name="name"
+                      name="contactName"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Name</FormLabel>
+                          <FormLabel>Contact Name</FormLabel>
                           <FormControl>
-                            <Input placeholder="Enter lead name" {...field} />
+                            <Input placeholder="Enter contact name" {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>

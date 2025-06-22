@@ -53,10 +53,7 @@ export default function Analytics() {
   });
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-    }).format(amount);
+    return `৳${amount.toLocaleString()}`;
   };
 
   // Generate sample data for charts (in a real app, this would come from API)

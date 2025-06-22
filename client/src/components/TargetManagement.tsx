@@ -40,10 +40,10 @@ export default function TargetManagement() {
     resolver: zodResolver(insertTargetSchema),
     defaultValues: {
       userId: "",
+      targetType: "revenue",
+      targetValue: 0,
       period: "monthly",
-      amount: "0",
-      startDate: new Date(),
-      endDate: new Date(),
+      description: "",
     },
   });
 
