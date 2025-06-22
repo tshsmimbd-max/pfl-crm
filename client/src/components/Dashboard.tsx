@@ -242,17 +242,17 @@ export default function Dashboard() {
                     <div className="flex items-center space-x-4">
                       <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
                         <span className="text-sm font-medium text-gray-600">
-                          {lead.name.split(' ').map(n => n[0]).join('')}
+                          {lead.contactName.split(' ').map(n => n[0]).join('')}
                         </span>
                       </div>
                       <div>
-                        <p className="font-medium text-gray-900">{lead.name}</p>
+                        <p className="font-medium text-gray-900">{lead.contactName}</p>
                         <p className="text-sm text-gray-600">{lead.company}</p>
                       </div>
                     </div>
                     <div className="flex items-center space-x-4">
                       <div className="text-right">
-                        <p className="font-medium text-gray-900">{formatCurrency(parseFloat(lead.value))}</p>
+                        <p className="font-medium text-gray-900">{formatCurrency(lead.value)}</p>
                         <Badge className={`text-xs ${getStageColor(lead.stage)}`}>
                           {lead.stage.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
                         </Badge>

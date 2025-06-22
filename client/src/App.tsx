@@ -24,12 +24,14 @@ function Router() {
         <div className="max-w-md w-full bg-white rounded-lg shadow-xl p-8 text-center">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Paperfly CRM</h1>
           <p className="text-gray-600 mb-8">Please log in to access your CRM dashboard</p>
-          <a
-            href="/api/login"
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-lg transition-colors"
-          >
-            Log In
-          </a>
+          <div className="space-y-3">
+            <a
+              href="/api/login"
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-lg transition-colors block"
+            >
+              Log In with Replit
+            </a>
+          </div>
         </div>
       </div>
     );
