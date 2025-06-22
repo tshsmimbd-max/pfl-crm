@@ -17,6 +17,7 @@ import {
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, gte, lte, sum, count } from "drizzle-orm";
+import * as crypto from "crypto";
 
 export interface IStorage {
   // User operations
@@ -73,6 +74,27 @@ export class DatabaseStorage implements IStorage {
   // User operations
   async getUser(id: string): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user;
+  }
+
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.email, email));
+    return user;
+  }
+
+  async createUser(userData: { email: string; password: string; firstName: string; lastName: string; role?: string }): Promise<User> {
+    const userId = crypto.randomUUID();
+    const [user] = await db
+      .insert(users)
+      .values({
+        id: userId,
+        email: userData.email,
+        password: userData.password,
+        firstName: userData.firstName,
+        lastName: userData.lastName,
+        role: userData.role || 'sales',
+      })
+      .returning();
     return user;
   }
 

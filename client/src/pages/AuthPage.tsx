@@ -100,15 +100,12 @@ export default function AuthPage() {
   };
 
   const handleOutlookLogin = () => {
-    window.open(
-      `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?` +
-      `client_id=your-outlook-client-id&` +
-      `response_type=code&` +
-      `redirect_uri=${encodeURIComponent(window.location.origin + '/api/auth/outlook/callback')}&` +
-      `scope=openid%20profile%20email&` +
-      `response_mode=query`,
-      '_self'
-    );
+    // For now, show a message that Outlook login needs configuration
+    toast({
+      title: "Outlook Login",
+      description: "Outlook login requires Microsoft OAuth configuration. Please use email/password login.",
+      variant: "destructive",
+    });
   };
 
   return (

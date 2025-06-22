@@ -389,7 +389,7 @@ export default function LeadManagement() {
                           </span>
                         </div>
                         <div>
-                          <p className="font-medium text-gray-900">{lead.name}</p>
+                          <p className="font-medium text-gray-900">{lead.contactName}</p>
                           <p className="text-sm text-gray-500">{lead.email}</p>
                         </div>
                       </div>

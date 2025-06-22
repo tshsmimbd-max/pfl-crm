@@ -87,9 +87,17 @@ export default function Home() {
             </h1>
             <div className="flex items-center space-x-4">
               <button
-                onClick={() => {
-                  fetch('/api/logout', { method: 'POST' })
-                    .then(() => window.location.reload());
+                onClick={async () => {
+                  try {
+                    await fetch('/api/logout', { 
+                      method: 'POST',
+                      credentials: 'include'
+                    });
+                    window.location.reload();
+                  } catch (error) {
+                    console.error('Logout error:', error);
+                    window.location.reload();
+                  }
                 }}
                 className="text-sm text-gray-500 hover:text-gray-700"
               >
