@@ -395,7 +395,7 @@ export default function LeadManagement() {
                       </div>
                     </TableCell>
                     <TableCell className="font-medium">{lead.company}</TableCell>
-                    <TableCell className="font-medium">{formatCurrency(lead.value)}</TableCell>
+                    <TableCell className="font-medium">৳{lead.value.toLocaleString()}</TableCell>
                     <TableCell>
                       <Badge className={`${getStageColor(lead.stage)}`}>
                         {lead.stage.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}

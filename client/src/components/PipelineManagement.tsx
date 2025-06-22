@@ -171,7 +171,7 @@ export default function PipelineManagement() {
                                 >
                                   <div className="flex items-start justify-between mb-2">
                                     <div className="flex-1">
-                                      <h4 className="font-medium text-gray-900 text-sm">{lead.name}</h4>
+                                      <h4 className="font-medium text-gray-900 text-sm">{lead.contactName}</h4>
                                       <p className="text-xs text-gray-600">{lead.company}</p>
                                     </div>
                                     <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
@@ -184,7 +184,7 @@ export default function PipelineManagement() {
                                     </span>
                                     <div className="w-6 h-6 bg-gray-200 rounded-full flex items-center justify-center">
                                       <span className="text-xs font-medium text-gray-600">
-                                        {lead.name.split(' ').map((n: string) => n[0]).join('')}
+                                        {lead.contactName.split(' ').map((n: string) => n[0]).join('')}
                                       </span>
                                     </div>
                                   </div>
