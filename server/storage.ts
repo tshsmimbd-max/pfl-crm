@@ -39,6 +39,7 @@ export interface IStorage {
 
   // Interaction operations
   getInteractions(leadId: number): Promise<Interaction[]>;
+  getAllInteractions(): Promise<Interaction[]>;
   createInteraction(interaction: InsertInteraction): Promise<Interaction>;
   updateInteraction(id: number, interaction: Partial<InsertInteraction>): Promise<Interaction>;
 
