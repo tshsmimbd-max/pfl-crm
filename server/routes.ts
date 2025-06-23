@@ -28,12 +28,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: "Invalid email or password" });
       }
 
+      // Check if email is verified (only for traditional registration users)
+      if (user.password && !user.emailVerified) {
+        return res.status(401).json({ 
+          message: "Please verify your email before logging in. Check your email for the verification link.",
+          needsVerification: true
+        });
+      }
+
       req.login(user, (err: any) => {
         if (err) {
           console.error("Session login error:", err);
           return res.status(500).json({ message: "Session creation failed" });
         }
-        const { password: _, ...userWithoutPassword } = user;
+        const { password: _, verificationToken: __, ...userWithoutPassword } = user;
         res.json(userWithoutPassword);
       });
     } catch (error) {
@@ -140,6 +148,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           firstName,
           lastName,
           role: 'sales', // Default role
+          emailVerified: true, // OAuth users are automatically verified
         });
       }
 

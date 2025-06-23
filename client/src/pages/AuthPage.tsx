@@ -111,11 +111,17 @@ export default function AuthPage() {
         description: "Welcome back!",
       });
     } catch (error: any) {
-      toast({
+      const errorData = error.message.includes('verify your email') ? {
+        title: "Email verification required",
+        description: "Please check the server console for your verification link and click it to verify your email before logging in.",
+        variant: "destructive" as const
+      } : {
         title: "Login failed",
         description: error.message || "Invalid email or password",
-        variant: "destructive",
-      });
+        variant: "destructive" as const
+      };
+      
+      toast(errorData);
     }
   };
 
@@ -128,9 +134,14 @@ export default function AuthPage() {
       toast({
         title: "Registration successful",
         description: userData.emailVerificationSent 
-          ? "Account created! Check the console for your verification link." 
+          ? "Account created! Please check the server console for your verification link and click it before logging in." 
           : "Welcome to Paperfly CRM!",
       });
+      
+      // Switch to login tab after successful registration
+      if (userData.emailVerificationSent) {
+        setActiveTab("login");
+      }
     } catch (error: any) {
       toast({
         title: "Registration failed",

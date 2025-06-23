@@ -21,11 +21,13 @@ import { relations } from "drizzle-orm";
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().notNull(),
   email: varchar("email").unique().notNull(),
-  password: varchar("password").notNull(),
+  password: varchar("password"),
   firstName: varchar("first_name").notNull(),
   lastName: varchar("last_name").notNull(),
   profileImageUrl: varchar("profile_image_url"),
   role: varchar("role").notNull().default("sales"), // admin, sales
+  emailVerified: boolean("email_verified").default(false),
+  verificationToken: varchar("verification_token"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

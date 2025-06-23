@@ -85,7 +85,12 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
 
-  async createUser(userData: { email: string; password: string; firstName: string; lastName: string; role?: string }): Promise<User> {
+  async getUserByVerificationToken(token: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.verificationToken, token));
+    return user || undefined;
+  }
+
+  async createUser(userData: { email: string; password: string; firstName: string; lastName: string; role?: string; emailVerified?: boolean; verificationToken?: string }): Promise<User> {
     const userId = crypto.randomUUID();
     const [user] = await db
       .insert(users)
@@ -96,7 +101,22 @@ export class DatabaseStorage implements IStorage {
         firstName: userData.firstName,
         lastName: userData.lastName,
         role: userData.role || 'sales',
+        emailVerified: userData.emailVerified || false,
+        verificationToken: userData.verificationToken,
       })
+      .returning();
+    return user;
+  }
+
+  async verifyUserEmail(id: string): Promise<User> {
+    const [user] = await db
+      .update(users)
+      .set({
+        emailVerified: true,
+        verificationToken: null,
+        updatedAt: new Date(),
+      })
+      .where(eq(users.id, id))
       .returning();
     return user;
   }
