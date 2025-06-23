@@ -373,6 +373,8 @@ export default function LeadManagement() {
                   <TableHead>Lead</TableHead>
                   <TableHead>Company</TableHead>
                   <TableHead>Value</TableHead>
+                  <TableHead>Order Volume</TableHead>
+                  <TableHead>Lead Source</TableHead>
                   <TableHead>Stage</TableHead>
                   <TableHead>Assigned To</TableHead>
                   <TableHead>Actions</TableHead>
@@ -395,7 +397,9 @@ export default function LeadManagement() {
                       </div>
                     </TableCell>
                     <TableCell className="font-medium">{lead.company}</TableCell>
-                    <TableCell className="font-medium">৳{lead.value.toLocaleString()}</TableCell>
+                    <TableCell className="font-medium">৳{parseFloat(lead.value).toLocaleString()}</TableCell>
+                    <TableCell>{lead.orderVolume || '-'}</TableCell>
+                    <TableCell>{lead.leadSource || '-'}</TableCell>
                     <TableCell>
                       <Badge className={`${getStageColor(lead.stage)}`}>
                         {lead.stage.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}

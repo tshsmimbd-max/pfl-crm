@@ -16,7 +16,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // User management routes (Admin only)
   app.get('/api/users', isAuthenticated, async (req: any, res) => {
     try {
-      const user = await storage.getUser(req.user.claims.sub);
+      const user = await storage.getUser(req.user.id);
       if (user?.role !== 'admin') {
         return res.status(403).json({ message: "Access denied" });
       }
@@ -30,7 +30,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.patch('/api/users/:id/role', isAuthenticated, async (req: any, res) => {
     try {
-      const user = await storage.getUser(req.user.claims.sub);
+      const user = await storage.getUser(req.user.id);
       if (user?.role !== 'admin') {
         return res.status(403).json({ message: "Access denied" });
       }
@@ -71,7 +71,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const leadData = insertLeadSchema.parse({
         ...req.body,
-        createdBy: req.user.claims.sub,
+        createdBy: req.user.id,
       });
       const lead = await storage.createLead(leadData);
       res.json(lead);
@@ -117,7 +117,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const interactionData = insertInteractionSchema.parse({
         ...req.body,
-        userId: req.user.claims.sub,
+        userId: req.user.id,
       });
       const interaction = await storage.createInteraction(interactionData);
       res.json(interaction);
@@ -130,8 +130,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Target management routes
   app.get('/api/targets', isAuthenticated, async (req: any, res) => {
     try {
-      const user = await storage.getUser(req.user.claims.sub);
-      const userId = user?.role === 'admin' ? undefined : req.user.claims.sub;
+      const user = await storage.getUser(req.user.id);
+      const userId = user?.role === 'admin' ? undefined : req.user.id;
       const targets = await storage.getTargets(userId);
       res.json(targets);
     } catch (error) {
@@ -142,13 +142,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/targets', isAuthenticated, async (req: any, res) => {
     try {
-      const user = await storage.getUser(req.user.claims.sub);
+      const user = await storage.getUser(req.user.id);
       if (user?.role !== 'admin') {
         return res.status(403).json({ message: "Access denied" });
       }
       const targetData = insertTargetSchema.parse({
         ...req.body,
-        createdBy: req.user.claims.sub,
+        createdBy: req.user.id,
       });
       const target = await storage.createTarget(targetData);
 
@@ -169,7 +169,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.patch('/api/targets/:id', isAuthenticated, async (req: any, res) => {
     try {
-      const user = await storage.getUser(req.user.claims.sub);
+      const user = await storage.getUser(req.user.id);
       if (user?.role !== 'admin') {
         return res.status(403).json({ message: "Access denied" });
       }
@@ -183,7 +183,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.delete('/api/targets/:id', isAuthenticated, async (req: any, res) => {
     try {
-      const user = await storage.getUser(req.user.claims.sub);
+      const user = await storage.getUser(req.user.id);
       if (user?.role !== 'admin') {
         return res.status(403).json({ message: "Access denied" });
       }
@@ -198,7 +198,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Notification routes
   app.get('/api/notifications', isAuthenticated, async (req: any, res) => {
     try {
-      const notifications = await storage.getNotifications(req.user.claims.sub);
+      const notifications = await storage.getNotifications(req.user.id);
       res.json(notifications);
     } catch (error) {
       console.error("Error fetching notifications:", error);
@@ -218,7 +218,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get('/api/notifications/unread-count', isAuthenticated, async (req: any, res) => {
     try {
-      const count = await storage.getUnreadNotificationCount(req.user.claims.sub);
+      const count = await storage.getUnreadNotificationCount(req.user.id);
       res.json({ count });
     } catch (error) {
       console.error("Error fetching unread notification count:", error);
@@ -229,8 +229,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Analytics routes
   app.get('/api/analytics/metrics', isAuthenticated, async (req: any, res) => {
     try {
-      const user = await storage.getUser(req.user.claims.sub);
-      const userId = user?.role === 'admin' ? undefined : req.user.claims.sub;
+      const user = await storage.getUser(req.user.id);
+      const userId = user?.role === 'admin' ? undefined : req.user.id;
       const metrics = await storage.getSalesMetrics(userId);
       res.json(metrics);
     } catch (error) {

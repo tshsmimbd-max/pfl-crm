@@ -143,6 +143,8 @@ export const insertLeadSchema = createInsertSchema(leads).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
+}).extend({
+  value: z.string().transform(val => parseFloat(val)),
 });
 
 export const insertInteractionSchema = createInsertSchema(interactions).omit({
