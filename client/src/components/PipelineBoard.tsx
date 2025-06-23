@@ -90,12 +90,16 @@ export default function PipelineBoard() {
     updateLeadStageMutation.mutate({ leadId, newStage });
   };
 
-  const formatCurrency = (value: string) => {
-    return `৳${parseFloat(value).toLocaleString()}`;
+  const formatCurrency = (value: string | number) => {
+    const numValue = typeof value === 'string' ? parseFloat(value) : value;
+    return `৳${numValue.toLocaleString()}`;
   };
 
   const getStageValue = (stageLeads: Lead[]) => {
-    return stageLeads.reduce((sum, lead) => sum + parseFloat(lead.value), 0);
+    return stageLeads.reduce((sum, lead) => {
+      const value = typeof lead.value === 'string' ? parseFloat(lead.value) : lead.value;
+      return sum + (isNaN(value) ? 0 : value);
+    }, 0);
   };
 
   if (isLoading) {
