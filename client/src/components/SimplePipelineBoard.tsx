@@ -8,7 +8,7 @@ import type { Lead } from "@shared/schema";
 
 const STAGES = [
   { id: "Prospecting", title: "Prospecting", color: "bg-blue-50 border-blue-200" },
-  { id: "Qualification", title: "Qualification", color: "bg-yellow-50 border-yellow-200" },
+  { id: "Qualified", title: "Qualified", color: "bg-yellow-50 border-yellow-200" },
   { id: "Proposal", title: "Proposal", color: "bg-purple-50 border-purple-200" },
   { id: "Negotiation", title: "Negotiation", color: "bg-orange-50 border-orange-200" },
   { id: "Closed Won", title: "Closed Won", color: "bg-green-50 border-green-200" },
@@ -20,13 +20,21 @@ export default function SimplePipelineBoard() {
     queryKey: ["/api/leads"],
   });
 
+  console.log("SimplePipelineBoard - Leads data:", leads);
+  console.log("SimplePipelineBoard - Loading:", isLoading);
+
   const formatCurrency = (value: any) => {
     const numValue = typeof value === 'string' ? parseFloat(value) : value;
     return `৳${(isNaN(numValue) ? 0 : numValue).toLocaleString()}`;
   };
 
   const getLeadsForStage = (stageId: string) => {
-    return leads.filter((lead: Lead) => lead.stage === stageId);
+    const stageLeads = leads.filter((lead: Lead) => {
+      console.log(`Checking lead ${lead.id}: stage="${lead.stage}" vs stageId="${stageId}"`);
+      return lead.stage === stageId;
+    });
+    console.log(`Stage "${stageId}" has ${stageLeads.length} leads:`, stageLeads);
+    return stageLeads;
   };
 
   const getStageValue = (stageLeads: Lead[]) => {
