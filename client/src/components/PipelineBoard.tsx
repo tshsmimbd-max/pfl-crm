@@ -20,7 +20,7 @@ interface PipelineStage {
 
 const PIPELINE_STAGES = [
   { id: "Prospecting", title: "Prospecting", color: "bg-gray-100 border-gray-300" },
-  { id: "Qualified", title: "Qualified", color: "bg-blue-100 border-blue-300" },
+  { id: "Qualification", title: "Qualification", color: "bg-blue-100 border-blue-300" },
   { id: "Proposal", title: "Proposal", color: "bg-yellow-100 border-yellow-300" },
   { id: "Negotiation", title: "Negotiation", color: "bg-orange-100 border-orange-300" },
   { id: "Closed Won", title: "Closed Won", color: "bg-green-100 border-green-300" },
@@ -31,9 +31,13 @@ export default function PipelineBoard() {
   const { toast } = useToast();
   const [stages, setStages] = useState<PipelineStage[]>([]);
 
-  const { data: leads = [], isLoading } = useQuery({
+  const { data: leads = [], isLoading, error } = useQuery({
     queryKey: ["/api/leads"],
   });
+
+  console.log("Pipeline leads data:", leads);
+  console.log("Pipeline loading:", isLoading);
+  console.log("Pipeline error:", error);
 
   const updateLeadStageMutation = useMutation({
     mutationFn: async ({ leadId, newStage }: { leadId: number; newStage: string }) => {
@@ -57,12 +61,23 @@ export default function PipelineBoard() {
   });
 
   useEffect(() => {
-    if (leads) {
-      const stagesWithLeads = PIPELINE_STAGES.map(stage => ({
-        ...stage,
-        leads: leads.filter((lead: Lead) => lead.stage === stage.id),
-      }));
+    if (leads && leads.length > 0) {
+      console.log("Processing leads for pipeline:", leads);
+      const stagesWithLeads = PIPELINE_STAGES.map(stage => {
+        const stageLeads = leads.filter((lead: Lead) => {
+          console.log(`Lead ${lead.id} stage: "${lead.stage}", checking against: "${stage.id}"`);
+          return lead.stage === stage.id;
+        });
+        console.log(`Stage "${stage.id}" has ${stageLeads.length} leads:`, stageLeads);
+        return {
+          ...stage,
+          leads: stageLeads,
+        };
+      });
       setStages(stagesWithLeads);
+    } else {
+      console.log("No leads data available:", leads);
+      setStages(PIPELINE_STAGES.map(stage => ({ ...stage, leads: [] })));
     }
   }, [leads]);
 
