@@ -46,10 +46,29 @@ export function useAuth() {
     retry: false,
   });
 
+  // Also check for traditional auth if no Firebase user
+  const { data: traditionalUser, isLoading: isLoadingTraditional } = useQuery({
+    queryKey: ["/api/user"],
+    queryFn: async () => {
+      try {
+        const response = await fetch('/api/user', { credentials: 'include' });
+        if (response.status === 401) return null;
+        return response.json();
+      } catch (error) {
+        return null;
+      }
+    },
+    enabled: !firebaseUser && !isLoadingAuth,
+    retry: false,
+  });
+
+  const finalUser = backendUser || traditionalUser;
+  const finalLoading = isLoadingAuth || isLoadingBackend || isLoadingTraditional;
+
   return {
-    user: backendUser,
+    user: finalUser,
     firebaseUser,
-    isLoading: isLoadingAuth || isLoadingBackend,
-    isAuthenticated: !!firebaseUser && !!backendUser,
+    isLoading: finalLoading,
+    isAuthenticated: !!finalUser,
   };
 }
