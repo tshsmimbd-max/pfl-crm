@@ -23,13 +23,29 @@ googleProvider.addScope('profile');
 microsoftProvider.addScope('email');
 microsoftProvider.addScope('profile');
 
-// Auth functions
-export const signInWithGoogle = () => {
-  return signInWithPopup(auth, googleProvider);
+// Auth functions with better error handling
+export const signInWithGoogle = async () => {
+  try {
+    const result = await signInWithPopup(auth, googleProvider);
+    return result;
+  } catch (error: any) {
+    if (error.code === 'auth/unauthorized-domain') {
+      throw new Error('This domain is not authorized for OAuth. Please contact support or use email/password registration.');
+    }
+    throw error;
+  }
 };
 
-export const signInWithMicrosoft = () => {
-  return signInWithPopup(auth, microsoftProvider);
+export const signInWithMicrosoft = async () => {
+  try {
+    const result = await signInWithPopup(auth, microsoftProvider);
+    return result;
+  } catch (error: any) {
+    if (error.code === 'auth/unauthorized-domain') {
+      throw new Error('This domain is not authorized for OAuth. Please contact support or use email/password registration.');
+    }
+    throw error;
+  }
 };
 
 export const handleAuthRedirect = async () => {

@@ -83,10 +83,16 @@ export default function AuthPage() {
 
   const handleGoogleSignIn = async () => {
     try {
-      await signInWithGoogle();
+      const result = await signInWithGoogle();
+      if (result?.user) {
+        toast({
+          title: "OAuth login successful",
+          description: `Welcome, ${result.user.displayName || result.user.email}!`,
+        });
+      }
     } catch (error: any) {
       toast({
-        title: "Login failed",
+        title: "OAuth login failed",
         description: error.message || "Failed to sign in with Google",
         variant: "destructive",
       });
@@ -95,10 +101,16 @@ export default function AuthPage() {
 
   const handleMicrosoftSignIn = async () => {
     try {
-      await signInWithMicrosoft();
+      const result = await signInWithMicrosoft();
+      if (result?.user) {
+        toast({
+          title: "OAuth login successful",
+          description: `Welcome, ${result.user.displayName || result.user.email}!`,
+        });
+      }
     } catch (error: any) {
       toast({
-        title: "Login failed", 
+        title: "OAuth login failed", 
         description: error.message || "Failed to sign in with Microsoft",
         variant: "destructive",
       });
@@ -134,7 +146,7 @@ export default function AuthPage() {
       const response = await apiRequest("POST", "/api/register", data);
       const userData = await response.json();
       
-      queryClient.invalidateQueries({ queryKey: ["/api/user"] });
+      // Don't invalidate queries as user is not logged in yet
       toast({
         title: "Registration successful",
         description: userData.emailVerificationSent 
@@ -145,6 +157,7 @@ export default function AuthPage() {
       // Switch to login tab after successful registration
       if (userData.emailVerificationSent) {
         setActiveTab("login");
+        registerForm.reset();
       }
     } catch (error: any) {
       toast({
@@ -197,22 +210,27 @@ export default function AuthPage() {
                   <CardContent className="space-y-6">
                     {/* OAuth Buttons */}
                     <div className="space-y-3">
+                      <div className="text-center text-sm text-amber-600 bg-amber-50 p-3 rounded-md">
+                        OAuth currently not available on this domain. Use email/password below.
+                      </div>
                       <Button 
                         onClick={handleGoogleSignIn}
                         variant="outline" 
-                        className="w-full h-12 flex items-center justify-center space-x-3 border-2 hover:bg-gray-50"
+                        className="w-full h-12 flex items-center justify-center space-x-3 border-2 hover:bg-gray-50 opacity-50"
+                        disabled
                       >
                         <Mail className="w-5 h-5 text-red-500" />
-                        <span>Continue with Gmail</span>
+                        <span>Continue with Gmail (Disabled)</span>
                       </Button>
 
                       <Button 
                         onClick={handleMicrosoftSignIn}
                         variant="outline" 
-                        className="w-full h-12 flex items-center justify-center space-x-3 border-2 hover:bg-gray-50"
+                        className="w-full h-12 flex items-center justify-center space-x-3 border-2 hover:bg-gray-50 opacity-50"
+                        disabled
                       >
                         <Building2 className="w-5 h-5 text-blue-500" />
-                        <span>Continue with Outlook</span>
+                        <span>Continue with Outlook (Disabled)</span>
                       </Button>
                     </div>
 
@@ -277,22 +295,27 @@ export default function AuthPage() {
                   <CardContent className="space-y-6">
                     {/* OAuth Buttons */}
                     <div className="space-y-3">
+                      <div className="text-center text-sm text-amber-600 bg-amber-50 p-3 rounded-md">
+                        OAuth currently not available on this domain. Use email/password below.
+                      </div>
                       <Button 
                         onClick={handleGoogleSignIn}
                         variant="outline" 
-                        className="w-full h-12 flex items-center justify-center space-x-3 border-2 hover:bg-gray-50"
+                        className="w-full h-12 flex items-center justify-center space-x-3 border-2 hover:bg-gray-50 opacity-50"
+                        disabled
                       >
                         <Mail className="w-5 h-5 text-red-500" />
-                        <span>Sign up with Gmail</span>
+                        <span>Sign up with Gmail (Disabled)</span>
                       </Button>
 
                       <Button 
                         onClick={handleMicrosoftSignIn}
                         variant="outline" 
-                        className="w-full h-12 flex items-center justify-center space-x-3 border-2 hover:bg-gray-50"
+                        className="w-full h-12 flex items-center justify-center space-x-3 border-2 hover:bg-gray-50 opacity-50"
+                        disabled
                       >
                         <Building2 className="w-5 h-5 text-blue-500" />
-                        <span>Sign up with Outlook</span>
+                        <span>Sign up with Outlook (Disabled)</span>
                       </Button>
                     </div>
 

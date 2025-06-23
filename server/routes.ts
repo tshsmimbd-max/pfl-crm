@@ -82,16 +82,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { sendVerificationEmail } = await import('./emailService');
       const emailSent = await sendVerificationEmail(email, verificationToken);
       
-      req.login(user, (err: any) => {
-        if (err) {
-          console.error("Session login error:", err);
-          return res.status(500).json({ message: "Session creation failed" });
-        }
-        const { password: _, verificationToken: __, ...userWithoutPassword } = user;
-        res.json({
-          ...userWithoutPassword,
-          emailVerificationSent: emailSent
-        });
+      // Don't auto-login unverified users
+      const { password: _, verificationToken: __, ...userWithoutPassword } = user;
+      res.json({
+        ...userWithoutPassword,
+        emailVerificationSent: emailSent,
+        requiresVerification: true
       });
     } catch (error) {
       console.error("Registration error:", error);
