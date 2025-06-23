@@ -33,16 +33,19 @@ export function setupAuth(app: Express) {
   const PostgresSessionStore = connectPg(session);
   
   const sessionSettings: session.SessionOptions = {
-    secret: process.env.SESSION_SECRET || 'your-secret-key',
+    secret: process.env.SESSION_SECRET || 'paperfly-crm-session-secret-key',
     resave: false,
     saveUninitialized: false,
     store: new PostgresSessionStore({
       conString: process.env.DATABASE_URL,
-      createTableIfMissing: false,
+      createTableIfMissing: true,
+      tableName: 'session'
     }),
     cookie: {
       secure: false, // Set to true in production with HTTPS
       maxAge: 24 * 60 * 60 * 1000, // 24 hours
+      httpOnly: true,
+      sameSite: 'lax'
     },
   };
 
@@ -101,7 +104,10 @@ export function setupAuth(app: Express) {
       });
 
       req.login(user, (err) => {
-        if (err) return next(err);
+        if (err) {
+          console.error("Login after registration error:", err);
+          return res.status(500).json({ message: "Registration succeeded but login failed" });
+        }
         res.status(201).json({ 
           id: user.id, 
           email: user.email, 
@@ -112,21 +118,23 @@ export function setupAuth(app: Express) {
       });
     } catch (error) {
       console.error("Registration error:", error);
-      res.status(500).json({ message: "Registration failed" });
+      res.status(500).json({ message: "Registration failed: " + error.message });
     }
   });
 
   app.post("/api/login", (req, res, next) => {
     passport.authenticate("local", (err: any, user: any, info: any) => {
       if (err) {
-        return res.status(500).json({ message: "Authentication error" });
+        console.error("Authentication error:", err);
+        return res.status(500).json({ message: "Authentication error: " + err.message });
       }
       if (!user) {
         return res.status(401).json({ message: info?.message || "Invalid credentials" });
       }
       req.login(user, (err) => {
         if (err) {
-          return res.status(500).json({ message: "Login failed" });
+          console.error("Login error:", err);
+          return res.status(500).json({ message: "Login failed: " + err.message });
         }
         res.json({ 
           id: user.id, 
