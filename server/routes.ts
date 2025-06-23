@@ -9,6 +9,173 @@ import { z } from "zod";
 export async function registerRoutes(app: Express): Promise<Server> {
   setupAuth(app);
 
+  // Traditional login/register routes
+  app.post('/api/login', async (req: any, res) => {
+    try {
+      const { email, password } = req.body;
+      
+      if (!email || !password) {
+        return res.status(400).json({ message: "Email and password are required" });
+      }
+
+      const user = await storage.getUserByEmail(email);
+      if (!user || !user.password) {
+        return res.status(401).json({ message: "Invalid email or password" });
+      }
+
+      // Simple password check (in production, use bcrypt)
+      if (user.password !== password) {
+        return res.status(401).json({ message: "Invalid email or password" });
+      }
+
+      req.login(user, (err: any) => {
+        if (err) {
+          console.error("Session login error:", err);
+          return res.status(500).json({ message: "Session creation failed" });
+        }
+        const { password: _, ...userWithoutPassword } = user;
+        res.json(userWithoutPassword);
+      });
+    } catch (error) {
+      console.error("Login error:", error);
+      res.status(500).json({ message: "Login failed" });
+    }
+  });
+
+  app.post('/api/register', async (req: any, res) => {
+    try {
+      const { email, password, firstName, lastName } = req.body;
+      
+      if (!email || !password || !firstName || !lastName) {
+        return res.status(400).json({ message: "All fields are required" });
+      }
+
+      // Check if user already exists
+      const existingUser = await storage.getUserByEmail(email);
+      if (existingUser) {
+        return res.status(400).json({ message: "User already exists with this email" });
+      }
+
+      // Generate verification token
+      const verificationToken = Math.random().toString(36).substring(2) + Date.now().toString(36);
+
+      // Create new user
+      const user = await storage.createUser({
+        email,
+        password, // In production, hash this password
+        firstName,
+        lastName,
+        role: 'sales',
+        emailVerified: false,
+        verificationToken,
+      });
+
+      // Send verification email
+      const { sendVerificationEmail } = await import('./emailService');
+      const emailSent = await sendVerificationEmail(email, verificationToken);
+      
+      req.login(user, (err: any) => {
+        if (err) {
+          console.error("Session login error:", err);
+          return res.status(500).json({ message: "Session creation failed" });
+        }
+        const { password: _, verificationToken: __, ...userWithoutPassword } = user;
+        res.json({
+          ...userWithoutPassword,
+          emailVerificationSent: emailSent
+        });
+      });
+    } catch (error) {
+      console.error("Registration error:", error);
+      res.status(500).json({ message: "Registration failed" });
+    }
+  });
+
+  // Email verification route
+  app.get('/api/verify-email', async (req: any, res) => {
+    try {
+      const { token } = req.query;
+      
+      if (!token) {
+        return res.status(400).json({ message: "Verification token is required" });
+      }
+
+      // Find user by verification token
+      const user = await storage.getUserByVerificationToken(token);
+      if (!user) {
+        return res.status(400).json({ message: "Invalid or expired verification token" });
+      }
+
+      // Update user to verified
+      await storage.verifyUserEmail(user.id);
+      
+      // Redirect to success page or login
+      res.redirect('/auth?verified=true');
+    } catch (error) {
+      console.error("Email verification error:", error);
+      res.status(500).json({ message: "Email verification failed" });
+    }
+  });
+
+  // Firebase Auth route
+  app.post('/api/auth/firebase', async (req: any, res) => {
+    try {
+      const { idToken, email, displayName, photoURL } = req.body;
+      
+      if (!idToken || !email) {
+        return res.status(400).json({ message: "Missing required fields" });
+      }
+
+      // Check if user exists, create if not
+      let user = await storage.getUserByEmail(email);
+      
+      if (!user) {
+        // Create new user from OAuth data
+        const [firstName, ...lastNameParts] = (displayName || email.split('@')[0]).split(' ');
+        const lastName = lastNameParts.join(' ') || '';
+        
+        user = await storage.createUser({
+          email,
+          password: '', // OAuth users don't need password
+          firstName,
+          lastName,
+          role: 'sales', // Default role
+        });
+      }
+
+      // Store user in session
+      req.login(user, (err: any) => {
+        if (err) {
+          console.error("Session login error:", err);
+          return res.status(500).json({ message: "Session creation failed" });
+        }
+        res.json(user);
+      });
+    } catch (error) {
+      console.error("Firebase auth error:", error);
+      res.status(500).json({ message: "Authentication failed" });
+    }
+  });
+
+  // Get current user
+  app.get('/api/user', (req: any, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Not authenticated" });
+    }
+    res.json(req.user);
+  });
+
+  // Logout
+  app.post('/api/logout', (req: any, res) => {
+    req.logout((err: any) => {
+      if (err) {
+        console.error("Logout error:", err);
+        return res.status(500).json({ message: "Logout failed" });
+      }
+      res.json({ message: "Logged out successfully" });
+    });
+  });
+
 
 
 

@@ -1,8 +1,4 @@
-import sgMail from '@sendgrid/mail';
-
-if (process.env.SENDGRID_API_KEY) {
-  sgMail.setApiKey(process.env.SENDGRID_API_KEY);
-}
+import nodemailer from 'nodemailer';
 
 interface EmailParams {
   to: string;
@@ -11,12 +7,31 @@ interface EmailParams {
   html?: string;
 }
 
-export async function sendVerificationEmail(email: string, verificationToken: string): Promise<boolean> {
-  if (!process.env.SENDGRID_API_KEY) {
-    console.log(`Verification email simulated for ${email} with token: ${verificationToken}`);
-    return true; // Simulate success when no API key is provided
+// Create transporter using Gmail SMTP (free)
+const createTransporter = () => {
+  // For development, use Ethereal (free test email service)
+  if (process.env.NODE_ENV !== 'production') {
+    return nodemailer.createTransporter({
+      host: 'smtp.ethereal.email',
+      port: 587,
+      auth: {
+        user: 'ethereal.user@ethereal.email',
+        pass: 'ethereal.pass'
+      }
+    });
   }
 
+  // For production, use Gmail SMTP (requires app password)
+  return nodemailer.createTransporter({
+    service: 'gmail',
+    auth: {
+      user: process.env.EMAIL_USER || 'your-email@gmail.com',
+      pass: process.env.EMAIL_APP_PASSWORD || 'your-app-password'
+    }
+  });
+};
+
+export async function sendVerificationEmail(email: string, verificationToken: string): Promise<boolean> {
   try {
     const baseUrl = process.env.NODE_ENV === 'production' 
       ? 'https://your-domain.com' 
@@ -24,55 +39,93 @@ export async function sendVerificationEmail(email: string, verificationToken: st
     
     const verificationLink = `${baseUrl}/api/verify-email?token=${verificationToken}`;
     
-    const msg = {
+    // For development, just log the verification link
+    if (process.env.NODE_ENV !== 'production') {
+      console.log(`\n🔗 Email Verification Link for ${email}:`);
+      console.log(`${verificationLink}\n`);
+      console.log(`📧 Verification email simulated (click the link above to verify)`);
+      return true;
+    }
+
+    const transporter = createTransporter();
+    
+    const mailOptions = {
+      from: process.env.EMAIL_USER || 'noreply@paperfly.com',
       to: email,
-      from: 'noreply@paperfly.com', // Use your verified sender
       subject: 'Verify your Paperfly CRM account',
       text: `Please verify your email by clicking: ${verificationLink}`,
       html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2>Welcome to Paperfly CRM!</h2>
-          <p>Thank you for registering. Please verify your email address by clicking the button below:</p>
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <div style="text-align: center; margin-bottom: 30px;">
+            <h1 style="color: #333; margin: 0;">Paperfly CRM</h1>
+          </div>
+          
+          <div style="background-color: #f8f9fa; padding: 30px; border-radius: 8px; margin-bottom: 30px;">
+            <h2 style="color: #333; margin-top: 0;">Welcome to Paperfly CRM!</h2>
+            <p style="color: #666; line-height: 1.6;">
+              Thank you for registering. Please verify your email address by clicking the button below:
+            </p>
+          </div>
+
           <div style="text-align: center; margin: 30px 0;">
             <a href="${verificationLink}" 
-               style="background-color: #007bff; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block;">
+               style="background-color: #007bff; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; display: inline-block; font-weight: bold;">
               Verify Email Address
             </a>
           </div>
-          <p>If the button doesn't work, you can also click this link:</p>
-          <p><a href="${verificationLink}">${verificationLink}</a></p>
-          <p>If you didn't create an account, please ignore this email.</p>
+
+          <div style="border-top: 1px solid #eee; padding-top: 20px; margin-top: 30px;">
+            <p style="color: #888; font-size: 14px; line-height: 1.5;">
+              If the button doesn't work, you can also copy and paste this link into your browser:
+            </p>
+            <p style="color: #007bff; word-break: break-all; font-size: 14px;">
+              ${verificationLink}
+            </p>
+            <p style="color: #888; font-size: 12px; margin-top: 20px;">
+              If you didn't create an account, please ignore this email.
+            </p>
+          </div>
         </div>
       `,
     };
 
-    await sgMail.send(msg);
+    await transporter.sendMail(mailOptions);
     return true;
   } catch (error) {
     console.error('Email sending error:', error);
+    // In development, still return true for simulation
+    if (process.env.NODE_ENV !== 'production') {
+      return true;
+    }
     return false;
   }
 }
 
 export async function sendEmail(params: EmailParams): Promise<boolean> {
-  if (!process.env.SENDGRID_API_KEY) {
-    console.log(`Email simulated to ${params.to}: ${params.subject}`);
-    return true;
-  }
-
   try {
-    const msg = {
+    // For development, just log the email
+    if (process.env.NODE_ENV !== 'production') {
+      console.log(`\n📧 Email simulated:`);
+      console.log(`To: ${params.to}`);
+      console.log(`Subject: ${params.subject}`);
+      console.log(`Content: ${params.text || 'HTML content'}\n`);
+      return true;
+    }
+
+    const transporter = createTransporter();
+    
+    const mailOptions = {
+      from: process.env.EMAIL_USER || 'noreply@paperfly.com',
       to: params.to,
-      from: 'noreply@paperfly.com', // Use your verified sender
       subject: params.subject,
       text: params.text,
       html: params.html,
     };
 
-    await sgMail.send(msg);
+    await transporter.sendMail(mailOptions);
     return true;
   } catch (error) {
     console.error('Email sending error:', error);
-    return false;
+    return process.env.NODE_ENV !== 'production'; // Return true in dev for simulation
   }
 }

@@ -128,7 +128,7 @@ export default function AuthPage() {
       toast({
         title: "Registration successful",
         description: userData.emailVerificationSent 
-          ? "Account created! Please check your email for verification." 
+          ? "Account created! Check the console for your verification link." 
           : "Welcome to Paperfly CRM!",
       });
     } catch (error: any) {
