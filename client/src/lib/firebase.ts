@@ -2,11 +2,11 @@ import { initializeApp } from "firebase/app";
 import { getAuth, GoogleAuthProvider, OAuthProvider, signInWithRedirect, getRedirectResult, signOut } from "firebase/auth";
 
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain: `${import.meta.env.VITE_FIREBASE_PROJECT_ID}.firebaseapp.com`,
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: `${import.meta.env.VITE_FIREBASE_PROJECT_ID}.firebasestorage.app`,
-  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  apiKey: "AIzaSyA4_DmNyn0egbuGyS98CZlHBYnU1-DvORk",
+  authDomain: "paperflycrm.firebaseapp.com",
+  projectId: "paperflycrm",
+  storageBucket: "paperflycrm.firebasestorage.app",
+  appId: "1:347441158621:web:6f7f939c6de3a36190fe34",
 };
 
 const app = initializeApp(firebaseConfig);
