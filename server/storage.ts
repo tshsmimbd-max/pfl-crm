@@ -23,10 +23,12 @@ export interface IStorage {
   // User operations
   getUser(id: string): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
-  createUser(user: { email: string; password: string; firstName: string; lastName: string; role?: string }): Promise<User>;
+  getUserByVerificationToken(token: string): Promise<User | undefined>;
+  createUser(user: { email: string; password: string; firstName: string; lastName: string; role?: string; emailVerified?: boolean; verificationToken?: string }): Promise<User>;
   upsertUser(user: UpsertUser): Promise<User>;
   getAllUsers(): Promise<User[]>;
   updateUserRole(id: string, role: string): Promise<User>;
+  verifyUserEmail(id: string): Promise<User>;
 
   // Lead operations
   getLeads(): Promise<Lead[]>;

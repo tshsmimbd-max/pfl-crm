@@ -1,5 +1,5 @@
 import { initializeApp } from "firebase/app";
-import { getAuth, GoogleAuthProvider, OAuthProvider, signInWithRedirect, getRedirectResult, signOut } from "firebase/auth";
+import { getAuth, GoogleAuthProvider, OAuthProvider, signInWithPopup, getRedirectResult, signOut } from "firebase/auth";
 
 const firebaseConfig = {
   apiKey: "AIzaSyA4_DmNyn0egbuGyS98CZlHBYnU1-DvORk",
@@ -25,11 +25,11 @@ microsoftProvider.addScope('profile');
 
 // Auth functions
 export const signInWithGoogle = () => {
-  return signInWithRedirect(auth, googleProvider);
+  return signInWithPopup(auth, googleProvider);
 };
 
 export const signInWithMicrosoft = () => {
-  return signInWithRedirect(auth, microsoftProvider);
+  return signInWithPopup(auth, microsoftProvider);
 };
 
 export const handleAuthRedirect = async () => {

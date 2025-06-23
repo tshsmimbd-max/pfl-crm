@@ -127,7 +127,9 @@ export default function AuthPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/user"] });
       toast({
         title: "Registration successful",
-        description: "Welcome to Paperfly CRM!",
+        description: userData.emailVerificationSent 
+          ? "Account created! Please check your email for verification." 
+          : "Welcome to Paperfly CRM!",
       });
     } catch (error: any) {
       toast({
