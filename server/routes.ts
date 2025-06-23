@@ -29,9 +29,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Check if email is verified (only for traditional registration users)
-      if (user.password && !user.emailVerified) {
+      if (user.password && user.emailVerified === false) {
         return res.status(401).json({ 
-          message: "Please verify your email before logging in. Check your email for the verification link.",
+          message: "Please verify your email before logging in. Check the server console for the verification link.",
           needsVerification: true
         });
       }
@@ -105,23 +105,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { token } = req.query;
       
       if (!token) {
-        return res.status(400).json({ message: "Verification token is required" });
+        return res.status(400).send(`
+          <html><body>
+            <h2>Verification Failed</h2>
+            <p>Verification token is required</p>
+            <a href="/auth">Go to Login</a>
+          </body></html>
+        `);
       }
 
       // Find user by verification token
       const user = await storage.getUserByVerificationToken(token);
       if (!user) {
-        return res.status(400).json({ message: "Invalid or expired verification token" });
+        return res.status(400).send(`
+          <html><body>
+            <h2>Verification Failed</h2>
+            <p>Invalid or expired verification token</p>
+            <a href="/auth">Go to Login</a>
+          </body></html>
+        `);
       }
 
       // Update user to verified
       await storage.verifyUserEmail(user.id);
       
-      // Redirect to success page or login
-      res.redirect('/auth?verified=true');
+      // Redirect to success page
+      res.send(`
+        <html><body style="font-family: Arial, sans-serif; text-align: center; padding: 50px;">
+          <h2 style="color: green;">Email Verified Successfully!</h2>
+          <p>Your email has been verified. You can now log in to your account.</p>
+          <a href="/auth" style="background-color: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Go to Login</a>
+        </body></html>
+      `);
     } catch (error) {
       console.error("Email verification error:", error);
-      res.status(500).json({ message: "Email verification failed" });
+      res.status(500).send(`
+        <html><body>
+          <h2>Verification Error</h2>
+          <p>Email verification failed</p>
+          <a href="/auth">Go to Login</a>
+        </body></html>
+      `);
     }
   });
 

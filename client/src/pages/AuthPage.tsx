@@ -53,7 +53,7 @@ export default function AuthPage() {
     },
   });
 
-  // Handle redirect result on page load
+  // Handle redirect result on page load and URL params
   useEffect(() => {
     const handleRedirect = async () => {
       try {
@@ -65,13 +65,18 @@ export default function AuthPage() {
           });
         }
       } catch (error: any) {
-        toast({
-          title: "Login failed",
-          description: error.message || "Authentication failed",
-          variant: "destructive",
-        });
+        console.error("Auth redirect error:", error);
       }
     };
+
+    // Check for verification success in URL
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('verified') === 'true') {
+      toast({
+        title: "Email verified",
+        description: "Your email has been verified! You can now log in.",
+      });
+    }
 
     handleRedirect();
   }, [toast]);
@@ -111,17 +116,16 @@ export default function AuthPage() {
         description: "Welcome back!",
       });
     } catch (error: any) {
-      const errorData = error.message.includes('verify your email') ? {
-        title: "Email verification required",
-        description: "Please check the server console for your verification link and click it to verify your email before logging in.",
-        variant: "destructive" as const
-      } : {
-        title: "Login failed",
-        description: error.message || "Invalid email or password",
-        variant: "destructive" as const
-      };
+      const errorMessage = error.message || "Login failed";
+      const isVerificationError = errorMessage.includes('verify') || errorMessage.includes('verification');
       
-      toast(errorData);
+      toast({
+        title: isVerificationError ? "Email verification required" : "Login failed",
+        description: isVerificationError 
+          ? "Please check the server console for your verification link and click it to verify your email before logging in."
+          : errorMessage,
+        variant: "destructive",
+      });
     }
   };
 
