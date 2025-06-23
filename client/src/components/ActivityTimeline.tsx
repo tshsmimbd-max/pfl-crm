@@ -96,10 +96,7 @@ export default function ActivityTimeline({ leadId }: ActivityTimelineProps) {
   });
 
   const onSubmit = (data: InsertInteraction) => {
-    createInteractionMutation.mutate({
-      ...data,
-      scheduledAt: new Date(data.scheduledAt),
-    });
+    createInteractionMutation.mutate(data);
   };
 
   const getActivityIcon = (type: string) => {
@@ -117,8 +114,8 @@ export default function ActivityTimeline({ leadId }: ActivityTimelineProps) {
     return lead ? `${lead.contactName} - ${lead.company}` : `Lead #${leadId}`;
   };
 
-  const formatDateTime = (dateString: string) => {
-    const date = new Date(dateString);
+  const formatDateTime = (dateString: string | Date) => {
+    const date = typeof dateString === 'string' ? new Date(dateString) : dateString;
     return {
       date: date.toLocaleDateString(),
       time: date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),

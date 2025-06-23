@@ -150,6 +150,8 @@ export const insertLeadSchema = createInsertSchema(leads).omit({
 export const insertInteractionSchema = createInsertSchema(interactions).omit({
   id: true,
   createdAt: true,
+}).extend({
+  scheduledAt: z.string().transform(val => new Date(val)),
 });
 
 export const insertTargetSchema = createInsertSchema(targets).omit({
