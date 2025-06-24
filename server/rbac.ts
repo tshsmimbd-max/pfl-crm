@@ -190,7 +190,7 @@ export function hasAllPermissions(user: User, permissions: Permission[]): boolea
 }
 
 // Resource ownership checks
-export function canAccessResource(user: User, resourceOwnerId: string, permission: Permission): boolean {
+export async function canAccessResource(user: User, resourceOwnerId: string, permission: Permission): Promise<boolean> {
   // Super Admin can access everything
   if (user.role === ROLES.SUPER_ADMIN) {
     return hasPermission(user, permission);
@@ -198,10 +198,8 @@ export function canAccessResource(user: User, resourceOwnerId: string, permissio
 
   // Sales Manager can access team resources
   if (user.role === ROLES.SALES_MANAGER) {
-    return hasPermission(user, permission) && (
-      resourceOwnerId === user.id || // Own resources
-      isTeamMember(user.id, resourceOwnerId) // Team member resources
-    );
+    const hasTeamAccess = resourceOwnerId === user.id || await isTeamMember(user.id, resourceOwnerId);
+    return hasPermission(user, permission) && hasTeamAccess;
   }
 
   // Sales Agent can only access own resources
@@ -212,7 +210,7 @@ export function canAccessResource(user: User, resourceOwnerId: string, permissio
   return false;
 }
 
-export function canAccessUser(currentUser: User, targetUserId: string): boolean {
+export async function canAccessUser(currentUser: User, targetUserId: string): Promise<boolean> {
   // Super Admin can access all users
   if (currentUser.role === ROLES.SUPER_ADMIN) {
     return true;
@@ -220,18 +218,18 @@ export function canAccessUser(currentUser: User, targetUserId: string): boolean 
 
   // Sales Manager can access team members
   if (currentUser.role === ROLES.SALES_MANAGER) {
-    return targetUserId === currentUser.id || isTeamMember(currentUser.id, targetUserId);
+    return targetUserId === currentUser.id || await isTeamMember(currentUser.id, targetUserId);
   }
 
   // Sales Agent can only access themselves
   return targetUserId === currentUser.id;
 }
 
-// Helper function to check if a user is a team member (will be implemented with storage)
-function isTeamMember(managerId: string, userId: string): boolean {
-  // This will be implemented with actual database lookup
-  // For now, return false - will be properly implemented in storage layer
-  return false;
+// Helper function to check if a user is a team member (implemented with storage)
+import { storage } from './storage';
+
+async function isTeamMember(managerId: string, userId: string): Promise<boolean> {
+  return await storage.isTeamMember(managerId, userId);
 }
 
 // Middleware for permission checking
