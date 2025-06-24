@@ -29,16 +29,8 @@ export default function Sidebar({ user, currentView, setCurrentView }: SidebarPr
     ...(canViewAnalytics() ? [{ id: "analytics", label: "Analytics", icon: BarChart3, badge: null }] : []),
     ...(hasPermission(PERMISSIONS.TARGET_VIEW) ? [{ id: "targets", label: "Targets", icon: Target, badge: null }] : []),
     ...(hasPermission(PERMISSIONS.CALENDAR_VIEW) ? [{ id: "calendar", label: "Calendar", icon: Calendar, badge: null }] : []),
+    ...(canManageUsers() ? [{ id: "user-management", label: "User Management", icon: UserCog, badge: null }] : []),
   ];
-
-  if (user.role === "admin") {
-    navigationItems.push({
-      id: "user-management",
-      label: "User Management",
-      icon: UserCog,
-      badge: null,
-    });
-  }
 
   return (
     <aside className="w-64 bg-white shadow-lg border-r border-gray-200 flex flex-col">
@@ -71,12 +63,13 @@ export default function Sidebar({ user, currentView, setCurrentView }: SidebarPr
           </div>
           <div className="flex-1">
             <p className="text-sm font-medium text-gray-900">
-              {user.firstName} {user.lastName}
+              {user.fullName}
             </p>
-            <p className="text-xs text-gray-500 capitalize">{user.role}</p>
+            <p className="text-xs text-gray-500 capitalize">{user.role.replace('_', ' ')}</p>
           </div>
-          <Badge variant={user.role === "admin" ? "default" : "secondary"} className="text-xs">
-            {user.role === "admin" ? "Admin" : "Sales"}
+          <Badge variant={user.role === "super_admin" ? "default" : "secondary"} className="text-xs">
+            {user.role === "super_admin" ? "Super Admin" : 
+             user.role === "sales_manager" ? "Manager" : "Agent"}
           </Badge>
         </div>
       </div>
