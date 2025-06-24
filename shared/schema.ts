@@ -167,6 +167,27 @@ export const insertNotificationSchema = createInsertSchema(notifications).omit({
 });
 
 // Types
+// Authentication schemas
+export const loginSchema = z.object({
+  email: z.string().email("Please enter a valid email"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
+});
+
+export const registerSchema = z.object({
+  fullName: z.string().min(2, "Full name must be at least 2 characters"),
+  email: z.string().email("Please enter a valid email"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
+  confirmPassword: z.string().min(6, "Please confirm your password"),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "Passwords don't match",
+  path: ["confirmPassword"],
+});
+
+export const verifyCodeSchema = z.object({
+  email: z.string().email(),
+  code: z.string().length(6, "Code must be 6 digits"),
+});
+
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
 export type InsertLead = z.infer<typeof insertLeadSchema>;
