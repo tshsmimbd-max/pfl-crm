@@ -107,14 +107,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: "Invalid email or password" });
       }
 
-      if (!user.emailVerified) {
-        return res.status(401).json({ 
-          message: "Please verify your email first",
-          needsVerification: true,
-          email: email
-        });
-      }
-
+      // Allow login for verified users - no need to re-verify every time
       req.login(user, (err: any) => {
         if (err) {
           console.error("Session login error:", err);
