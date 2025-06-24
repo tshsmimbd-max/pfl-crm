@@ -3,7 +3,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -18,15 +25,17 @@ const loginSchema = z.object({
   password: z.string().min(6, "Password must be at least 6 characters"),
 });
 
-const registerSchema = z.object({
-  fullName: z.string().min(2, "Full name must be at least 2 characters"),
-  email: z.string().email("Please enter a valid email"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
-  confirmPassword: z.string().min(6, "Please confirm your password"),
-}).refine((data) => data.password === data.confirmPassword, {
-  message: "Passwords don't match",
-  path: ["confirmPassword"],
-});
+const registerSchema = z
+  .object({
+    fullName: z.string().min(2, "Full name must be at least 2 characters"),
+    email: z.string().email("Please enter a valid email"),
+    password: z.string().min(6, "Password must be at least 6 characters"),
+    confirmPassword: z.string().min(6, "Please confirm your password"),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "Passwords don't match",
+    path: ["confirmPassword"],
+  });
 
 const verifyCodeSchema = z.object({
   code: z.string().length(6, "Code must be 6 digits"),
@@ -72,7 +81,7 @@ export default function AuthPage() {
     try {
       const response = await apiRequest("POST", "/api/login", data);
       const result = await response.json();
-      
+
       queryClient.invalidateQueries({ queryKey: ["/api/user"] });
       toast({
         title: "Login successful",
@@ -80,13 +89,14 @@ export default function AuthPage() {
       });
     } catch (error: any) {
       const errorMessage = error.message || "Login failed";
-      
-      if (errorMessage.includes('verify')) {
+
+      if (errorMessage.includes("verify")) {
         setVerificationEmail(data.email);
         setShowVerification(true);
         toast({
           title: "Email verification required",
-          description: "Please verify your email first. Check the server console for your verification code.",
+          description:
+            "Please verify your email first. Check the email for your verification code.",
           variant: "destructive",
         });
       } else {
@@ -103,12 +113,13 @@ export default function AuthPage() {
     try {
       const response = await apiRequest("POST", "/api/register", data);
       const result = await response.json();
-      
+
       toast({
         title: "Registration successful",
-        description: "Please check the server console for your verification code.",
+        description:
+          "Please check the server console for your verification code.",
       });
-      
+
       setVerificationEmail(data.email);
       setShowVerification(true);
       registerForm.reset();
@@ -128,13 +139,13 @@ export default function AuthPage() {
         code: data.code,
       });
       const result = await response.json();
-      
+
       queryClient.invalidateQueries({ queryKey: ["/api/user"] });
       toast({
         title: "Email verified",
         description: "Welcome to Paperfly CRM!",
       });
-      
+
       setShowVerification(false);
     } catch (error: any) {
       toast({
@@ -173,11 +184,16 @@ export default function AuthPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle className="text-center">Enter Verification Code</CardTitle>
+              <CardTitle className="text-center">
+                Enter Verification Code
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <Form {...verifyForm}>
-                <form onSubmit={verifyForm.handleSubmit(onVerifyCode)} className="space-y-4">
+                <form
+                  onSubmit={verifyForm.handleSubmit(onVerifyCode)}
+                  className="space-y-4"
+                >
                   <FormField
                     control={verifyForm.control}
                     name="code"
@@ -185,11 +201,11 @@ export default function AuthPage() {
                       <FormItem>
                         <FormLabel>Verification Code</FormLabel>
                         <FormControl>
-                          <Input 
-                            placeholder="Enter 6-digit code" 
-                            className="text-center text-lg tracking-widest" 
+                          <Input
+                            placeholder="Enter 6-digit code"
+                            className="text-center text-lg tracking-widest"
                             maxLength={6}
-                            {...field} 
+                            {...field}
                           />
                         </FormControl>
                         <FormMessage />
@@ -199,9 +215,9 @@ export default function AuthPage() {
                   <Button type="submit" className="w-full">
                     Verify Email
                   </Button>
-                  <Button 
-                    type="button" 
-                    variant="ghost" 
+                  <Button
+                    type="button"
+                    variant="ghost"
                     className="w-full"
                     onClick={() => setShowVerification(false)}
                   >
@@ -231,7 +247,11 @@ export default function AuthPage() {
               </p>
             </div>
 
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <Tabs
+              value={activeTab}
+              onValueChange={setActiveTab}
+              className="w-full"
+            >
               <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="login">Sign In</TabsTrigger>
                 <TabsTrigger value="register">Register</TabsTrigger>
@@ -244,7 +264,10 @@ export default function AuthPage() {
                   </CardHeader>
                   <CardContent>
                     <Form {...loginForm}>
-                      <form onSubmit={loginForm.handleSubmit(onLogin)} className="space-y-4">
+                      <form
+                        onSubmit={loginForm.handleSubmit(onLogin)}
+                        className="space-y-4"
+                      >
                         <FormField
                           control={loginForm.control}
                           name="email"
@@ -254,7 +277,11 @@ export default function AuthPage() {
                               <FormControl>
                                 <div className="relative">
                                   <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                                  <Input placeholder="Enter your email" className="pl-10" {...field} />
+                                  <Input
+                                    placeholder="Enter your email"
+                                    className="pl-10"
+                                    {...field}
+                                  />
                                 </div>
                               </FormControl>
                               <FormMessage />
@@ -270,7 +297,12 @@ export default function AuthPage() {
                               <FormControl>
                                 <div className="relative">
                                   <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                                  <Input type="password" placeholder="Enter your password" className="pl-10" {...field} />
+                                  <Input
+                                    type="password"
+                                    placeholder="Enter your password"
+                                    className="pl-10"
+                                    {...field}
+                                  />
                                 </div>
                               </FormControl>
                               <FormMessage />
@@ -293,7 +325,10 @@ export default function AuthPage() {
                   </CardHeader>
                   <CardContent>
                     <Form {...registerForm}>
-                      <form onSubmit={registerForm.handleSubmit(onRegister)} className="space-y-4">
+                      <form
+                        onSubmit={registerForm.handleSubmit(onRegister)}
+                        className="space-y-4"
+                      >
                         <FormField
                           control={registerForm.control}
                           name="fullName"
@@ -303,7 +338,11 @@ export default function AuthPage() {
                               <FormControl>
                                 <div className="relative">
                                   <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                                  <Input placeholder="Enter your full name" className="pl-10" {...field} />
+                                  <Input
+                                    placeholder="Enter your full name"
+                                    className="pl-10"
+                                    {...field}
+                                  />
                                 </div>
                               </FormControl>
                               <FormMessage />
@@ -319,7 +358,11 @@ export default function AuthPage() {
                               <FormControl>
                                 <div className="relative">
                                   <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                                  <Input placeholder="Enter your email" className="pl-10" {...field} />
+                                  <Input
+                                    placeholder="Enter your email"
+                                    className="pl-10"
+                                    {...field}
+                                  />
                                 </div>
                               </FormControl>
                               <FormMessage />
@@ -335,7 +378,12 @@ export default function AuthPage() {
                               <FormControl>
                                 <div className="relative">
                                   <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                                  <Input type="password" placeholder="Create a password" className="pl-10" {...field} />
+                                  <Input
+                                    type="password"
+                                    placeholder="Create a password"
+                                    className="pl-10"
+                                    {...field}
+                                  />
                                 </div>
                               </FormControl>
                               <FormMessage />
@@ -351,7 +399,12 @@ export default function AuthPage() {
                               <FormControl>
                                 <div className="relative">
                                   <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                                  <Input type="password" placeholder="Confirm your password" className="pl-10" {...field} />
+                                  <Input
+                                    type="password"
+                                    placeholder="Confirm your password"
+                                    className="pl-10"
+                                    {...field}
+                                  />
                                 </div>
                               </FormControl>
                               <FormMessage />
@@ -389,7 +442,10 @@ export default function AuthPage() {
                   </div>
                   <div>
                     <h4 className="font-semibold">Lead Management</h4>
-                    <p className="text-white/80 text-sm">Track and manage leads through your sales pipeline with drag-and-drop interface</p>
+                    <p className="text-white/80 text-sm">
+                      Track and manage leads through your sales pipeline with
+                      drag-and-drop interface
+                    </p>
                   </div>
                 </div>
                 <div className="flex items-start space-x-3">
@@ -398,7 +454,10 @@ export default function AuthPage() {
                   </div>
                   <div>
                     <h4 className="font-semibold">Sales Analytics</h4>
-                    <p className="text-white/80 text-sm">Get insights into your sales performance and team productivity with detailed reports</p>
+                    <p className="text-white/80 text-sm">
+                      Get insights into your sales performance and team
+                      productivity with detailed reports
+                    </p>
                   </div>
                 </div>
                 <div className="flex items-start space-x-3">
@@ -407,7 +466,10 @@ export default function AuthPage() {
                   </div>
                   <div>
                     <h4 className="font-semibold">Activity Tracking</h4>
-                    <p className="text-white/80 text-sm">Log interactions, calls, meetings, and follow-ups with detailed timeline</p>
+                    <p className="text-white/80 text-sm">
+                      Log interactions, calls, meetings, and follow-ups with
+                      detailed timeline
+                    </p>
                   </div>
                 </div>
                 <div className="flex items-start space-x-3">
@@ -416,7 +478,10 @@ export default function AuthPage() {
                   </div>
                   <div>
                     <h4 className="font-semibold">Team Collaboration</h4>
-                    <p className="text-white/80 text-sm">Work together seamlessly with role-based access and user management</p>
+                    <p className="text-white/80 text-sm">
+                      Work together seamlessly with role-based access and user
+                      management
+                    </p>
                   </div>
                 </div>
               </div>
