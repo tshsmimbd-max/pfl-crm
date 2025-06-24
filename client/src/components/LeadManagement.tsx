@@ -15,6 +15,7 @@ import { insertLeadSchema, type InsertLead } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { isUnauthorizedError } from "@/lib/authUtils";
+import { usePermissions, PERMISSIONS } from "@/hooks/usePermissions";
 
 export default function LeadManagement() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -22,6 +23,7 @@ export default function LeadManagement() {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [selectedLead, setSelectedLead] = useState<any>(null);
   const { toast } = useToast();
+  const { hasPermission, canCreateLeads } = usePermissions();
 
   const { data: leads, isLoading } = useQuery({
     queryKey: ["/api/leads"],
@@ -174,13 +176,14 @@ export default function LeadManagement() {
             <h1 className="text-2xl font-bold text-gray-900">Lead Management</h1>
             <p className="text-gray-600">Manage and track your sales leads</p>
           </div>
-          <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-            <DialogTrigger asChild>
-              <Button className="bg-primary-600 hover:bg-primary-700">
-                <Plus className="w-4 h-4 mr-2" />
-                Add Lead
-              </Button>
-            </DialogTrigger>
+          {canCreateLeads() && (
+            <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+              <DialogTrigger asChild>
+                <Button className="bg-primary-600 hover:bg-primary-700">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Lead
+                </Button>
+              </DialogTrigger>
             <DialogContent className="max-w-2xl">
               <DialogHeader>
                 <DialogTitle>Create New Lead</DialogTitle>
@@ -323,6 +326,7 @@ export default function LeadManagement() {
               </Form>
             </DialogContent>
           </Dialog>
+          )}
         </div>
       </header>
 
