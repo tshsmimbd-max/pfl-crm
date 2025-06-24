@@ -115,8 +115,15 @@ Paperfly is a modern Customer Relationship Management (CRM) system designed for 
 - Firebase configuration embedded in client code
 - OAuth provider configurations through environment variables
 
-## Changelog
-- June 24, 2025. Initial setup
+## Recent Changes
+- June 24, 2025: Replaced complex authentication (Firebase, Passport) with simple email/password system
+- June 24, 2025: Implemented email verification with 6-digit codes displayed in server console
+- June 24, 2025: Created test users with admin and sales roles for system testing
+- June 24, 2025: Authentication now blocks login until email verification is complete
+
+## Test Users
+- Admin: admin@paperfly.com / admin123 (role: admin)
+- Sales: sales@paperfly.com / sales123 (role: sales)
 
 ## User Preferences
 
