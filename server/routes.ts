@@ -228,10 +228,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/leads', requireAuth, requireVerifiedEmail, requirePermission(PERMISSIONS.LEAD_CREATE), async (req: any, res) => {
     try {
-      const validation = insertLeadSchema.parse({
-        ...req.body,
-        value: parseInt(req.body.value) // Convert string to number for database
-      });
+      const validation = insertLeadSchema.parse(req.body);
       
       if (validation.assignedTo && validation.assignedTo !== req.user.id) {
         const canAssign = hasPermission(req.user, PERMISSIONS.LEAD_ASSIGN);

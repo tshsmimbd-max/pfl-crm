@@ -111,7 +111,12 @@ export default function LeadManagement() {
   });
 
   const onSubmit = (data: InsertLead) => {
-    createLeadMutation.mutate(data);
+    // If "myself" is selected or no assignment, don't send assignedTo field
+    const leadData = { ...data };
+    if (leadData.assignedTo === "myself" || !leadData.assignedTo) {
+      delete leadData.assignedTo;
+    }
+    createLeadMutation.mutate(leadData);
   };
 
   const handleDelete = (leadId: number) => {
@@ -291,14 +296,15 @@ export default function LeadManagement() {
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Assigned To</FormLabel>
-                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <Select onValueChange={field.onChange} defaultValue={field.value || "myself"}>
                             <FormControl>
                               <SelectTrigger>
-                                <SelectValue placeholder="Select user" />
+                                <SelectValue placeholder="Assign to myself" />
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              {users?.map((user) => (
+                              <SelectItem value="myself">Assign to Myself</SelectItem>
+                              {hasPermission(PERMISSIONS.LEAD_ASSIGN) && users?.map((user) => (
                                 <SelectItem key={user.id} value={user.id}>
                                   {user.firstName} {user.lastName}
                                 </SelectItem>
