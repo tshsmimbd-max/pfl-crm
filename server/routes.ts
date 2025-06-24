@@ -3,7 +3,8 @@ import { createServer, type Server } from "http";
 import { WebSocketServer, WebSocket } from "ws";
 import { storage } from "./storage";
 import { setupSimpleAuth, requireAuth, requireVerifiedEmail } from "./simpleAuth";
-import { insertLeadSchema, insertInteractionSchema, insertTargetSchema, insertNotificationSchema, loginSchema, registerSchema, verifyCodeSchema } from "@shared/schema";
+import { insertLeadSchema, insertInteractionSchema, insertTargetSchema, insertNotificationSchema, updateUserRoleSchema, loginSchema, registerSchema, verifyCodeSchema } from "@shared/schema";
+import { requirePermission, requireRole, hasPermission, canAccessResource, canAccessUser, PERMISSIONS, ROLES, Role } from "./rbac";
 import { z } from "zod";
 import { sendVerificationCode } from "./emailService";
 
@@ -269,12 +270,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Target management routes
-  app.get('/api/targets', requireVerifiedEmail, async (req: any, res) => {
+  // Target Management with RBAC
+  app.get('/api/targets', requireAuth, requireVerifiedEmail, requirePermission(PERMISSIONS.TARGET_VIEW), async (req: any, res) => {
     try {
-      const user = await storage.getUser(req.user.id);
-      const userId = user?.role === 'admin' ? undefined : req.user.id;
-      const targets = await storage.getTargets(userId);
+      const currentUser = req.user;
+      const userId = req.query.userId as string;
+      let targets;
+
+      if (currentUser.role === ROLES.SUPER_ADMIN) {
+        targets = await storage.getTargets(userId);
+      } else if (currentUser.role === ROLES.SALES_MANAGER) {
+        if (userId) {
+          const canView = await canAccessUser(currentUser, userId);
+          if (!canView) {
+            return res.status(403).json({ message: "Access denied" });
+          }
+        }
+        targets = await storage.getTargets(userId || currentUser.id);
+      } else {
+        targets = await storage.getTargets(currentUser.id);
+      }
+
       res.json(targets);
     } catch (error) {
       console.error("Error fetching targets:", error);
@@ -368,12 +384,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Analytics routes
-  app.get('/api/analytics/metrics', requireVerifiedEmail, async (req: any, res) => {
+  // Analytics with RBAC
+  app.get('/api/analytics/metrics', requireAuth, requireVerifiedEmail, requirePermission(PERMISSIONS.ANALYTICS_PERSONAL), async (req: any, res) => {
     try {
-      const user = await storage.getUser(req.user.id);
-      const userId = user?.role === 'admin' ? undefined : req.user.id;
-      const metrics = await storage.getSalesMetrics(userId);
+      const currentUser = req.user;
+      const userId = req.query.userId as string;
+      let targetUserId = userId;
+
+      if (currentUser.role === ROLES.SUPER_ADMIN && hasPermission(currentUser, PERMISSIONS.ANALYTICS_GLOBAL)) {
+        targetUserId = userId;
+      } else if (currentUser.role === ROLES.SALES_MANAGER && hasPermission(currentUser, PERMISSIONS.ANALYTICS_TEAM)) {
+        if (userId) {
+          const canView = await canAccessUser(currentUser, userId);
+          if (!canView) {
+            return res.status(403).json({ message: "Access denied" });
+          }
+          targetUserId = userId;
+        } else {
+          targetUserId = currentUser.id;
+        }
+      } else {
+        targetUserId = currentUser.id;
+      }
+
+      const metrics = await storage.getSalesMetrics(targetUserId);
       res.json(metrics);
     } catch (error) {
       console.error("Error fetching metrics:", error);
