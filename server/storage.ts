@@ -27,7 +27,11 @@ export interface IStorage {
   setVerificationCode(email: string, code: string): Promise<void>;
   verifyCode(email: string, code: string): Promise<User | null>;
   getAllUsers(): Promise<User[]>;
-  updateUserRole(id: string, role: string): Promise<User>;
+  updateUserRole(id: string, role: string, managerId?: string): Promise<User>;
+  getTeamMembers(managerId: string): Promise<User[]>;
+  isTeamMember(managerId: string, userId: string): Promise<boolean>;
+  deactivateUser(id: string): Promise<User>;
+  activateUser(id: string): Promise<User>;
 
   // Lead operations
   getLeads(): Promise<Lead[]>;
