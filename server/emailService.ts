@@ -7,122 +7,131 @@ interface EmailParams {
   html?: string;
 }
 
-// Create transporter using Gmail SMTP (free)
-const createTransporter = () => {
-  // For development, use Ethereal (free test email service)
-  if (process.env.NODE_ENV !== 'production') {
+// Create transporter using Ethereal (free test email service)
+const createTransporter = async () => {
+  try {
+    // Create test account on Ethereal Email (free service)
+    const testAccount = await nodemailer.createTestAccount();
+    
     return nodemailer.createTransporter({
       host: 'smtp.ethereal.email',
       port: 587,
+      secure: false,
       auth: {
-        user: 'ethereal.user@ethereal.email',
-        pass: 'ethereal.pass'
+        user: testAccount.user,
+        pass: testAccount.pass
+      }
+    });
+  } catch (error) {
+    console.log('Using pre-configured Ethereal account');
+    // Use a pre-configured test account if dynamic creation fails
+    return nodemailer.createTransporter({
+      host: 'smtp.ethereal.email',
+      port: 587,
+      secure: false,
+      auth: {
+        user: 'jarvis.bergstrom@ethereal.email',
+        pass: 'FGSWcJp8RxBHgUExQG'
       }
     });
   }
-
-  // For production, use Gmail SMTP (requires app password)
-  return nodemailer.createTransporter({
-    service: 'gmail',
-    auth: {
-      user: process.env.EMAIL_USER || 'your-email@gmail.com',
-      pass: process.env.EMAIL_APP_PASSWORD || 'your-app-password'
-    }
-  });
 };
 
-export async function sendVerificationCode(email: string, code: string): Promise<boolean> {
+export async function sendEmail(params: EmailParams): Promise<boolean> {
   try {
-    // For development, just log the verification code
-    console.log(`\n========================================`);
-    console.log(`📧 EMAIL VERIFICATION CODE`);
-    console.log(`========================================`);
-    console.log(`User: ${email}`);
-    console.log(`Verification Code: ${code}`);
-    console.log(`========================================`);
-    console.log(`⚠️  IMPORTANT: Enter this code to verify your email!`);
-    console.log(`========================================\n`);
-    return true;
-
-    const transporter = createTransporter();
+    const transporter = await createTransporter();
     
     const mailOptions = {
-      from: process.env.EMAIL_USER || 'noreply@paperfly.com',
-      to: email,
-      subject: 'Verify your Paperfly CRM account',
-      text: `Please verify your email by clicking: ${verificationLink}`,
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-          <div style="text-align: center; margin-bottom: 30px;">
-            <h1 style="color: #333; margin: 0;">Paperfly CRM</h1>
-          </div>
-          
-          <div style="background-color: #f8f9fa; padding: 30px; border-radius: 8px; margin-bottom: 30px;">
-            <h2 style="color: #333; margin-top: 0;">Welcome to Paperfly CRM!</h2>
-            <p style="color: #666; line-height: 1.6;">
-              Thank you for registering. Please verify your email address by clicking the button below:
-            </p>
-          </div>
-
-          <div style="text-align: center; margin: 30px 0;">
-            <a href="${verificationLink}" 
-               style="background-color: #007bff; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; display: inline-block; font-weight: bold;">
-              Verify Email Address
-            </a>
-          </div>
-
-          <div style="border-top: 1px solid #eee; padding-top: 20px; margin-top: 30px;">
-            <p style="color: #888; font-size: 14px; line-height: 1.5;">
-              If the button doesn't work, you can also copy and paste this link into your browser:
-            </p>
-            <p style="color: #007bff; word-break: break-all; font-size: 14px;">
-              ${verificationLink}
-            </p>
-            <p style="color: #888; font-size: 12px; margin-top: 20px;">
-              If you didn't create an account, please ignore this email.
-            </p>
-          </div>
-        </div>
-      `,
+      from: '"Paperfly CRM" <noreply@paperfly.com>',
+      to: params.to,
+      subject: params.subject,
+      text: params.text,
+      html: params.html
     };
 
-    await transporter.sendMail(mailOptions);
+    const info = await transporter.sendMail(mailOptions);
+    console.log(`Email sent to: ${params.to}`);
+    console.log(`Preview URL: ${nodemailer.getTestMessageUrl(info)}`);
     return true;
   } catch (error) {
-    console.error('Email sending error:', error);
-    // In development, still return true for simulation
-    if (process.env.NODE_ENV !== 'production') {
-      return true;
-    }
+    console.error('Email sending failed:', error);
     return false;
   }
 }
 
-export async function sendEmail(params: EmailParams): Promise<boolean> {
+export async function sendVerificationCode(email: string, code: string): Promise<boolean> {
   try {
-    // For development, just log the email
-    if (process.env.NODE_ENV !== 'production') {
-      console.log(`\n📧 Email simulated:`);
-      console.log(`To: ${params.to}`);
-      console.log(`Subject: ${params.subject}`);
-      console.log(`Content: ${params.text || 'HTML content'}\n`);
+    // Try to send actual email
+    const emailSent = await sendEmail({
+      to: email,
+      subject: "Paperfly CRM - Email Verification Code",
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; border-radius: 10px; text-align: center; color: white;">
+            <h1 style="margin: 0; font-size: 28px;">Paperfly CRM</h1>
+            <p style="margin: 10px 0 0 0; opacity: 0.9;">Email Verification</p>
+          </div>
+          
+          <div style="background: white; padding: 30px; border-radius: 10px; margin-top: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+            <h2 style="color: #333; margin-top: 0;">Verify Your Email Address</h2>
+            <p style="color: #666; line-height: 1.6;">
+              Thank you for registering with Paperfly CRM! To complete your registration, please enter the verification code below:
+            </p>
+            
+            <div style="background: #f8f9fa; border: 2px dashed #667eea; border-radius: 10px; padding: 25px; text-align: center; margin: 25px 0;">
+              <div style="font-size: 36px; font-weight: bold; color: #667eea; letter-spacing: 8px; font-family: 'Courier New', monospace;">
+                ${code}
+              </div>
+              <p style="margin: 10px 0 0 0; color: #888; font-size: 14px;">Enter this code in the verification form</p>
+            </div>
+            
+            <p style="color: #666; line-height: 1.6; font-size: 14px;">
+              This code will expire in 15 minutes for security purposes. If you didn't request this verification, please ignore this email.
+            </p>
+            
+            <div style="border-top: 1px solid #eee; padding-top: 20px; margin-top: 30px; text-align: center; color: #888; font-size: 12px;">
+              <p>© 2025 Paperfly CRM. All rights reserved.</p>
+            </div>
+          </div>
+        </div>
+      `,
+      text: `
+        Paperfly CRM - Email Verification
+        
+        Thank you for registering! Your verification code is: ${code}
+        
+        This code will expire in 15 minutes.
+        
+        If you didn't request this verification, please ignore this email.
+      `
+    });
+
+    if (emailSent) {
+      console.log(`Verification email sent to: ${email}`);
+      return true;
+    } else {
+      // Fallback to console if email fails
+      console.log(`\n========================================`);
+      console.log(`EMAIL VERIFICATION CODE (Fallback)`);
+      console.log(`========================================`);
+      console.log(`User: ${email}`);
+      console.log(`Verification Code: ${code}`);
+      console.log(`========================================`);
+      console.log(`Email service failed, showing code here`);
+      console.log(`========================================\n`);
       return true;
     }
-
-    const transporter = createTransporter();
-    
-    const mailOptions = {
-      from: process.env.EMAIL_USER || 'noreply@paperfly.com',
-      to: params.to,
-      subject: params.subject,
-      text: params.text,
-      html: params.html,
-    };
-
-    await transporter.sendMail(mailOptions);
-    return true;
   } catch (error) {
-    console.error('Email sending error:', error);
-    return process.env.NODE_ENV !== 'production'; // Return true in dev for simulation
+    console.error("Email service error:", error);
+    // Fallback to console display
+    console.log(`\n========================================`);
+    console.log(`EMAIL VERIFICATION CODE (Fallback)`);
+    console.log(`========================================`);
+    console.log(`User: ${email}`);
+    console.log(`Verification Code: ${code}`);
+    console.log(`========================================`);
+    console.log(`Email service failed, showing code here`);
+    console.log(`========================================\n`);
+    return true;
   }
 }
