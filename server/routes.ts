@@ -250,7 +250,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const lead = await storage.createLead({
         ...validation,
         createdBy: req.user.id,
-        assignedTo: validation.assignedTo || req.user.id
+        assignedTo: req.user.id // Sales agents can only assign leads to themselves
       });
       res.status(201).json(lead);
     } catch (error) {

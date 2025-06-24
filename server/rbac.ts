@@ -152,7 +152,8 @@ export const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
     PERMISSIONS.TARGET_VIEW,
     PERMISSIONS.TARGET_TRACK,
 
-    // Lead Management - Assigned leads only
+    // Lead Management - Can create and manage own leads
+    PERMISSIONS.LEAD_CREATE,
     PERMISSIONS.LEAD_EDIT,
     PERMISSIONS.LEAD_VIEW,
 
