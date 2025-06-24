@@ -122,6 +122,10 @@ Paperfly is a modern Customer Relationship Management (CRM) system designed for 
 - June 24, 2025: Authentication now blocks login until email verification is complete
 - June 24, 2025: Fixed email service to send verification codes to actual email addresses using Gmail SMTP
 - June 24, 2025: Email service now properly configured with user-provided Gmail credentials
+- June 24, 2025: Implemented comprehensive RBAC system with three roles: Super Admin, Sales Manager, Sales Agent
+- June 24, 2025: Added granular permissions for Target, Lead, Pipeline, Analytics, Calendar, and User Management
+- June 24, 2025: Updated database schema to support manager-subordinate relationships
+- June 24, 2025: Implemented permission-based UI components and route protection
 
 ## Test Users
 - Admin: admin@paperfly.com / admin123 (role: admin)
