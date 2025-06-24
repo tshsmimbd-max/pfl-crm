@@ -145,16 +145,16 @@ Paperfly is a modern Customer Relationship Management (CRM) system designed for 
 - **Permissions**: Full system access across all features
 
 ### Sales Manager Account  
-- **Email**: sarah.manager@paperfly.com
+- **Email**: sarah.manager.new@paperfly.com
 - **Password**: manager123
 - **Role**: sales_manager
 - **Permissions**: Team-level access, can manage subordinates and team resources
 
 ### Sales Agent Account
-- **Email**: mike.agent@paperfly.com  
+- **Email**: mike.agent.new@paperfly.com  
 - **Password**: agent123
 - **Role**: sales_agent
-- **Manager**: Sarah Johnson (Sales Manager)
+- **Manager**: Sarah Manager (Sales Manager)
 - **Permissions**: Personal-level access, can only manage own assigned resources
 
 ## User Preferences
