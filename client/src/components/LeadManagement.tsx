@@ -40,9 +40,9 @@ export default function LeadManagement() {
       email: "",
       phone: "",
       company: "",
-      value: 0,
+      value: "0",
       stage: "Prospecting",
-      assignedTo: "",
+      assignedTo: "myself", // Default to self for sales agents
     },
   });
 
