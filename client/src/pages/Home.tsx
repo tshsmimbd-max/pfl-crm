@@ -12,12 +12,14 @@ import Calendar from "@/components/Calendar";
 import NotificationSystem from "@/components/NotificationSystem";
 import { useToast } from "@/hooks/use-toast";
 import { isUnauthorizedError } from "@/lib/authUtils";
+import { usePermissions, PERMISSIONS } from "@/hooks/usePermissions";
 
 export default function Home() {
   const { user, isLoading } = useAuth();
   const [location] = useLocation();
   const { toast } = useToast();
   const [currentView, setCurrentView] = useState("dashboard");
+  const { hasPermission, canManageUsers } = usePermissions();
 
 
 
@@ -60,17 +62,19 @@ export default function Home() {
   const renderContent = () => {
     switch (currentView) {
       case "leads":
-        return <LeadManagement />;
+        return hasPermission(PERMISSIONS.LEAD_VIEW) ? <LeadManagement /> : <Dashboard />;
       case "pipeline":
-        return <PipelineManagement />;
+        return hasPermission(PERMISSIONS.PIPELINE_VIEW) ? <PipelineManagement /> : <Dashboard />;
       case "analytics":
-        return <Analytics />;
+        return hasPermission(PERMISSIONS.ANALYTICS_PERSONAL) ? <Analytics /> : <Dashboard />;
       case "targets":
-        return <TargetManagement />;
+        return hasPermission(PERMISSIONS.TARGET_VIEW) ? <TargetManagement /> : <Dashboard />;
       case "user-management":
-        return user.role === "admin" ? <UserManagement /> : <Dashboard />;
+        return canManageUsers() ? <UserManagement /> : <Dashboard />;
       case "calendar":
-        return <Calendar />;
+        return hasPermission(PERMISSIONS.CALENDAR_VIEW) ? <Calendar /> : <Dashboard />;
+      case "notifications":
+        return <NotificationSystem />;
       default:
         return <Dashboard />;
     }

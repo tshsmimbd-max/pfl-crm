@@ -3,6 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
 import type { User } from "@shared/schema";
+import { usePermissions, PERMISSIONS } from "@/hooks/usePermissions";
 
 interface SidebarProps {
   user: User;
@@ -15,6 +16,7 @@ export default function Sidebar({ user, currentView, setCurrentView }: SidebarPr
     queryKey: ["/api/notifications/unread-count"],
     refetchInterval: 30000, // Refresh every 30 seconds
   });
+  const { hasPermission, canViewAnalytics, canManageUsers } = usePermissions();
 
   const handleLogout = () => {
     window.location.href = "/api/logout";
@@ -22,11 +24,11 @@ export default function Sidebar({ user, currentView, setCurrentView }: SidebarPr
 
   const navigationItems = [
     { id: "dashboard", label: "Dashboard", icon: BarChart3, badge: null },
-    { id: "leads", label: "Leads", icon: Users, badge: null },
-    { id: "pipeline", label: "Pipeline", icon: Filter, badge: null },
-    { id: "analytics", label: "Analytics", icon: BarChart3, badge: null },
-    { id: "targets", label: "Targets", icon: Target, badge: null },
-    { id: "calendar", label: "Calendar", icon: Calendar, badge: null },
+    ...(hasPermission(PERMISSIONS.LEAD_VIEW) ? [{ id: "leads", label: "Leads", icon: Users, badge: null }] : []),
+    ...(hasPermission(PERMISSIONS.PIPELINE_VIEW) ? [{ id: "pipeline", label: "Pipeline", icon: Filter, badge: null }] : []),
+    ...(canViewAnalytics() ? [{ id: "analytics", label: "Analytics", icon: BarChart3, badge: null }] : []),
+    ...(hasPermission(PERMISSIONS.TARGET_VIEW) ? [{ id: "targets", label: "Targets", icon: Target, badge: null }] : []),
+    ...(hasPermission(PERMISSIONS.CALENDAR_VIEW) ? [{ id: "calendar", label: "Calendar", icon: Calendar, badge: null }] : []),
   ];
 
   if (user.role === "admin") {
