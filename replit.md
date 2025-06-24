@@ -126,10 +126,28 @@ Paperfly is a modern Customer Relationship Management (CRM) system designed for 
 - June 24, 2025: Added granular permissions for Target, Lead, Pipeline, Analytics, Calendar, and User Management
 - June 24, 2025: Updated database schema to support manager-subordinate relationships
 - June 24, 2025: Implemented permission-based UI components and route protection
+- June 24, 2025: Created 3 sample accounts for testing different roles and manager-subordinate relationships
 
 ## Test Users
-- Admin: admin@paperfly.com / admin123 (role: admin)
-- Sales: sales@paperfly.com / sales123 (role: sales)
+
+### Super Admin Account
+- **Email**: admin@paperfly.com
+- **Password**: admin123
+- **Role**: super_admin
+- **Permissions**: Full system access across all features
+
+### Sales Manager Account  
+- **Email**: sarah.manager@paperfly.com
+- **Password**: manager123
+- **Role**: sales_manager
+- **Permissions**: Team-level access, can manage subordinates and team resources
+
+### Sales Agent Account
+- **Email**: mike.agent@paperfly.com  
+- **Password**: agent123
+- **Role**: sales_agent
+- **Manager**: Sarah Johnson (Sales Manager)
+- **Permissions**: Personal-level access, can only manage own assigned resources
 
 ## User Preferences
 
