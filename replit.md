@@ -131,6 +131,10 @@ Paperfly is a modern Customer Relationship Management (CRM) system designed for 
 - June 24, 2025: Granted Sales Agent role permission to create and edit leads for their own use
 - June 24, 2025: Fixed lead creation for Sales Agent role - agents can now create leads assigned to themselves
 - June 24, 2025: Updated UI to show "Assign to Myself" option for sales agents when creating leads
+- June 24, 2025: Implemented comprehensive team management system with hierarchical lead assignment
+- June 24, 2025: Added team-based analytics where Super Admin sees all, Managers see team data, Agents see personal data
+- June 24, 2025: Enhanced RBAC to support team-based permissions and assignment restrictions
+- June 24, 2025: Created team table and user-team relationships for proper organizational structure
 
 ## Test Users
 

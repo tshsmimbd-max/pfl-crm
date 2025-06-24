@@ -32,6 +32,15 @@ export interface IStorage {
   isTeamMember(managerId: string, userId: string): Promise<boolean>;
   deactivateUser(id: string): Promise<User>;
   activateUser(id: string): Promise<User>;
+  getUsersForAssignment(currentUserId: string, currentUserRole: string): Promise<User[]>;
+
+  // Team operations
+  getTeams(): Promise<Team[]>;
+  getTeam(id: string): Promise<Team | undefined>;
+  createTeam(team: InsertTeam): Promise<Team>;
+  updateTeam(id: string, team: Partial<InsertTeam>): Promise<Team>;
+  deleteTeam(id: string): Promise<void>;
+  assignUserToTeam(userId: string, teamId: string): Promise<User>;
 
   // Lead operations
   getLeads(): Promise<Lead[]>;

@@ -30,7 +30,7 @@ export default function LeadManagement() {
   });
 
   const { data: users } = useQuery({
-    queryKey: ["/api/users"],
+    queryKey: ["/api/users/assignment"],
   });
 
   const form = useForm<InsertLead>({
@@ -309,9 +309,9 @@ export default function LeadManagement() {
                             </FormControl>
                             <SelectContent>
                               <SelectItem value="myself">Assign to Myself</SelectItem>
-                              {hasPermission(PERMISSIONS.LEAD_ASSIGN) && users?.map((user) => (
+                              {hasPermission(PERMISSIONS.LEAD_ASSIGN) && users?.filter(u => u.id !== "myself").map((user) => (
                                 <SelectItem key={user.id} value={user.id}>
-                                  {user.firstName} {user.lastName}
+                                  {user.fullName} ({user.role.replace('_', ' ')})
                                 </SelectItem>
                               ))}
                             </SelectContent>

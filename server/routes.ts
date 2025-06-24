@@ -230,17 +230,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const validation = insertLeadSchema.parse(req.body);
       
+      // Validate assignment permissions
       if (validation.assignedTo && validation.assignedTo !== req.user.id) {
         const canAssign = hasPermission(req.user, PERMISSIONS.LEAD_ASSIGN);
         if (!canAssign) {
           return res.status(403).json({ message: "Cannot assign leads to other users" });
         }
         
-        if (req.user.role === ROLES.SALES_MANAGER) {
-          const isTeamMember = await storage.isTeamMember(req.user.id, validation.assignedTo);
-          if (!isTeamMember && validation.assignedTo !== req.user.id) {
-            return res.status(403).json({ message: "Can only assign leads to team members" });
-          }
+        // Validate assignment scope based on role
+        const availableUsers = await storage.getUsersForAssignment(req.user.id, req.user.role);
+        const canAssignToUser = availableUsers.some(u => u.id === validation.assignedTo);
+        
+        if (!canAssignToUser) {
+          return res.status(403).json({ message: "Cannot assign lead to this user" });
         }
       }
       
