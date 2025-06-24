@@ -186,10 +186,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Lead management routes
-  app.get('/api/leads', requireVerifiedEmail, async (req: any, res) => {
+  // Lead management routes with RBAC
+  app.get('/api/leads', requireAuth, requireVerifiedEmail, requirePermission(PERMISSIONS.LEAD_VIEW), async (req: any, res) => {
     try {
-      const leads = await storage.getLeads();
+      const currentUser = req.user;
+      let leads;
+
+      if (currentUser.role === ROLES.SUPER_ADMIN) {
+        leads = await storage.getLeads();
+      } else if (currentUser.role === ROLES.SALES_MANAGER) {
+        const teamMembers = await storage.getTeamMembers(currentUser.id);
+        const teamMemberIds = [currentUser.id, ...teamMembers.map(m => m.id)];
+        leads = await storage.getLeads();
+        leads = leads.filter(lead => 
+          teamMemberIds.includes(lead.assignedTo) || 
+          teamMemberIds.includes(lead.createdBy)
+        );
+      } else {
+        leads = await storage.getLeadsByUser(currentUser.id);
+      }
+
       res.json(leads);
     } catch (error) {
       console.error("Error fetching leads:", error);
@@ -210,14 +226,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/leads', requireVerifiedEmail, async (req: any, res) => {
+  app.post('/api/leads', requireAuth, requireVerifiedEmail, requirePermission(PERMISSIONS.LEAD_CREATE), async (req: any, res) => {
     try {
-      const leadData = insertLeadSchema.parse({
+      const validation = insertLeadSchema.parse({
         ...req.body,
-        createdBy: req.user.id,
+        value: parseInt(req.body.value) // Convert string to number for database
       });
-      const lead = await storage.createLead(leadData);
-      res.json(lead);
+      
+      if (validation.assignedTo && validation.assignedTo !== req.user.id) {
+        const canAssign = hasPermission(req.user, PERMISSIONS.LEAD_ASSIGN);
+        if (!canAssign) {
+          return res.status(403).json({ message: "Cannot assign leads to other users" });
+        }
+        
+        if (req.user.role === ROLES.SALES_MANAGER) {
+          const isTeamMember = await storage.isTeamMember(req.user.id, validation.assignedTo);
+          if (!isTeamMember && validation.assignedTo !== req.user.id) {
+            return res.status(403).json({ message: "Can only assign leads to team members" });
+          }
+        }
+      }
+      
+      const lead = await storage.createLead({
+        ...validation,
+        createdBy: req.user.id,
+        assignedTo: validation.assignedTo || req.user.id
+      });
+      res.status(201).json(lead);
     } catch (error) {
       console.error("Error creating lead:", error);
       res.status(500).json({ message: "Failed to create lead" });

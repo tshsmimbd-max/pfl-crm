@@ -127,6 +127,8 @@ Paperfly is a modern Customer Relationship Management (CRM) system designed for 
 - June 24, 2025: Updated database schema to support manager-subordinate relationships
 - June 24, 2025: Implemented permission-based UI components and route protection
 - June 24, 2025: Created 3 sample accounts for testing different roles and manager-subordinate relationships
+- June 24, 2025: Fixed 404 errors for Sales Manager and Sales Agent users by updating frontend to use RBAC permissions
+- June 24, 2025: Granted Sales Agent role permission to create and edit leads for their own use
 
 ## Test Users
 
