@@ -117,9 +117,11 @@ Paperfly is a modern Customer Relationship Management (CRM) system designed for 
 
 ## Recent Changes
 - June 24, 2025: Replaced complex authentication (Firebase, Passport) with simple email/password system
-- June 24, 2025: Implemented email verification with 6-digit codes displayed in server console
+- June 24, 2025: Implemented email verification with 6-digit codes
 - June 24, 2025: Created test users with admin and sales roles for system testing
 - June 24, 2025: Authentication now blocks login until email verification is complete
+- June 24, 2025: Fixed email service to send verification codes to actual email addresses using Gmail SMTP
+- June 24, 2025: Email service now properly configured with user-provided Gmail credentials
 
 ## Test Users
 - Admin: admin@paperfly.com / admin123 (role: admin)
