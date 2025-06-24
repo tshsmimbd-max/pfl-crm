@@ -1,4 +1,4 @@
-import * as nodemailer from 'nodemailer';
+import nodemailer from 'nodemailer';
 
 interface EmailParams {
   to: string;
@@ -7,40 +7,15 @@ interface EmailParams {
   html?: string;
 }
 
-// Create email transporter
+// Create email transporter with proper Gmail SMTP configuration
 const createTransporter = () => {
-  // Try different free email services
-  const configs = [
-    // Gmail SMTP (requires app password)
-    {
-      service: 'gmail',
-      auth: {
-        user: process.env.EMAIL_USER || 'paperfly.crm.system@gmail.com',
-        pass: process.env.EMAIL_APP_PASSWORD || 'generated_app_password'
-      }
-    },
-    // Outlook/Hotmail SMTP
-    {
-      service: 'hotmail',
-      auth: {
-        user: process.env.EMAIL_USER || 'paperfly.crm@outlook.com',
-        pass: process.env.EMAIL_PASSWORD || 'temp_password'
-      }
-    },
-    // Generic SMTP fallback
-    {
-      host: 'smtp.gmail.com',
-      port: 587,
-      secure: false,
-      auth: {
-        user: process.env.EMAIL_USER || 'paperfly.test@gmail.com',
-        pass: process.env.EMAIL_APP_PASSWORD || 'app_password_here'
-      }
+  return nodemailer.createTransporter({
+    service: 'gmail',
+    auth: {
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_APP_PASSWORD
     }
-  ];
-
-  // Use the first available configuration
-  return nodemailer.createTransporter(configs[0]);
+  });
 };
 
 export async function sendEmail(params: EmailParams): Promise<boolean> {
@@ -48,7 +23,7 @@ export async function sendEmail(params: EmailParams): Promise<boolean> {
     const transporter = createTransporter();
     
     const mailOptions = {
-      from: '"Paperfly CRM" <noreply@paperfly.com>',
+      from: `"Paperfly CRM" <${process.env.EMAIL_USER}>`,
       to: params.to,
       subject: params.subject,
       text: params.text,
@@ -134,7 +109,7 @@ If you didn't create an account, please ignore this email.
       console.log(`User: ${email}`);
       console.log(`Verification Code: ${code}`);
       console.log(`========================================`);
-      console.log(`⚠️  Email service not configured - using console`);
+      console.log(`⚠️  Email service failed - using console`);
       console.log(`========================================\n`);
       return true;
     }
