@@ -23,7 +23,9 @@ export const users = pgTable("users", {
   email: varchar("email").unique().notNull(),
   password: varchar("password").notNull(),
   fullName: varchar("full_name").notNull(),
-  role: varchar("role").notNull().default("sales"), // admin, sales
+  role: varchar("role").notNull().default("sales_agent"), // super_admin, sales_manager, sales_agent
+  managerId: varchar("manager_id"),
+  teamName: varchar("team_name"), // Simple team assignment without foreign key
   emailVerified: boolean("email_verified").default(false),
   verificationCode: varchar("verification_code"),
   codeExpiresAt: timestamp("code_expires_at"),
@@ -42,17 +44,6 @@ export const leads = pgTable("leads", {
   stage: varchar("stage").notNull().default("Prospecting"), // Prospecting, Qualified, Proposal, Negotiation, Closed Won, Closed Lost
   assignedTo: varchar("assigned_to").references(() => users.id),
   createdBy: varchar("created_by").references(() => users.id),
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
-});
-
-// Teams table
-export const teams = pgTable("teams", {
-  id: varchar("id").primaryKey().notNull(),
-  name: varchar("name").notNull(),
-  description: text("description"),
-  managerId: varchar("manager_id").references(() => users.id),
-  isActive: boolean("is_active").default(true),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -97,30 +88,11 @@ export const notifications = pgTable("notifications", {
 });
 
 // Define relations
-export const usersRelations = relations(users, ({ one, many }) => ({
+export const usersRelations = relations(users, ({ many }) => ({
   leads: many(leads),
   interactions: many(interactions),
   targets: many(targets),
   notifications: many(notifications),
-  manager: one(users, {
-    fields: [users.managerId],
-    references: [users.id],
-  }),
-  team: one(teams, {
-    fields: [users.teamId],
-    references: [teams.id],
-  }),
-  subordinates: many(users, {
-    relationName: "manager_subordinates"
-  }),
-}));
-
-export const teamsRelations = relations(teams, ({ one, many }) => ({
-  manager: one(users, {
-    fields: [teams.managerId],
-    references: [users.id],
-  }),
-  members: many(users),
 }));
 
 export const leadsRelations = relations(leads, ({ one, many }) => ({
@@ -170,11 +142,7 @@ export const insertUserSchema = createInsertSchema(users).omit({
   updatedAt: true,
 });
 
-export const insertTeamSchema = createInsertSchema(teams).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-});
+
 
 export const insertLeadSchema = createInsertSchema(leads).omit({
   id: true,
@@ -231,8 +199,6 @@ export const verifyCodeSchema = z.object({
 
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
-export type InsertTeam = z.infer<typeof insertTeamSchema>;
-export type Team = typeof teams.$inferSelect;
 export type InsertLead = z.infer<typeof insertLeadSchema>;
 export type Lead = typeof leads.$inferSelect;
 export type InsertInteraction = z.infer<typeof insertInteractionSchema>;
