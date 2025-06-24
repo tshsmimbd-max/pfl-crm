@@ -1,19 +1,17 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useAuth } from "@/hooks/useAuth";
-import { signInWithGoogle, signInWithMicrosoft, handleAuthRedirect } from "@/lib/firebase";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Redirect } from "wouter";
-import { Mail, Building2, Shield, User, Lock } from "lucide-react";
+import { Mail, Lock, User, Shield } from "lucide-react";
 
 const loginSchema = z.object({
   email: z.string().email("Please enter a valid email"),
@@ -21,19 +19,29 @@ const loginSchema = z.object({
 });
 
 const registerSchema = z.object({
+  fullName: z.string().min(2, "Full name must be at least 2 characters"),
   email: z.string().email("Please enter a valid email"),
   password: z.string().min(6, "Password must be at least 6 characters"),
-  firstName: z.string().min(1, "First name is required"),
-  lastName: z.string().min(1, "Last name is required"),
+  confirmPassword: z.string().min(6, "Please confirm your password"),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "Passwords don't match",
+  path: ["confirmPassword"],
+});
+
+const verifyCodeSchema = z.object({
+  code: z.string().length(6, "Code must be 6 digits"),
 });
 
 type LoginData = z.infer<typeof loginSchema>;
 type RegisterData = z.infer<typeof registerSchema>;
+type VerifyCodeData = z.infer<typeof verifyCodeSchema>;
 
 export default function AuthPage() {
   const { toast } = useToast();
-  const { user, isLoading, firebaseUser } = useAuth();
+  const { user, isLoading } = useAuth();
   const [activeTab, setActiveTab] = useState("login");
+  const [showVerification, setShowVerification] = useState(false);
+  const [verificationEmail, setVerificationEmail] = useState("");
 
   const loginForm = useForm<LoginData>({
     resolver: zodResolver(loginSchema),
@@ -46,81 +54,24 @@ export default function AuthPage() {
   const registerForm = useForm<RegisterData>({
     resolver: zodResolver(registerSchema),
     defaultValues: {
+      fullName: "",
       email: "",
       password: "",
-      firstName: "",
-      lastName: "",
+      confirmPassword: "",
     },
   });
 
-  // Handle redirect result on page load and URL params
-  useEffect(() => {
-    const handleRedirect = async () => {
-      try {
-        const result = await handleAuthRedirect();
-        if (result?.user) {
-          toast({
-            title: "Login successful",
-            description: `Welcome, ${result.user.displayName || result.user.email}!`,
-          });
-        }
-      } catch (error: any) {
-        console.error("Auth redirect error:", error);
-      }
-    };
-
-    // Check for verification success in URL
-    const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get('verified') === 'true') {
-      toast({
-        title: "Email verified",
-        description: "Your email has been verified! You can now log in.",
-      });
-    }
-
-    handleRedirect();
-  }, [toast]);
-
-  const handleGoogleSignIn = async () => {
-    try {
-      const result = await signInWithGoogle();
-      if (result?.user) {
-        toast({
-          title: "OAuth login successful",
-          description: `Welcome, ${result.user.displayName || result.user.email}!`,
-        });
-      }
-    } catch (error: any) {
-      toast({
-        title: "OAuth login failed",
-        description: error.message || "Failed to sign in with Google",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleMicrosoftSignIn = async () => {
-    try {
-      const result = await signInWithMicrosoft();
-      if (result?.user) {
-        toast({
-          title: "OAuth login successful",
-          description: `Welcome, ${result.user.displayName || result.user.email}!`,
-        });
-      }
-    } catch (error: any) {
-      toast({
-        title: "OAuth login failed", 
-        description: error.message || "Failed to sign in with Microsoft",
-        variant: "destructive",
-      });
-    }
-  };
+  const verifyForm = useForm<VerifyCodeData>({
+    resolver: zodResolver(verifyCodeSchema),
+    defaultValues: {
+      code: "",
+    },
+  });
 
   const onLogin = async (data: LoginData) => {
     try {
       const response = await apiRequest("POST", "/api/login", data);
-      const userData = await response.json();
+      const result = await response.json();
       
       queryClient.invalidateQueries({ queryKey: ["/api/user"] });
       toast({
@@ -129,40 +80,66 @@ export default function AuthPage() {
       });
     } catch (error: any) {
       const errorMessage = error.message || "Login failed";
-      const isVerificationError = errorMessage.includes('verify') || errorMessage.includes('verification');
       
-      toast({
-        title: isVerificationError ? "Email verification required" : "Login failed",
-        description: isVerificationError 
-          ? "Please check the server console for your verification link and click it to verify your email before logging in."
-          : errorMessage,
-        variant: "destructive",
-      });
+      if (errorMessage.includes('verify')) {
+        setVerificationEmail(data.email);
+        setShowVerification(true);
+        toast({
+          title: "Email verification required",
+          description: "Please verify your email first. Check the server console for your verification code.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Login failed",
+          description: errorMessage,
+          variant: "destructive",
+        });
+      }
     }
   };
 
   const onRegister = async (data: RegisterData) => {
     try {
       const response = await apiRequest("POST", "/api/register", data);
-      const userData = await response.json();
+      const result = await response.json();
       
-      // Don't invalidate queries as user is not logged in yet
       toast({
         title: "Registration successful",
-        description: userData.emailVerificationSent 
-          ? "Account created! Please check the server console for your verification link and click it before logging in." 
-          : "Welcome to Paperfly CRM!",
+        description: "Please check the server console for your verification code.",
       });
       
-      // Switch to login tab after successful registration
-      if (userData.emailVerificationSent) {
-        setActiveTab("login");
-        registerForm.reset();
-      }
+      setVerificationEmail(data.email);
+      setShowVerification(true);
+      registerForm.reset();
     } catch (error: any) {
       toast({
         title: "Registration failed",
         description: error.message || "Failed to create account",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const onVerifyCode = async (data: VerifyCodeData) => {
+    try {
+      const response = await apiRequest("POST", "/api/verify-code", {
+        email: verificationEmail,
+        code: data.code,
+      });
+      const result = await response.json();
+      
+      queryClient.invalidateQueries({ queryKey: ["/api/user"] });
+      toast({
+        title: "Email verified",
+        description: "Welcome to Paperfly CRM!",
+      });
+      
+      setShowVerification(false);
+    } catch (error: any) {
+      toast({
+        title: "Verification failed",
+        description: error.message || "Invalid verification code",
         variant: "destructive",
       });
     }
@@ -181,6 +158,64 @@ export default function AuthPage() {
     );
   }
 
+  if (showVerification) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-md w-full space-y-8">
+          <div>
+            <h2 className="text-3xl font-bold text-gray-900 text-center">
+              Verify Your Email
+            </h2>
+            <p className="mt-2 text-sm text-gray-600 text-center">
+              We've sent a verification code to {verificationEmail}
+            </p>
+          </div>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-center">Enter Verification Code</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Form {...verifyForm}>
+                <form onSubmit={verifyForm.handleSubmit(onVerifyCode)} className="space-y-4">
+                  <FormField
+                    control={verifyForm.control}
+                    name="code"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Verification Code</FormLabel>
+                        <FormControl>
+                          <Input 
+                            placeholder="Enter 6-digit code" 
+                            className="text-center text-lg tracking-widest" 
+                            maxLength={6}
+                            {...field} 
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <Button type="submit" className="w-full">
+                    Verify Email
+                  </Button>
+                  <Button 
+                    type="button" 
+                    variant="ghost" 
+                    className="w-full"
+                    onClick={() => setShowVerification(false)}
+                  >
+                    Back to Login
+                  </Button>
+                </form>
+              </Form>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-4xl w-full space-y-8">
@@ -192,7 +227,7 @@ export default function AuthPage() {
                 Welcome to Paperfly CRM
               </h2>
               <p className="mt-2 text-sm text-gray-600">
-                Sign in with OAuth or create an account to get started
+                Sign in to your account or create a new one
               </p>
             </div>
 
@@ -207,43 +242,7 @@ export default function AuthPage() {
                   <CardHeader>
                     <CardTitle>Sign In to Your Account</CardTitle>
                   </CardHeader>
-                  <CardContent className="space-y-6">
-                    {/* OAuth Buttons */}
-                    <div className="space-y-3">
-                      <div className="text-center text-sm text-amber-600 bg-amber-50 p-3 rounded-md">
-                        OAuth currently not available on this domain. Use email/password below.
-                      </div>
-                      <Button 
-                        onClick={handleGoogleSignIn}
-                        variant="outline" 
-                        className="w-full h-12 flex items-center justify-center space-x-3 border-2 hover:bg-gray-50 opacity-50"
-                        disabled
-                      >
-                        <Mail className="w-5 h-5 text-red-500" />
-                        <span>Continue with Gmail (Disabled)</span>
-                      </Button>
-
-                      <Button 
-                        onClick={handleMicrosoftSignIn}
-                        variant="outline" 
-                        className="w-full h-12 flex items-center justify-center space-x-3 border-2 hover:bg-gray-50 opacity-50"
-                        disabled
-                      >
-                        <Building2 className="w-5 h-5 text-blue-500" />
-                        <span>Continue with Outlook (Disabled)</span>
-                      </Button>
-                    </div>
-
-                    <div className="relative">
-                      <div className="absolute inset-0 flex items-center">
-                        <span className="w-full border-t" />
-                      </div>
-                      <div className="relative flex justify-center text-xs uppercase">
-                        <span className="bg-white px-2 text-gray-500">Or sign in with email</span>
-                      </div>
-                    </div>
-
-                    {/* Email/Password Form */}
+                  <CardContent>
                     <Form {...loginForm}>
                       <form onSubmit={loginForm.handleSubmit(onLogin)} className="space-y-4">
                         <FormField
@@ -292,79 +291,25 @@ export default function AuthPage() {
                   <CardHeader>
                     <CardTitle>Create Your Account</CardTitle>
                   </CardHeader>
-                  <CardContent className="space-y-6">
-                    {/* OAuth Buttons */}
-                    <div className="space-y-3">
-                      <div className="text-center text-sm text-amber-600 bg-amber-50 p-3 rounded-md">
-                        OAuth currently not available on this domain. Use email/password below.
-                      </div>
-                      <Button 
-                        onClick={handleGoogleSignIn}
-                        variant="outline" 
-                        className="w-full h-12 flex items-center justify-center space-x-3 border-2 hover:bg-gray-50 opacity-50"
-                        disabled
-                      >
-                        <Mail className="w-5 h-5 text-red-500" />
-                        <span>Sign up with Gmail (Disabled)</span>
-                      </Button>
-
-                      <Button 
-                        onClick={handleMicrosoftSignIn}
-                        variant="outline" 
-                        className="w-full h-12 flex items-center justify-center space-x-3 border-2 hover:bg-gray-50 opacity-50"
-                        disabled
-                      >
-                        <Building2 className="w-5 h-5 text-blue-500" />
-                        <span>Sign up with Outlook (Disabled)</span>
-                      </Button>
-                    </div>
-
-                    <div className="relative">
-                      <div className="absolute inset-0 flex items-center">
-                        <span className="w-full border-t" />
-                      </div>
-                      <div className="relative flex justify-center text-xs uppercase">
-                        <span className="bg-white px-2 text-gray-500">Or create account with email</span>
-                      </div>
-                    </div>
-
-                    {/* Registration Form */}
+                  <CardContent>
                     <Form {...registerForm}>
                       <form onSubmit={registerForm.handleSubmit(onRegister)} className="space-y-4">
-                        <div className="grid grid-cols-2 gap-4">
-                          <FormField
-                            control={registerForm.control}
-                            name="firstName"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>First Name</FormLabel>
-                                <FormControl>
-                                  <div className="relative">
-                                    <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                                    <Input placeholder="First name" className="pl-10" {...field} />
-                                  </div>
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                          <FormField
-                            control={registerForm.control}
-                            name="lastName"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Last Name</FormLabel>
-                                <FormControl>
-                                  <div className="relative">
-                                    <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                                    <Input placeholder="Last name" className="pl-10" {...field} />
-                                  </div>
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                        </div>
+                        <FormField
+                          control={registerForm.control}
+                          name="fullName"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Full Name</FormLabel>
+                              <FormControl>
+                                <div className="relative">
+                                  <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                                  <Input placeholder="Enter your full name" className="pl-10" {...field} />
+                                </div>
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
                         <FormField
                           control={registerForm.control}
                           name="email"
@@ -397,6 +342,22 @@ export default function AuthPage() {
                             </FormItem>
                           )}
                         />
+                        <FormField
+                          control={registerForm.control}
+                          name="confirmPassword"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Confirm Password</FormLabel>
+                              <FormControl>
+                                <div className="relative">
+                                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                                  <Input type="password" placeholder="Confirm your password" className="pl-10" {...field} />
+                                </div>
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
                         <Button type="submit" className="w-full">
                           Create Account
                         </Button>
@@ -410,7 +371,7 @@ export default function AuthPage() {
             <div className="text-center">
               <div className="flex items-center justify-center space-x-2 text-sm text-gray-500">
                 <Shield className="w-4 h-4" />
-                <span>Secure authentication with multiple options</span>
+                <span>Secure authentication with email verification</span>
               </div>
             </div>
           </div>

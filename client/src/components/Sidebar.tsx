@@ -125,7 +125,14 @@ export default function Sidebar({ user, currentView, setCurrentView }: SidebarPr
         <Button
           variant="ghost"
           className="w-full justify-start text-gray-600 hover:text-gray-900"
-          onClick={handleLogout}
+          onClick={async () => {
+            try {
+              await fetch('/api/logout', { method: 'POST', credentials: 'include' });
+              window.location.href = '/auth';
+            } catch (error) {
+              console.error('Logout error:', error);
+            }
+          }}
         >
           <LogOut className="w-5 h-5 mr-3" />
           Logout

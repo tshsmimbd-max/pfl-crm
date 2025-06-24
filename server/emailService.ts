@@ -31,22 +31,16 @@ const createTransporter = () => {
   });
 };
 
-export async function sendVerificationEmail(email: string, verificationToken: string): Promise<boolean> {
+export async function sendVerificationCode(email: string, code: string): Promise<boolean> {
   try {
-    const baseUrl = process.env.NODE_ENV === 'production' 
-      ? 'https://your-domain.com' 
-      : 'http://localhost:5000';
-    
-    const verificationLink = `${baseUrl}/api/verify-email?token=${verificationToken}`;
-    
-    // For development, just log the verification link
+    // For development, just log the verification code
     console.log(`\n========================================`);
-    console.log(`📧 EMAIL VERIFICATION REQUIRED`);
+    console.log(`📧 EMAIL VERIFICATION CODE`);
     console.log(`========================================`);
     console.log(`User: ${email}`);
-    console.log(`Verification Link: ${verificationLink}`);
+    console.log(`Verification Code: ${code}`);
     console.log(`========================================`);
-    console.log(`⚠️  IMPORTANT: Click the link above to verify your email before logging in!`);
+    console.log(`⚠️  IMPORTANT: Enter this code to verify your email!`);
     console.log(`========================================\n`);
     return true;
 

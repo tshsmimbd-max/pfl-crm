@@ -2,61 +2,26 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { WebSocketServer, WebSocket } from "ws";
 import { storage } from "./storage";
-import { setupAuth, isAuthenticated } from "./auth";
-import { insertLeadSchema, insertInteractionSchema, insertTargetSchema, insertNotificationSchema } from "@shared/schema";
+import { setupSimpleAuth, requireAuth, requireVerifiedEmail } from "./simpleAuth";
+import { insertLeadSchema, insertInteractionSchema, insertTargetSchema, insertNotificationSchema, loginSchema, registerSchema, verifyCodeSchema } from "@shared/schema";
 import { z } from "zod";
+import { sendVerificationCode } from "./emailService";
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  setupAuth(app);
+  setupSimpleAuth(app);
 
-  // Traditional login/register routes
-  app.post('/api/login', async (req: any, res) => {
+  // Register endpoint
+  app.post('/api/register', async (req: any, res) => {
     try {
-      const { email, password } = req.body;
-      
-      if (!email || !password) {
-        return res.status(400).json({ message: "Email and password are required" });
-      }
-
-      const user = await storage.getUserByEmail(email);
-      if (!user || !user.password) {
-        return res.status(401).json({ message: "Invalid email or password" });
-      }
-
-      // Simple password check (in production, use bcrypt)
-      if (user.password !== password) {
-        return res.status(401).json({ message: "Invalid email or password" });
-      }
-
-      // Check if email is verified (only for traditional registration users)
-      if (user.password && user.emailVerified === false) {
-        return res.status(401).json({ 
-          message: "Please verify your email before logging in. Check the server console for the verification link.",
-          needsVerification: true
+      const validationResult = registerSchema.safeParse(req.body);
+      if (!validationResult.success) {
+        return res.status(400).json({ 
+          message: "Validation failed", 
+          errors: validationResult.error.issues 
         });
       }
 
-      req.login(user, (err: any) => {
-        if (err) {
-          console.error("Session login error:", err);
-          return res.status(500).json({ message: "Session creation failed" });
-        }
-        const { password: _, verificationToken: __, ...userWithoutPassword } = user;
-        res.json(userWithoutPassword);
-      });
-    } catch (error) {
-      console.error("Login error:", error);
-      res.status(500).json({ message: "Login failed" });
-    }
-  });
-
-  app.post('/api/register', async (req: any, res) => {
-    try {
-      const { email, password, firstName, lastName } = req.body;
-      
-      if (!email || !password || !firstName || !lastName) {
-        return res.status(400).json({ message: "All fields are required" });
-      }
+      const { fullName, email, password } = validationResult.data;
 
       // Check if user already exists
       const existingUser = await storage.getUserByEmail(email);
@@ -64,30 +29,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "User already exists with this email" });
       }
 
-      // Generate verification token
-      const verificationToken = Math.random().toString(36).substring(2) + Date.now().toString(36);
-
       // Create new user
       const user = await storage.createUser({
         email,
         password, // In production, hash this password
-        firstName,
-        lastName,
+        fullName,
         role: 'sales',
-        emailVerified: false,
-        verificationToken,
       });
 
-      // Send verification email
-      const { sendVerificationEmail } = await import('./emailService');
-      const emailSent = await sendVerificationEmail(email, verificationToken);
-      
-      // Don't auto-login unverified users
-      const { password: _, verificationToken: __, ...userWithoutPassword } = user;
+      // Generate and send verification code
+      const code = Math.floor(100000 + Math.random() * 900000).toString(); // 6-digit code
+      await storage.setVerificationCode(email, code);
+      await sendVerificationCode(email, code);
+
       res.json({
-        ...userWithoutPassword,
-        emailVerificationSent: emailSent,
-        requiresVerification: true
+        message: "Registration successful. Please check your email for verification code.",
+        email: email,
+        needsVerification: true
       });
     } catch (error) {
       console.error("Registration error:", error);
@@ -95,107 +53,102 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Email verification route
-  app.get('/api/verify-email', async (req: any, res) => {
+  // Verify code endpoint
+  app.post('/api/verify-code', async (req: any, res) => {
     try {
-      const { token } = req.query;
-      
-      if (!token) {
-        return res.status(400).send(`
-          <html><body>
-            <h2>Verification Failed</h2>
-            <p>Verification token is required</p>
-            <a href="/auth">Go to Login</a>
-          </body></html>
-        `);
-      }
-
-      // Find user by verification token
-      const user = await storage.getUserByVerificationToken(token);
-      if (!user) {
-        return res.status(400).send(`
-          <html><body>
-            <h2>Verification Failed</h2>
-            <p>Invalid or expired verification token</p>
-            <a href="/auth">Go to Login</a>
-          </body></html>
-        `);
-      }
-
-      // Update user to verified
-      await storage.verifyUserEmail(user.id);
-      
-      // Redirect to success page
-      res.send(`
-        <html><body style="font-family: Arial, sans-serif; text-align: center; padding: 50px;">
-          <h2 style="color: green;">Email Verified Successfully!</h2>
-          <p>Your email has been verified. You can now log in to your account.</p>
-          <a href="/auth" style="background-color: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Go to Login</a>
-        </body></html>
-      `);
-    } catch (error) {
-      console.error("Email verification error:", error);
-      res.status(500).send(`
-        <html><body>
-          <h2>Verification Error</h2>
-          <p>Email verification failed</p>
-          <a href="/auth">Go to Login</a>
-        </body></html>
-      `);
-    }
-  });
-
-  // Firebase Auth route
-  app.post('/api/auth/firebase', async (req: any, res) => {
-    try {
-      const { idToken, email, displayName, photoURL } = req.body;
-      
-      if (!idToken || !email) {
-        return res.status(400).json({ message: "Missing required fields" });
-      }
-
-      // Check if user exists, create if not
-      let user = await storage.getUserByEmail(email);
-      
-      if (!user) {
-        // Create new user from OAuth data
-        const [firstName, ...lastNameParts] = (displayName || email.split('@')[0]).split(' ');
-        const lastName = lastNameParts.join(' ') || '';
-        
-        user = await storage.createUser({
-          email,
-          password: '', // OAuth users don't need password
-          firstName,
-          lastName,
-          role: 'sales', // Default role
-          emailVerified: true, // OAuth users are automatically verified
+      const validationResult = verifyCodeSchema.safeParse(req.body);
+      if (!validationResult.success) {
+        return res.status(400).json({ 
+          message: "Invalid code format", 
+          errors: validationResult.error.issues 
         });
       }
 
-      // Store user in session
+      const { email, code } = validationResult.data;
+
+      const user = await storage.verifyCode(email, code);
+      if (!user) {
+        return res.status(400).json({ message: "Invalid or expired verification code" });
+      }
+
+      // Log the user in after successful verification
       req.login(user, (err: any) => {
         if (err) {
           console.error("Session login error:", err);
-          return res.status(500).json({ message: "Session creation failed" });
+          return res.status(500).json({ message: "Login failed" });
         }
-        res.json(user);
+        const { password: _, verificationCode: __, codeExpiresAt: ___, ...userWithoutPassword } = user;
+        res.json({
+          message: "Email verified successfully",
+          user: userWithoutPassword
+        });
       });
     } catch (error) {
-      console.error("Firebase auth error:", error);
-      res.status(500).json({ message: "Authentication failed" });
+      console.error("Verification error:", error);
+      res.status(500).json({ message: "Verification failed" });
+    }
+  });
+
+  // Login endpoint
+  app.post('/api/login', async (req: any, res) => {
+    try {
+      const validationResult = loginSchema.safeParse(req.body);
+      if (!validationResult.success) {
+        return res.status(400).json({ 
+          message: "Validation failed", 
+          errors: validationResult.error.issues 
+        });
+      }
+
+      const { email, password } = validationResult.data;
+
+      const user = await storage.getUserByEmail(email);
+      if (!user || user.password !== password) {
+        return res.status(401).json({ message: "Invalid email or password" });
+      }
+
+      if (!user.emailVerified) {
+        return res.status(401).json({ 
+          message: "Please verify your email first",
+          needsVerification: true,
+          email: email
+        });
+      }
+
+      req.login(user, (err: any) => {
+        if (err) {
+          console.error("Session login error:", err);
+          return res.status(500).json({ message: "Login failed" });
+        }
+        const { password: _, verificationCode: __, codeExpiresAt: ___, ...userWithoutPassword } = user;
+        res.json({
+          message: "Login successful",
+          user: userWithoutPassword
+        });
+      });
+    } catch (error) {
+      console.error("Login error:", error);
+      res.status(500).json({ message: "Login failed" });
     }
   });
 
   // Get current user
-  app.get('/api/user', (req: any, res) => {
-    if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "Not authenticated" });
+  app.get('/api/user', requireAuth, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.id);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      const { password: _, verificationCode: __, codeExpiresAt: ___, ...userWithoutPassword } = user;
+      res.json(userWithoutPassword);
+    } catch (error) {
+      console.error("Get user error:", error);
+      res.status(500).json({ message: "Failed to get user" });
     }
-    res.json(req.user);
   });
 
   // Logout
-  app.post('/api/logout', (req: any, res) => {
+  app.post('/api/logout', requireAuth, (req: any, res) => {
     req.logout((err: any) => {
       if (err) {
         console.error("Logout error:", err);
@@ -210,7 +163,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
 
   // User management routes (Admin only)
-  app.get('/api/users', isAuthenticated, async (req: any, res) => {
+  app.get('/api/users', requireVerifiedEmail, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.id);
       if (user?.role !== 'admin') {
@@ -224,7 +177,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch('/api/users/:id/role', isAuthenticated, async (req: any, res) => {
+  app.patch('/api/users/:id/role', requireVerifiedEmail, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.id);
       if (user?.role !== 'admin') {
@@ -240,7 +193,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Lead management routes
-  app.get('/api/leads', isAuthenticated, async (req: any, res) => {
+  app.get('/api/leads', requireVerifiedEmail, async (req: any, res) => {
     try {
       const leads = await storage.getLeads();
       res.json(leads);
@@ -250,7 +203,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/leads/:id', isAuthenticated, async (req: any, res) => {
+  app.get('/api/leads/:id', requireVerifiedEmail, async (req: any, res) => {
     try {
       const lead = await storage.getLead(parseInt(req.params.id));
       if (!lead) {
@@ -263,7 +216,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/leads', isAuthenticated, async (req: any, res) => {
+  app.post('/api/leads', requireVerifiedEmail, async (req: any, res) => {
     try {
       const leadData = insertLeadSchema.parse({
         ...req.body,
@@ -277,7 +230,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch('/api/leads/:id', isAuthenticated, async (req: any, res) => {
+  app.patch('/api/leads/:id', requireVerifiedEmail, async (req: any, res) => {
     try {
       const leadData = req.body;
       const lead = await storage.updateLead(parseInt(req.params.id), leadData);
@@ -288,7 +241,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete('/api/leads/:id', isAuthenticated, async (req: any, res) => {
+  app.delete('/api/leads/:id', requireVerifiedEmail, async (req: any, res) => {
     try {
       await storage.deleteLead(parseInt(req.params.id));
       res.json({ message: "Lead deleted successfully" });
@@ -299,7 +252,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Interaction routes
-  app.get('/api/leads/:id/interactions', isAuthenticated, async (req: any, res) => {
+  app.get('/api/leads/:id/interactions', requireVerifiedEmail, async (req: any, res) => {
     try {
       const interactions = await storage.getInteractions(parseInt(req.params.id));
       res.json(interactions);
@@ -309,7 +262,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/interactions', isAuthenticated, async (req: any, res) => {
+  app.post('/api/interactions', requireVerifiedEmail, async (req: any, res) => {
     try {
       const interactionData = insertInteractionSchema.parse({
         ...req.body,
@@ -324,7 +277,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Target management routes
-  app.get('/api/targets', isAuthenticated, async (req: any, res) => {
+  app.get('/api/targets', requireVerifiedEmail, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.id);
       const userId = user?.role === 'admin' ? undefined : req.user.id;
@@ -336,7 +289,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/targets', isAuthenticated, async (req: any, res) => {
+  app.post('/api/targets', requireVerifiedEmail, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.id);
       if (user?.role !== 'admin') {
@@ -363,7 +316,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch('/api/targets/:id', isAuthenticated, async (req: any, res) => {
+  app.patch('/api/targets/:id', requireVerifiedEmail, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.id);
       if (user?.role !== 'admin') {
@@ -377,7 +330,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete('/api/targets/:id', isAuthenticated, async (req: any, res) => {
+  app.delete('/api/targets/:id', requireVerifiedEmail, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.id);
       if (user?.role !== 'admin') {
@@ -392,7 +345,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Notification routes
-  app.get('/api/notifications', isAuthenticated, async (req: any, res) => {
+  app.get('/api/notifications', requireVerifiedEmail, async (req: any, res) => {
     try {
       const notifications = await storage.getNotifications(req.user.id);
       res.json(notifications);
@@ -402,7 +355,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch('/api/notifications/:id/read', isAuthenticated, async (req: any, res) => {
+  app.patch('/api/notifications/:id/read', requireVerifiedEmail, async (req: any, res) => {
     try {
       await storage.markNotificationRead(parseInt(req.params.id));
       res.json({ message: "Notification marked as read" });
@@ -412,7 +365,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/notifications/unread-count', isAuthenticated, async (req: any, res) => {
+  app.get('/api/notifications/unread-count', requireVerifiedEmail, async (req: any, res) => {
     try {
       const count = await storage.getUnreadNotificationCount(req.user.id);
       res.json({ count });
@@ -423,7 +376,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Analytics routes
-  app.get('/api/analytics/metrics', isAuthenticated, async (req: any, res) => {
+  app.get('/api/analytics/metrics', requireVerifiedEmail, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.id);
       const userId = user?.role === 'admin' ? undefined : req.user.id;
@@ -435,7 +388,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/analytics/team-performance', isAuthenticated, async (req: any, res) => {
+  app.get('/api/analytics/team-performance', requireVerifiedEmail, async (req: any, res) => {
     try {
       const performance = await storage.getTeamPerformance();
       res.json(performance);

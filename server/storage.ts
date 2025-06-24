@@ -23,12 +23,11 @@ export interface IStorage {
   // User operations
   getUser(id: string): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
-  getUserByVerificationToken(token: string): Promise<User | undefined>;
-  createUser(user: { email: string; password: string; firstName: string; lastName: string; role?: string; emailVerified?: boolean; verificationToken?: string }): Promise<User>;
-  upsertUser(user: UpsertUser): Promise<User>;
+  createUser(user: { email: string; password: string; fullName: string; role?: string }): Promise<User>;
+  setVerificationCode(email: string, code: string): Promise<void>;
+  verifyCode(email: string, code: string): Promise<User | null>;
   getAllUsers(): Promise<User[]>;
   updateUserRole(id: string, role: string): Promise<User>;
-  verifyUserEmail(id: string): Promise<User>;
 
   // Lead operations
   getLeads(): Promise<Lead[]>;
@@ -85,12 +84,7 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
 
-  async getUserByVerificationToken(token: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.verificationToken, token));
-    return user || undefined;
-  }
-
-  async createUser(userData: { email: string; password: string; firstName: string; lastName: string; role?: string; emailVerified?: boolean; verificationToken?: string }): Promise<User> {
+  async createUser(userData: { email: string; password: string; fullName: string; role?: string }): Promise<User> {
     const userId = crypto.randomUUID();
     const [user] = await db
       .insert(users)
@@ -98,27 +92,55 @@ export class DatabaseStorage implements IStorage {
         id: userId,
         email: userData.email,
         password: userData.password,
-        firstName: userData.firstName,
-        lastName: userData.lastName,
+        fullName: userData.fullName,
         role: userData.role || 'sales',
-        emailVerified: userData.emailVerified || false,
-        verificationToken: userData.verificationToken,
+        emailVerified: false,
       })
       .returning();
     return user;
   }
 
-  async verifyUserEmail(id: string): Promise<User> {
-    const [user] = await db
+  async setVerificationCode(email: string, code: string): Promise<void> {
+    const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
+    await db
       .update(users)
       .set({
-        emailVerified: true,
-        verificationToken: null,
+        verificationCode: code,
+        codeExpiresAt: expiresAt,
         updatedAt: new Date(),
       })
-      .where(eq(users.id, id))
-      .returning();
-    return user;
+      .where(eq(users.email, email));
+  }
+
+  async verifyCode(email: string, code: string): Promise<User | null> {
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(
+        and(
+          eq(users.email, email),
+          eq(users.verificationCode, code),
+          gte(users.codeExpiresAt, new Date())
+        )
+      );
+
+    if (user) {
+      // Mark as verified and clear code
+      const [verifiedUser] = await db
+        .update(users)
+        .set({
+          emailVerified: true,
+          verificationCode: null,
+          codeExpiresAt: null,
+          updatedAt: new Date(),
+        })
+        .where(eq(users.id, user.id))
+        .returning();
+      
+      return verifiedUser;
+    }
+
+    return null;
   }
 
   async upsertUser(userData: UpsertUser): Promise<User> {
