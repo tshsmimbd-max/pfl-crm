@@ -231,6 +231,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.put('/api/leads/:id', requireVerifiedEmail, async (req: any, res) => {
+    try {
+      const leadData = req.body;
+      const lead = await storage.updateLead(parseInt(req.params.id), leadData);
+      res.json(lead);
+    } catch (error) {
+      console.error("Error updating lead:", error);
+      res.status(500).json({ message: "Failed to update lead" });
+    }
+  });
+
   app.delete('/api/leads/:id', requireVerifiedEmail, async (req: any, res) => {
     try {
       await storage.deleteLead(parseInt(req.params.id));
