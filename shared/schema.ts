@@ -168,6 +168,9 @@ export const insertTargetSchema = createInsertSchema(targets).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
+}).extend({
+  startDate: z.date().optional(),
+  endDate: z.date().optional(),
 });
 
 export const insertNotificationSchema = createInsertSchema(notifications).omit({

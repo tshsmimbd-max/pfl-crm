@@ -110,10 +110,7 @@ export default function Dashboard() {
                 )}
               </Button>
             </div>
-            <Button className="bg-primary-600 hover:bg-primary-700">
-              <Plus className="w-4 h-4 mr-2" />
-              Add Lead
-            </Button>
+
           </div>
         </div>
       </header>
@@ -274,12 +271,7 @@ export default function Dashboard() {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                <Button variant="ghost" className="w-full justify-start">
-                  <div className="w-8 h-8 bg-primary-100 rounded-lg flex items-center justify-center mr-3">
-                    <UserPlus className="w-4 h-4 text-primary-600" />
-                  </div>
-                  Add New Lead
-                </Button>
+
 
                 <Button variant="ghost" className="w-full justify-start">
                   <div className="w-8 h-8 bg-success-100 rounded-lg flex items-center justify-center mr-3">

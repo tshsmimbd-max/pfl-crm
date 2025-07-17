@@ -39,11 +39,12 @@ export default function TargetManagement() {
   const form = useForm<InsertTarget>({
     resolver: zodResolver(insertTargetSchema),
     defaultValues: {
-      userId: "",
+      userId: user?.id || "",
       targetType: "revenue",
       targetValue: 0,
       period: "monthly",
       description: "",
+      createdBy: user?.id || "",
     },
   });
 

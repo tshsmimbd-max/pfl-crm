@@ -2,7 +2,6 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Form,
   FormControl,
@@ -18,37 +17,23 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Redirect } from "wouter";
-import { Mail, Lock, User, Shield } from "lucide-react";
+import { Mail, Lock, Shield } from "lucide-react";
 
 const loginSchema = z.object({
   email: z.string().email("Please enter a valid email"),
   password: z.string().min(6, "Password must be at least 6 characters"),
 });
 
-const registerSchema = z
-  .object({
-    fullName: z.string().min(2, "Full name must be at least 2 characters"),
-    email: z.string().email("Please enter a valid email"),
-    password: z.string().min(6, "Password must be at least 6 characters"),
-    confirmPassword: z.string().min(6, "Please confirm your password"),
-  })
-  .refine((data) => data.password === data.confirmPassword, {
-    message: "Passwords don't match",
-    path: ["confirmPassword"],
-  });
-
 const verifyCodeSchema = z.object({
   code: z.string().length(6, "Code must be 6 digits"),
 });
 
 type LoginData = z.infer<typeof loginSchema>;
-type RegisterData = z.infer<typeof registerSchema>;
 type VerifyCodeData = z.infer<typeof verifyCodeSchema>;
 
 export default function AuthPage() {
   const { toast } = useToast();
   const { user, isLoading } = useAuth();
-  const [activeTab, setActiveTab] = useState("login");
   const [showVerification, setShowVerification] = useState(false);
   const [verificationEmail, setVerificationEmail] = useState("");
 
@@ -57,16 +42,6 @@ export default function AuthPage() {
     defaultValues: {
       email: "",
       password: "",
-    },
-  });
-
-  const registerForm = useForm<RegisterData>({
-    resolver: zodResolver(registerSchema),
-    defaultValues: {
-      fullName: "",
-      email: "",
-      password: "",
-      confirmPassword: "",
     },
   });
 
@@ -81,52 +56,26 @@ export default function AuthPage() {
     try {
       const response = await apiRequest("POST", "/api/login", data);
       const result = await response.json();
-
-      queryClient.invalidateQueries({ queryKey: ["/api/user"] });
-      toast({
-        title: "Login successful",
-        description: "Welcome back!",
-      });
-    } catch (error: any) {
-      const errorMessage = error.message || "Login failed";
-
-      if (errorMessage.includes("verify")) {
-        setVerificationEmail(data.email);
-        setShowVerification(true);
-        toast({
-          title: "Email verification required",
-          description:
-            "Please verify your email first. Check the email for your verification code.",
-          variant: "destructive",
-        });
+      
+      if (response.ok) {
+        queryClient.setQueryData(["/api/user"], result.user);
+        
+        if (!result.user.emailVerified) {
+          setVerificationEmail(result.user.email);
+          setShowVerification(true);
+        } else {
+          toast({
+            title: "Welcome!",
+            description: "You have been logged in successfully.",
+          });
+        }
       } else {
-        toast({
-          title: "Login failed",
-          description: errorMessage,
-          variant: "destructive",
-        });
+        throw new Error(result.message || "Login failed");
       }
-    }
-  };
-
-  const onRegister = async (data: RegisterData) => {
-    try {
-      const response = await apiRequest("POST", "/api/register", data);
-      const result = await response.json();
-
-      toast({
-        title: "Registration successful",
-        description:
-          "Please check the server console for your verification code.",
-      });
-
-      setVerificationEmail(data.email);
-      setShowVerification(true);
-      registerForm.reset();
     } catch (error: any) {
       toast({
-        title: "Registration failed",
-        description: error.message || "Failed to create account",
+        title: "Login failed",
+        description: error.message || "Invalid email or password",
         variant: "destructive",
       });
     }
@@ -139,14 +88,19 @@ export default function AuthPage() {
         code: data.code,
       });
       const result = await response.json();
+      
+      if (response.ok) {
+        queryClient.setQueryData(["/api/user"], result.user);
+        
+        toast({
+          title: "Email verified",
+          description: "Welcome to Paperfly CRM!",
+        });
 
-      queryClient.invalidateQueries({ queryKey: ["/api/user"] });
-      toast({
-        title: "Email verified",
-        description: "Welcome to Paperfly CRM!",
-      });
-
-      setShowVerification(false);
+        setShowVerification(false);
+      } else {
+        throw new Error(result.message || "Verification failed");
+      }
     } catch (error: any) {
       toast({
         title: "Verification failed",
@@ -243,248 +197,84 @@ export default function AuthPage() {
                 Welcome to Paperfly CRM
               </h2>
               <p className="mt-2 text-sm text-gray-600">
-                Sign in to your account or create a new one
+                Sign in to access your sales dashboard
               </p>
             </div>
 
-            <Tabs
-              value={activeTab}
-              onValueChange={setActiveTab}
-              className="w-full"
-            >
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="login">Sign In</TabsTrigger>
-                <TabsTrigger value="register">Register</TabsTrigger>
-              </TabsList>
-
-              <TabsContent value="login">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Sign In to Your Account</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <Form {...loginForm}>
-                      <form
-                        onSubmit={loginForm.handleSubmit(onLogin)}
-                        className="space-y-4"
-                      >
-                        <FormField
-                          control={loginForm.control}
-                          name="email"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Email</FormLabel>
-                              <FormControl>
-                                <div className="relative">
-                                  <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                                  <Input
-                                    placeholder="Enter your email"
-                                    className="pl-10"
-                                    {...field}
-                                  />
-                                </div>
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        <FormField
-                          control={loginForm.control}
-                          name="password"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Password</FormLabel>
-                              <FormControl>
-                                <div className="relative">
-                                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                                  <Input
-                                    type="password"
-                                    placeholder="Enter your password"
-                                    className="pl-10"
-                                    {...field}
-                                  />
-                                </div>
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        <Button type="submit" className="w-full">
-                          Sign In
-                        </Button>
-                      </form>
-                    </Form>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-
-              <TabsContent value="register">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Create Your Account</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <Form {...registerForm}>
-                      <form
-                        onSubmit={registerForm.handleSubmit(onRegister)}
-                        className="space-y-4"
-                      >
-                        <FormField
-                          control={registerForm.control}
-                          name="fullName"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Full Name</FormLabel>
-                              <FormControl>
-                                <div className="relative">
-                                  <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                                  <Input
-                                    placeholder="Enter your full name"
-                                    className="pl-10"
-                                    {...field}
-                                  />
-                                </div>
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        <FormField
-                          control={registerForm.control}
-                          name="email"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Email</FormLabel>
-                              <FormControl>
-                                <div className="relative">
-                                  <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                                  <Input
-                                    placeholder="Enter your email"
-                                    className="pl-10"
-                                    {...field}
-                                  />
-                                </div>
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        <FormField
-                          control={registerForm.control}
-                          name="password"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Password</FormLabel>
-                              <FormControl>
-                                <div className="relative">
-                                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                                  <Input
-                                    type="password"
-                                    placeholder="Create a password"
-                                    className="pl-10"
-                                    {...field}
-                                  />
-                                </div>
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        <FormField
-                          control={registerForm.control}
-                          name="confirmPassword"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Confirm Password</FormLabel>
-                              <FormControl>
-                                <div className="relative">
-                                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                                  <Input
-                                    type="password"
-                                    placeholder="Confirm your password"
-                                    className="pl-10"
-                                    {...field}
-                                  />
-                                </div>
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        <Button type="submit" className="w-full">
-                          Create Account
-                        </Button>
-                      </form>
-                    </Form>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-            </Tabs>
-
-            <div className="text-center">
-              <div className="flex items-center justify-center space-x-2 text-sm text-gray-500">
-                <Shield className="w-4 h-4" />
-                <span>Secure authentication with email verification</span>
-              </div>
-            </div>
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-center">Sign In</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Form {...loginForm}>
+                  <form onSubmit={loginForm.handleSubmit(onLogin)} className="space-y-4">
+                    <FormField
+                      control={loginForm.control}
+                      name="email"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Email</FormLabel>
+                          <FormControl>
+                            <div className="relative">
+                              <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                              <Input
+                                type="email"
+                                placeholder="Enter your email"
+                                className="pl-10"
+                                {...field}
+                              />
+                            </div>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={loginForm.control}
+                      name="password"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Password</FormLabel>
+                          <FormControl>
+                            <div className="relative">
+                              <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                              <Input
+                                type="password"
+                                placeholder="Enter your password"
+                                className="pl-10"
+                                {...field}
+                              />
+                            </div>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <Button type="submit" className="w-full" disabled={loginForm.formState.isSubmitting}>
+                      {loginForm.formState.isSubmitting ? "Signing in..." : "Sign in"}
+                    </Button>
+                  </form>
+                </Form>
+              </CardContent>
+            </Card>
           </div>
 
-          {/* Hero Section */}
-          <div className="bg-gradient-to-br from-blue-600 via-purple-600 to-indigo-700 rounded-xl p-8 text-white lg:flex lg:flex-col lg:justify-center">
-            <div className="space-y-6">
-              <h3 className="text-2xl font-bold">
-                Transform Your Sales Process
-              </h3>
-              <div className="space-y-4">
-                <div className="flex items-start space-x-3">
-                  <div className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0 mt-0.5">
-                    <span className="text-xs">✓</span>
-                  </div>
-                  <div>
-                    <h4 className="font-semibold">Lead Management</h4>
-                    <p className="text-white/80 text-sm">
-                      Track and manage leads through your sales pipeline with
-                      drag-and-drop interface
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-start space-x-3">
-                  <div className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0 mt-0.5">
-                    <span className="text-xs">✓</span>
-                  </div>
-                  <div>
-                    <h4 className="font-semibold">Sales Analytics</h4>
-                    <p className="text-white/80 text-sm">
-                      Get insights into your sales performance and team
-                      productivity with detailed reports
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-start space-x-3">
-                  <div className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0 mt-0.5">
-                    <span className="text-xs">✓</span>
-                  </div>
-                  <div>
-                    <h4 className="font-semibold">Activity Tracking</h4>
-                    <p className="text-white/80 text-sm">
-                      Log interactions, calls, meetings, and follow-ups with
-                      detailed timeline
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-start space-x-3">
-                  <div className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0 mt-0.5">
-                    <span className="text-xs">✓</span>
-                  </div>
-                  <div>
-                    <h4 className="font-semibold">Team Collaboration</h4>
-                    <p className="text-white/80 text-sm">
-                      Work together seamlessly with role-based access and user
-                      management
-                    </p>
-                  </div>
-                </div>
-              </div>
+          {/* Info Section */}
+          <div className="bg-white p-8 rounded-lg shadow-md">
+            <div className="text-center">
+              <Shield className="h-12 w-12 text-blue-600 mx-auto mb-4" />
+              <h2 className="text-xl font-semibold mb-4">Secure Lead Management</h2>
+              <p className="text-gray-600 mb-4">
+                Paperfly CRM provides comprehensive lead tracking and sales pipeline management
+                for your sales team.
+              </p>
+              <ul className="text-sm text-gray-600 space-y-2">
+                <li>• Track leads through your sales pipeline</li>
+                <li>• Manage customer interactions and notes</li>
+                <li>• Set and monitor sales targets</li>
+                <li>• Generate detailed analytics and reports</li>
+                <li>• Collaborate with your team</li>
+              </ul>
             </div>
           </div>
         </div>

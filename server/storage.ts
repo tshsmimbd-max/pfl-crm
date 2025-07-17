@@ -178,6 +178,13 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
 
+  async getTeamMembers(managerId: string): Promise<User[]> {
+    return await db
+      .select()
+      .from(users)
+      .where(eq(users.managerId, managerId));
+  }
+
   // Lead operations
   async getLeads(): Promise<Lead[]> {
     return await db.select().from(leads).orderBy(desc(leads.createdAt));
@@ -272,11 +279,10 @@ export class DatabaseStorage implements IStorage {
       .where(
         and(
           eq(targets.userId, userId),
-          eq(targets.period, period),
-          lte(targets.startDate, now),
-          gte(targets.endDate, now)
+          eq(targets.period, period)
         )
-      );
+      )
+      .orderBy(desc(targets.createdAt));
     return target;
   }
 

@@ -11,47 +11,9 @@ import { sendVerificationCode } from "./emailService";
 export async function registerRoutes(app: Express): Promise<Server> {
   setupSimpleAuth(app);
 
-  // Register endpoint
+  // Registration disabled - login only system
   app.post('/api/register', async (req: any, res) => {
-    try {
-      const validationResult = registerSchema.safeParse(req.body);
-      if (!validationResult.success) {
-        return res.status(400).json({ 
-          message: "Validation failed", 
-          errors: validationResult.error.issues 
-        });
-      }
-
-      const { fullName, email, password } = validationResult.data;
-
-      // Check if user already exists
-      const existingUser = await storage.getUserByEmail(email);
-      if (existingUser) {
-        return res.status(400).json({ message: "User already exists with this email" });
-      }
-
-      // Create new user
-      const user = await storage.createUser({
-        email,
-        password, // In production, hash this password
-        fullName,
-        role: 'sales',
-      });
-
-      // Generate and send verification code
-      const code = Math.floor(100000 + Math.random() * 900000).toString(); // 6-digit code
-      await storage.setVerificationCode(email, code);
-      await sendVerificationCode(email, code);
-
-      res.json({
-        message: "Registration successful. Please check your email for verification code.",
-        email: email,
-        needsVerification: true
-      });
-    } catch (error) {
-      console.error("Registration error:", error);
-      res.status(500).json({ message: "Registration failed" });
-    }
+    res.status(404).json({ message: "Registration not available" });
   });
 
   // Verify code endpoint
