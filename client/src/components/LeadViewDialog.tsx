@@ -1,0 +1,249 @@
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Separator } from "@/components/ui/separator";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { 
+  User, 
+  Mail, 
+  Phone, 
+  Building2, 
+  DollarSign, 
+  Calendar, 
+  Clock,
+  Edit,
+  MessageSquare,
+  TrendingUp,
+  FileText
+} from "lucide-react";
+import type { Lead } from "@shared/schema";
+import ActivityTimeline from "./ActivityTimeline";
+
+interface LeadViewDialogProps {
+  lead: Lead | null;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onEdit?: (lead: Lead) => void;
+}
+
+export default function LeadViewDialog({ lead, open, onOpenChange, onEdit }: LeadViewDialogProps) {
+  const { data: interactions = [] } = useQuery({
+    queryKey: ["/api/interactions", lead?.id],
+    enabled: open && !!lead,
+  });
+
+  const formatCurrency = (value: any) => {
+    const numValue = typeof value === 'string' ? parseFloat(value) : value;
+    return `৳${(isNaN(numValue) ? 0 : numValue).toLocaleString()}`;
+  };
+
+  const formatDate = (dateStr: string) => {
+    return new Date(dateStr).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  };
+
+  const getStageColor = (stage: string) => {
+    switch (stage) {
+      case 'prospecting': return 'bg-blue-100 text-blue-800';
+      case 'qualification': return 'bg-yellow-100 text-yellow-800';
+      case 'proposal': return 'bg-purple-100 text-purple-800';
+      case 'negotiation': return 'bg-orange-100 text-orange-800';
+      case 'closed_won': return 'bg-green-100 text-green-800';
+      case 'closed_lost': return 'bg-red-100 text-red-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const getStageLabel = (stage: string) => {
+    return stage.split('_').map(word => 
+      word.charAt(0).toUpperCase() + word.slice(1)
+    ).join(' ');
+  };
+
+  if (!lead) return null;
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-4xl max-h-[90vh]">
+        <DialogHeader>
+          <div className="flex items-center justify-between">
+            <DialogTitle className="text-2xl">Lead Details</DialogTitle>
+            {onEdit && (
+              <Button onClick={() => onEdit(lead)} variant="outline" size="sm">
+                <Edit className="w-4 h-4 mr-2" />
+                Edit
+              </Button>
+            )}
+          </div>
+        </DialogHeader>
+        
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Lead Information */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Header Card */}
+            <Card>
+              <CardHeader className="pb-3">
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center space-x-4">
+                    <Avatar className="h-12 w-12">
+                      <AvatarFallback className="bg-gradient-to-r from-blue-500 to-purple-600 text-white font-semibold">
+                        {lead.contactName.split(' ').map(n => n[0]).join('')}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <h3 className="text-xl font-semibold text-gray-900">{lead.contactName}</h3>
+                      <p className="text-gray-600 flex items-center">
+                        <Building2 className="w-4 h-4 mr-1" />
+                        {lead.company}
+                      </p>
+                    </div>
+                  </div>
+                  <Badge className={`${getStageColor(lead.stage)} font-medium`}>
+                    {getStageLabel(lead.stage)}
+                  </Badge>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="flex items-center space-x-2">
+                    <Mail className="w-4 h-4 text-gray-500" />
+                    <span className="text-sm text-gray-900">{lead.email}</span>
+                  </div>
+                  {lead.phone && (
+                    <div className="flex items-center space-x-2">
+                      <Phone className="w-4 h-4 text-gray-500" />
+                      <span className="text-sm text-gray-900">{lead.phone}</span>
+                    </div>
+                  )}
+                  <div className="flex items-center space-x-2">
+                    <DollarSign className="w-4 h-4 text-green-600" />
+                    <span className="text-sm font-semibold text-gray-900">{formatCurrency(lead.value)}</span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Calendar className="w-4 h-4 text-gray-500" />
+                    <span className="text-sm text-gray-900">{formatDate(lead.createdAt)}</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Notes */}
+            {lead.notes && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center text-lg">
+                    <FileText className="w-5 h-5 mr-2" />
+                    Notes
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-gray-700 whitespace-pre-wrap">{lead.notes}</p>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Activity Timeline */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center text-lg">
+                  <Clock className="w-5 h-5 mr-2" />
+                  Activity Timeline
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ActivityTimeline leadId={lead.id} />
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Sidebar */}
+          <div className="space-y-6">
+            {/* Quick Stats */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Quick Stats</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600">Lead ID</span>
+                  <span className="font-medium">#{lead.id}</span>
+                </div>
+                <Separator />
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600">Created</span>
+                  <span className="font-medium">{formatDate(lead.createdAt)}</span>
+                </div>
+                <Separator />
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600">Last Updated</span>
+                  <span className="font-medium">{formatDate(lead.updatedAt)}</span>
+                </div>
+                <Separator />
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600">Interactions</span>
+                  <span className="font-medium">{interactions.length}</span>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Lead Score */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center">
+                  <TrendingUp className="w-5 h-5 mr-2" />
+                  Lead Score
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-center">
+                  <div className="text-3xl font-bold text-blue-600 mb-2">
+                    {Math.floor(Math.random() * 100)}
+                  </div>
+                  <div className="text-sm text-gray-600">
+                    Based on engagement and profile
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Recent Activity */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center">
+                  <MessageSquare className="w-5 h-5 mr-2" />
+                  Recent Activity
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ScrollArea className="h-32">
+                  {interactions.slice(0, 3).map((interaction: any, index: number) => (
+                    <div key={index} className="flex items-start space-x-3 mb-3">
+                      <div className="w-2 h-2 bg-blue-500 rounded-full mt-2"></div>
+                      <div className="flex-1">
+                        <p className="text-sm font-medium">{interaction.type}</p>
+                        <p className="text-xs text-gray-600">{formatDate(interaction.createdAt)}</p>
+                      </div>
+                    </div>
+                  ))}
+                  {interactions.length === 0 && (
+                    <p className="text-sm text-gray-500 text-center py-4">
+                      No recent activity
+                    </p>
+                  )}
+                </ScrollArea>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}

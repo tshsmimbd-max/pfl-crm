@@ -45,6 +45,8 @@ export default function TargetManagement() {
       period: "monthly",
       description: "",
       createdBy: user?.id || "",
+      startDate: new Date(),
+      endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
     },
   });
 
@@ -123,11 +125,9 @@ export default function TargetManagement() {
     }
   };
 
-  const formatCurrency = (amount: string) => {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-    }).format(parseFloat(amount));
+  const formatCurrency = (amount: string | number) => {
+    const numAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
+    return `৳${(isNaN(numAmount) ? 0 : numAmount).toLocaleString()}`;
   };
 
   const formatDate = (date: string) => {
@@ -135,8 +135,9 @@ export default function TargetManagement() {
   };
 
   const calculateProgress = (target: any) => {
-    if (!metrics?.totalRevenue) return 0;
-    return Math.min((metrics.totalRevenue / parseFloat(target.amount)) * 100, 100);
+    if (!metrics?.totalRevenue || !target.targetValue) return 0;
+    const targetAmount = typeof target.targetValue === 'string' ? parseFloat(target.targetValue) : target.targetValue;
+    return Math.min((metrics.totalRevenue / targetAmount) * 100, 100);
   };
 
   const getPeriodColor = (period: string) => {
@@ -249,12 +250,17 @@ export default function TargetManagement() {
                       />
                       <FormField
                         control={form.control}
-                        name="amount"
+                        name="targetValue"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Amount</FormLabel>
+                            <FormLabel>Target Amount (৳)</FormLabel>
                             <FormControl>
-                              <Input type="number" placeholder="0" {...field} />
+                              <Input 
+                                type="number" 
+                                placeholder="0" 
+                                {...field}
+                                onChange={e => field.onChange(Number(e.target.value))}
+                              />
                             </FormControl>
                             <FormMessage />
                           </FormItem>

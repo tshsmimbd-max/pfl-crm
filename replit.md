@@ -135,6 +135,11 @@ Paperfly is a modern Customer Relationship Management (CRM) system designed for 
 - June 24, 2025: Added team-based analytics where Super Admin sees all, Managers see team data, Agents see personal data
 - June 24, 2025: Enhanced RBAC to support team-based permissions and assignment restrictions
 - June 24, 2025: Created team table and user-team relationships for proper organizational structure
+- June 24, 2025: Enhanced pipeline board with modern drag-and-drop functionality using react-beautiful-dnd
+- June 24, 2025: Added comprehensive bulk lead upload feature with CSV support using multer and csv-parser
+- June 24, 2025: Implemented lead edit and view dialogs with full CRUD operations
+- June 24, 2025: Fixed target management with proper Taka currency formatting and improved form design
+- June 24, 2025: Integrated edit/view functionality directly into pipeline board and lead management table
 
 ## Test Users
 

@@ -242,6 +242,85 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Bulk lead upload
+  app.post('/api/leads/bulk-upload', requireVerifiedEmail, async (req: any, res) => {
+    const multer = require('multer');
+    const upload = multer({ dest: 'uploads/' });
+    const fs = require('fs');
+    const csv = require('csv-parser');
+    
+    upload.single('file')(req, res, async (err: any) => {
+      if (err) {
+        return res.status(400).json({ message: 'File upload failed' });
+      }
+
+      if (!req.file) {
+        return res.status(400).json({ message: 'No file uploaded' });
+      }
+
+      const results: any[] = [];
+      const errors: string[] = [];
+      let processed = 0;
+      let failed = 0;
+
+      try {
+        const stream = fs.createReadStream(req.file.path)
+          .pipe(csv())
+          .on('data', (data: any) => results.push(data))
+          .on('end', async () => {
+            for (const row of results) {
+              try {
+                const leadData = {
+                  contactName: row.contactName || row.name,
+                  email: row.email,
+                  phone: row.phone || '',
+                  company: row.company || '',
+                  value: parseFloat(row.value) || 0,
+                  stage: row.stage || 'prospecting',
+                  notes: row.notes || '',
+                  createdBy: req.user.id,
+                  assignedTo: req.user.id,
+                };
+
+                if (!leadData.contactName || !leadData.email) {
+                  errors.push(`Row missing required fields: ${JSON.stringify(row)}`);
+                  failed++;
+                  continue;
+                }
+
+                await storage.createLead(leadData);
+                processed++;
+              } catch (error: any) {
+                errors.push(`Failed to process row: ${JSON.stringify(row)} - ${error.message}`);
+                failed++;
+              }
+            }
+
+            // Clean up uploaded file
+            try {
+              fs.unlinkSync(req.file.path);
+            } catch (cleanupError) {
+              console.error('Failed to cleanup uploaded file:', cleanupError);
+            }
+
+            res.json({
+              success: true,
+              processed,
+              failed,
+              errors: errors.slice(0, 10) // Limit errors to prevent large responses
+            });
+          })
+          .on('error', (error: any) => {
+            console.error('CSV parsing error:', error);
+            res.status(500).json({ message: 'Failed to parse CSV file' });
+          });
+      } catch (error) {
+        console.error('Bulk upload error:', error);
+        res.status(500).json({ message: 'Bulk upload failed' });
+      }
+    });
+  });
+
   app.delete('/api/leads/:id', requireVerifiedEmail, async (req: any, res) => {
     try {
       await storage.deleteLead(parseInt(req.params.id));

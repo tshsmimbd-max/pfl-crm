@@ -9,6 +9,8 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { DollarSign, Phone, Mail, Building2, Calendar, User, MoreHorizontal, Edit, Trash2, Eye } from "lucide-react";
 import type { Lead } from "@shared/schema";
+import LeadEditDialog from "./LeadEditDialog";
+import LeadViewDialog from "./LeadViewDialog";
 
 const STAGES = [
   { 
@@ -57,6 +59,9 @@ const STAGES = [
 
 export default function SimplePipelineBoard() {
   const [leads, setLeads] = useState<Lead[]>([]);
+  const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [showViewDialog, setShowViewDialog] = useState(false);
   const { toast } = useToast();
 
   const { data: fetchedLeads = [], isLoading } = useQuery({
@@ -311,11 +316,29 @@ export default function SimplePipelineBoard() {
                                     {/* Actions */}
                                     <div className="flex items-center justify-between mt-3 pt-2 border-t border-gray-100 opacity-0 group-hover:opacity-100 transition-opacity">
                                       <div className="flex items-center space-x-1">
-                                        <Button variant="ghost" size="sm" className="h-6 px-2 text-xs hover:bg-blue-50">
+                                        <Button 
+                                          variant="ghost" 
+                                          size="sm" 
+                                          className="h-6 px-2 text-xs hover:bg-blue-50"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            setSelectedLead(lead);
+                                            setShowViewDialog(true);
+                                          }}
+                                        >
                                           <Eye className="w-3 h-3 mr-1" />
                                           View
                                         </Button>
-                                        <Button variant="ghost" size="sm" className="h-6 px-2 text-xs hover:bg-green-50">
+                                        <Button 
+                                          variant="ghost" 
+                                          size="sm" 
+                                          className="h-6 px-2 text-xs hover:bg-green-50"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            setSelectedLead(lead);
+                                            setShowEditDialog(true);
+                                          }}
+                                        >
                                           <Edit className="w-3 h-3 mr-1" />
                                           Edit
                                         </Button>
@@ -341,6 +364,25 @@ export default function SimplePipelineBoard() {
           })}
         </div>
       </DragDropContext>
+
+      {/* Edit Dialog */}
+      <LeadEditDialog 
+        lead={selectedLead}
+        open={showEditDialog}
+        onOpenChange={setShowEditDialog}
+      />
+
+      {/* View Dialog */}
+      <LeadViewDialog 
+        lead={selectedLead}
+        open={showViewDialog}
+        onOpenChange={setShowViewDialog}
+        onEdit={(lead) => {
+          setSelectedLead(lead);
+          setShowViewDialog(false);
+          setShowEditDialog(true);
+        }}
+      />
     </div>
   );
 }

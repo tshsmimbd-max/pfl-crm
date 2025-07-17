@@ -16,12 +16,17 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { isUnauthorizedError } from "@/lib/authUtils";
 import { usePermissions, PERMISSIONS } from "@/hooks/usePermissions";
+import BulkLeadUpload from "./BulkLeadUpload";
+import LeadEditDialog from "./LeadEditDialog";
+import LeadViewDialog from "./LeadViewDialog";
 
 export default function LeadManagement() {
   const [searchTerm, setSearchTerm] = useState("");
   const [stageFilter, setStageFilter] = useState("all");
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [selectedLead, setSelectedLead] = useState<any>(null);
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [showViewDialog, setShowViewDialog] = useState(false);
   const { toast } = useToast();
   const { hasPermission, canCreateLeads } = usePermissions();
 
@@ -182,14 +187,16 @@ export default function LeadManagement() {
             <p className="text-gray-600">Manage and track your sales leads</p>
           </div>
           {canCreateLeads() && (
-            <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-              <DialogTrigger asChild>
-                <Button className="bg-primary-600 hover:bg-primary-700">
-                  <Plus className="w-4 h-4 mr-2" />
-                  Add Lead
-                </Button>
-              </DialogTrigger>
-            <DialogContent className="max-w-2xl">
+            <div className="flex items-center space-x-3">
+              <BulkLeadUpload />
+              <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button className="bg-primary-600 hover:bg-primary-700">
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add Lead
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-2xl">
               <DialogHeader>
                 <DialogTitle>Create New Lead</DialogTitle>
               </DialogHeader>
@@ -337,6 +344,7 @@ export default function LeadManagement() {
               </Form>
             </DialogContent>
           </Dialog>
+            </div>
           )}
         </div>
       </header>
@@ -425,10 +433,24 @@ export default function LeadManagement() {
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center space-x-2">
-                        <Button variant="ghost" size="sm">
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => {
+                            setSelectedLead(lead);
+                            setShowViewDialog(true);
+                          }}
+                        >
                           <Eye className="w-4 h-4" />
                         </Button>
-                        <Button variant="ghost" size="sm">
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => {
+                            setSelectedLead(lead);
+                            setShowEditDialog(true);
+                          }}
+                        >
                           <Edit className="w-4 h-4" />
                         </Button>
                         <Button
@@ -448,6 +470,25 @@ export default function LeadManagement() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Edit Dialog */}
+      <LeadEditDialog 
+        lead={selectedLead}
+        open={showEditDialog}
+        onOpenChange={setShowEditDialog}
+      />
+
+      {/* View Dialog */}
+      <LeadViewDialog 
+        lead={selectedLead}
+        open={showViewDialog}
+        onOpenChange={setShowViewDialog}
+        onEdit={(lead) => {
+          setSelectedLead(lead);
+          setShowViewDialog(false);
+          setShowEditDialog(true);
+        }}
+      />
     </>
   );
 }
