@@ -8,6 +8,9 @@ import { requirePermission, requireRole, hasPermission, canAccessResource, canAc
 import { z } from "zod";
 import { sendVerificationCode } from "./emailService";
 import bcrypt from "bcrypt";
+import multer from "multer";
+import fs from "fs";
+import csv from "csv-parser";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   setupSimpleAuth(app);
@@ -251,10 +254,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Bulk lead upload
   app.post('/api/leads/bulk-upload', requireVerifiedEmail, async (req: any, res) => {
-    const multer = require('multer');
     const upload = multer({ dest: 'uploads/' });
-    const fs = require('fs');
-    const csv = require('csv-parser');
     
     upload.single('file')(req, res, async (err: any) => {
       if (err) {
