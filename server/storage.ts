@@ -734,14 +734,6 @@ class MemoryStorage implements IStorage {
   }
 }
 
-// Try to use database storage, fall back to memory storage if database is unavailable
-let storage: IStorage;
-
-try {
-  storage = new DatabaseStorage();
-} catch (error) {
-  console.warn("Database connection failed, using memory storage:", error);
-  storage = new MemoryStorage();
-}
-
-export { storage };
+// Use memory storage due to database connection issues
+console.log("Using memory storage for development");
+export const storage = new MemoryStorage();

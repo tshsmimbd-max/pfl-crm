@@ -7,6 +7,7 @@ import { insertLeadSchema, insertInteractionSchema, insertTargetSchema, insertNo
 import { requirePermission, requireRole, hasPermission, canAccessResource, canAccessUser, PERMISSIONS, ROLES, Role } from "./rbac";
 import { z } from "zod";
 import { sendVerificationCode } from "./emailService";
+import bcrypt from "bcrypt";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   setupSimpleAuth(app);
@@ -66,7 +67,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { email, password } = validationResult.data;
 
       const user = await storage.getUserByEmail(email);
-      if (!user || user.password !== password) {
+      if (!user) {
+        return res.status(401).json({ message: "Invalid email or password" });
+      }
+
+      // Compare password using bcrypt
+      const isPasswordValid = await bcrypt.compare(password, user.password);
+      if (!isPasswordValid) {
         return res.status(401).json({ message: "Invalid email or password" });
       }
 
