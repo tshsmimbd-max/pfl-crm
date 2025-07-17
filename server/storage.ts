@@ -377,4 +377,371 @@ export class DatabaseStorage implements IStorage {
   }
 }
 
-export const storage = new DatabaseStorage();
+// Temporary in-memory storage for when database is unavailable
+class MemoryStorage implements IStorage {
+  private users: Map<string, User> = new Map();
+  private leads: Map<number, Lead> = new Map();
+  private interactions: Map<number, Interaction> = new Map();
+  private targets: Map<number, Target> = new Map();
+  private notifications: Map<number, Notification> = new Map();
+  private verificationCodes: Map<string, string> = new Map();
+  private nextId = 1;
+
+  constructor() {
+    // Initialize with test users
+    this.initializeTestUsers();
+  }
+
+  private initializeTestUsers() {
+    const testUsers = [
+      {
+        id: "admin",
+        email: "admin@paperfly.com",
+        password: "$2b$10$EmAT/tDAz9Uwa1SdZ5eM4.mpCJ7ggCZWBvQp/KGdkSbKkDWg/Ot9m", // admin123
+        fullName: "Super Admin",
+        role: "super_admin",
+        isActive: true,
+        emailVerified: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+      {
+        id: "manager",
+        email: "manager.fixed@paperfly.com",
+        password: "$2b$10$gZ6fCjsVFmVmhWVh793rquw3q9jb7a505ebcq59M9zu7gCobyHGQa", // manager123
+        fullName: "Manager Fixed",
+        role: "sales_manager",
+        isActive: true,
+        emailVerified: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+      {
+        id: "agent",
+        email: "agent.fixed@paperfly.com",
+        password: "$2b$10$DkBr9jZ9epZAAPfTSJrxRuVkh0TNy.bJLQOWUnZGM3N4tIX5QUsdi", // agent123
+        fullName: "Agent Fixed",
+        role: "sales_agent",
+        isActive: true,
+        emailVerified: true,
+        managerId: "manager",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    ];
+
+    testUsers.forEach(user => {
+      this.users.set(user.id, user as User);
+    });
+  }
+
+  async getUser(id: string): Promise<User | undefined> {
+    return this.users.get(id);
+  }
+
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    return Array.from(this.users.values()).find(u => u.email === email);
+  }
+
+  async createUser(user: { email: string; password: string; fullName: string; role?: string }): Promise<User> {
+    const newUser: User = {
+      id: String(this.nextId++),
+      email: user.email,
+      password: user.password,
+      fullName: user.fullName,
+      role: user.role || 'sales_agent',
+      isActive: true,
+      emailVerified: false,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    this.users.set(newUser.id, newUser);
+    return newUser;
+  }
+
+  async setVerificationCode(email: string, code: string): Promise<void> {
+    this.verificationCodes.set(email, code);
+  }
+
+  async verifyCode(email: string, code: string): Promise<User | null> {
+    const storedCode = this.verificationCodes.get(email);
+    if (storedCode === code) {
+      const user = await this.getUserByEmail(email);
+      if (user) {
+        user.emailVerified = true;
+        this.verificationCodes.delete(email);
+        return user;
+      }
+    }
+    return null;
+  }
+
+  async getAllUsers(): Promise<User[]> {
+    return Array.from(this.users.values());
+  }
+
+  async updateUserRole(id: string, role: string, managerId?: string): Promise<User> {
+    const user = this.users.get(id);
+    if (!user) throw new Error("User not found");
+    user.role = role;
+    if (managerId) user.managerId = managerId;
+    user.updatedAt = new Date();
+    return user;
+  }
+
+  async getTeamMembers(managerId: string): Promise<User[]> {
+    return Array.from(this.users.values()).filter(u => u.managerId === managerId);
+  }
+
+  async isTeamMember(managerId: string, userId: string): Promise<boolean> {
+    const user = this.users.get(userId);
+    return user?.managerId === managerId;
+  }
+
+  async deactivateUser(id: string): Promise<User> {
+    const user = this.users.get(id);
+    if (!user) throw new Error("User not found");
+    user.isActive = false;
+    user.updatedAt = new Date();
+    return user;
+  }
+
+  async activateUser(id: string): Promise<User> {
+    const user = this.users.get(id);
+    if (!user) throw new Error("User not found");
+    user.isActive = true;
+    user.updatedAt = new Date();
+    return user;
+  }
+
+  async getUsersForAssignment(currentUserId: string, currentUserRole: string): Promise<User[]> {
+    const users = Array.from(this.users.values());
+    if (currentUserRole === 'super_admin') {
+      return users.filter(u => u.id !== currentUserId);
+    } else if (currentUserRole === 'sales_manager') {
+      return users.filter(u => u.managerId === currentUserId);
+    }
+    return [];
+  }
+
+  async assignUserToManager(userId: string, managerId: string): Promise<User> {
+    const user = this.users.get(userId);
+    if (!user) throw new Error("User not found");
+    user.managerId = managerId;
+    user.updatedAt = new Date();
+    return user;
+  }
+
+  async updateUserTeam(userId: string, teamName: string): Promise<User> {
+    const user = this.users.get(userId);
+    if (!user) throw new Error("User not found");
+    user.team = teamName;
+    user.updatedAt = new Date();
+    return user;
+  }
+
+  // Lead operations
+  async getLeads(): Promise<Lead[]> {
+    return Array.from(this.leads.values()).sort((a, b) => 
+      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
+  }
+
+  async getLead(id: number): Promise<Lead | undefined> {
+    return this.leads.get(id);
+  }
+
+  async createLead(lead: InsertLead): Promise<Lead> {
+    const newLead: Lead = {
+      id: this.nextId++,
+      ...lead,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    this.leads.set(newLead.id, newLead);
+    return newLead;
+  }
+
+  async updateLead(id: number, lead: Partial<InsertLead>): Promise<Lead> {
+    const existingLead = this.leads.get(id);
+    if (!existingLead) throw new Error("Lead not found");
+    
+    const updatedLead = { ...existingLead, ...lead, updatedAt: new Date() };
+    this.leads.set(id, updatedLead);
+    return updatedLead;
+  }
+
+  async deleteLead(id: number): Promise<void> {
+    this.leads.delete(id);
+  }
+
+  async getLeadsByStage(stage: string): Promise<Lead[]> {
+    return Array.from(this.leads.values()).filter(lead => lead.stage === stage);
+  }
+
+  async getLeadsByUser(userId: string): Promise<Lead[]> {
+    return Array.from(this.leads.values()).filter(lead => lead.assignedTo === userId);
+  }
+
+  // Interaction operations
+  async getInteractions(leadId: number): Promise<Interaction[]> {
+    return Array.from(this.interactions.values())
+      .filter(i => i.leadId === leadId)
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  }
+
+  async getAllInteractions(): Promise<Interaction[]> {
+    return Array.from(this.interactions.values());
+  }
+
+  async createInteraction(interaction: InsertInteraction): Promise<Interaction> {
+    const newInteraction: Interaction = {
+      id: this.nextId++,
+      ...interaction,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    this.interactions.set(newInteraction.id, newInteraction);
+    return newInteraction;
+  }
+
+  async updateInteraction(id: number, interaction: Partial<InsertInteraction>): Promise<Interaction> {
+    const existing = this.interactions.get(id);
+    if (!existing) throw new Error("Interaction not found");
+    
+    const updated = { ...existing, ...interaction, updatedAt: new Date() };
+    this.interactions.set(id, updated);
+    return updated;
+  }
+
+  // Target operations
+  async getTargets(userId?: string): Promise<Target[]> {
+    const targets = Array.from(this.targets.values());
+    return userId ? targets.filter(t => t.userId === userId) : targets;
+  }
+
+  async createTarget(target: InsertTarget): Promise<Target> {
+    const newTarget: Target = {
+      id: this.nextId++,
+      ...target,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    this.targets.set(newTarget.id, newTarget);
+    return newTarget;
+  }
+
+  async updateTarget(id: number, target: Partial<InsertTarget>): Promise<Target> {
+    const existing = this.targets.get(id);
+    if (!existing) throw new Error("Target not found");
+    
+    const updated = { ...existing, ...target, updatedAt: new Date() };
+    this.targets.set(id, updated);
+    return updated;
+  }
+
+  async deleteTarget(id: number): Promise<void> {
+    this.targets.delete(id);
+  }
+
+  async getCurrentTarget(userId: string, period: string): Promise<Target | undefined> {
+    return Array.from(this.targets.values())
+      .find(t => t.userId === userId && t.period === period);
+  }
+
+  // Notification operations
+  async getNotifications(userId: string): Promise<Notification[]> {
+    return Array.from(this.notifications.values()).filter(n => n.userId === userId);
+  }
+
+  async createNotification(notification: InsertNotification): Promise<Notification> {
+    const newNotification: Notification = {
+      id: this.nextId++,
+      ...notification,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    this.notifications.set(newNotification.id, newNotification);
+    return newNotification;
+  }
+
+  async markNotificationRead(id: number): Promise<void> {
+    const notification = this.notifications.get(id);
+    if (notification) {
+      notification.isRead = true;
+      notification.updatedAt = new Date();
+    }
+  }
+
+  async getUnreadNotificationCount(userId: string): Promise<number> {
+    return Array.from(this.notifications.values())
+      .filter(n => n.userId === userId && !n.isRead).length;
+  }
+
+  // Analytics operations
+  async getSalesMetrics(userId?: string): Promise<{
+    totalRevenue: number;
+    activeLeads: number;
+    conversionRate: number;
+    targetProgress: number;
+  }> {
+    const leads = userId ? 
+      Array.from(this.leads.values()).filter(l => l.assignedTo === userId) :
+      Array.from(this.leads.values());
+    
+    const closedWonLeads = leads.filter(l => l.stage === 'closed_won');
+    const totalRevenue = closedWonLeads.reduce((sum, l) => sum + (l.value || 0), 0);
+    const activeLeads = leads.filter(l => l.stage !== 'closed_won' && l.stage !== 'closed_lost').length;
+    const conversionRate = leads.length > 0 ? (closedWonLeads.length / leads.length) * 100 : 0;
+    
+    const target = userId ? await this.getCurrentTarget(userId, 'monthly') : null;
+    const targetProgress = target ? (totalRevenue / target.targetValue) * 100 : 0;
+
+    return {
+      totalRevenue,
+      activeLeads,
+      conversionRate,
+      targetProgress,
+    };
+  }
+
+  async getTeamPerformance(): Promise<Array<{
+    user: User;
+    dealsCount: number;
+    revenue: number;
+    targetProgress: number;
+  }>> {
+    const users = Array.from(this.users.values());
+    const performance = [];
+
+    for (const user of users) {
+      const userLeads = await this.getLeadsByUser(user.id);
+      const closedWonLeads = userLeads.filter(lead => lead.stage === 'closed_won');
+      const revenue = closedWonLeads.reduce((sum, lead) => sum + (lead.value || 0), 0);
+
+      const currentTarget = await this.getCurrentTarget(user.id, 'monthly');
+      const targetProgress = currentTarget ? (revenue / currentTarget.targetValue) * 100 : 0;
+
+      performance.push({
+        user,
+        dealsCount: closedWonLeads.length,
+        revenue,
+        targetProgress,
+      });
+    }
+
+    return performance;
+  }
+}
+
+// Try to use database storage, fall back to memory storage if database is unavailable
+let storage: IStorage;
+
+try {
+  storage = new DatabaseStorage();
+} catch (error) {
+  console.warn("Database connection failed, using memory storage:", error);
+  storage = new MemoryStorage();
+}
+
+export { storage };
