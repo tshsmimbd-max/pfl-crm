@@ -29,7 +29,7 @@ export default function TargetManagement() {
 
   const { data: users, isLoading: usersLoading } = useQuery({
     queryKey: ["/api/users"],
-    enabled: user?.role === "admin",
+    enabled: user?.role === "super_admin",
   });
 
   const { data: metrics } = useQuery({
@@ -153,7 +153,7 @@ export default function TargetManagement() {
     }
   };
 
-  if (targetsLoading || (user?.role === "admin" && usersLoading)) {
+  if (targetsLoading || (user?.role === "super_admin" && usersLoading)) {
     return (
       <div className="flex-1 overflow-auto p-6">
         <div className="animate-pulse space-y-4">
@@ -175,7 +175,7 @@ export default function TargetManagement() {
     return now >= startDate && now <= endDate;
   }) || [];
 
-  const userTargets = user?.role === "admin" ? currentTargets : currentTargets.filter(t => t.userId === user?.id);
+  const userTargets = user?.role === "super_admin" ? currentTargets : currentTargets.filter(t => t.userId === user?.id);
   const usersWithoutTargets = users?.filter(u => !currentTargets.some(t => t.userId === u.id)) || [];
 
   return (
@@ -187,7 +187,7 @@ export default function TargetManagement() {
             <h1 className="text-2xl font-bold text-gray-900">Target Management</h1>
             <p className="text-gray-600">Set and track sales targets for your team</p>
           </div>
-          {user?.role === "admin" && (
+          {user?.role === "super_admin" && (
             <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
               <DialogTrigger asChild>
                 <Button className="bg-primary-600 hover:bg-primary-700">
@@ -328,7 +328,7 @@ export default function TargetManagement() {
       {/* Content */}
       <div className="flex-1 overflow-auto p-6">
         {/* Admin Alert for Missing Targets */}
-        {user?.role === "admin" && usersWithoutTargets.length > 0 && (
+        {user?.role === "super_admin" && usersWithoutTargets.length > 0 && (
           <Alert className="mb-6 bg-yellow-50 border-yellow-200">
             <AlertCircle className="h-4 w-4 text-yellow-500" />
             <AlertDescription className="text-yellow-700">
@@ -376,7 +376,7 @@ export default function TargetManagement() {
                         </Badge>
                       </div>
                     </div>
-                    {user?.role === "admin" && (
+                    {user?.role === "super_admin" && (
                       <div className="flex items-center space-x-1">
                         <Button variant="ghost" size="sm">
                           <Edit className="w-4 h-4" />

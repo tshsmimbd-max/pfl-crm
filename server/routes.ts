@@ -132,7 +132,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/users', requireVerifiedEmail, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.id);
-      if (user?.role !== 'admin') {
+      if (user?.role !== 'super_admin') {
         return res.status(403).json({ message: "Access denied" });
       }
       const users = await storage.getAllUsers();
@@ -146,7 +146,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.patch('/api/users/:id/role', requireVerifiedEmail, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.id);
-      if (user?.role !== 'admin') {
+      if (user?.role !== 'super_admin') {
         return res.status(403).json({ message: "Access denied" });
       }
       const { role } = req.body;
@@ -221,7 +221,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const lead = await storage.createLead({
         ...validation,
         createdBy: req.user.id,
-        assignedTo: req.user.id // Sales agents can only assign leads to themselves
+        assignedTo: validation.assignedTo || req.user.id // Use specified assignedTo or default to current user
       });
       res.status(201).json(lead);
     } catch (error) {
@@ -394,7 +394,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/targets', requireVerifiedEmail, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.id);
-      if (user?.role !== 'admin') {
+      if (user?.role !== 'super_admin') {
         return res.status(403).json({ message: "Access denied" });
       }
       const targetData = insertTargetSchema.parse({
@@ -421,7 +421,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.patch('/api/targets/:id', requireVerifiedEmail, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.id);
-      if (user?.role !== 'admin') {
+      if (user?.role !== 'super_admin') {
         return res.status(403).json({ message: "Access denied" });
       }
       const target = await storage.updateTarget(parseInt(req.params.id), req.body);
@@ -435,7 +435,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.delete('/api/targets/:id', requireVerifiedEmail, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.id);
-      if (user?.role !== 'admin') {
+      if (user?.role !== 'super_admin') {
         return res.status(403).json({ message: "Access denied" });
       }
       await storage.deleteTarget(parseInt(req.params.id));
