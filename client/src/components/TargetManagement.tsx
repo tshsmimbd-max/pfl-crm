@@ -216,7 +216,7 @@ export default function TargetManagement() {
                             <SelectContent>
                               {users?.map((user) => (
                                 <SelectItem key={user.id} value={user.id}>
-                                  {user.firstName} {user.lastName}
+                                  {user.fullName}
                                 </SelectItem>
                               ))}
                             </SelectContent>
@@ -360,7 +360,7 @@ export default function TargetManagement() {
                         {targetUser?.profileImageUrl ? (
                           <img
                             src={targetUser.profileImageUrl}
-                            alt={`${targetUser.firstName} ${targetUser.lastName}`}
+                            alt={targetUser.fullName}
                             className="w-10 h-10 rounded-full object-cover"
                           />
                         ) : (
@@ -369,7 +369,7 @@ export default function TargetManagement() {
                       </div>
                       <div>
                         <h3 className="font-medium text-gray-900">
-                          {targetUser ? `${targetUser.firstName} ${targetUser.lastName}` : 'Unknown User'}
+                          {targetUser ? targetUser.fullName : 'Unknown User'}
                         </h3>
                         <Badge className={`text-xs ${getPeriodColor(target.period)}`}>
                           {target.period.charAt(0).toUpperCase() + target.period.slice(1)}
@@ -398,7 +398,7 @@ export default function TargetManagement() {
                     <div>
                       <div className="flex items-center justify-between mb-2">
                         <span className="text-sm text-gray-600">Target Amount</span>
-                        <span className="font-semibold">{formatCurrency(target.amount)}</span>
+                        <span className="font-semibold">{formatCurrency(target.targetValue)}</span>
                       </div>
                       <div className="flex items-center justify-between mb-2">
                         <span className="text-sm text-gray-600">Current Progress</span>

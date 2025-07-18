@@ -140,6 +140,12 @@ Paperfly is a modern Customer Relationship Management (CRM) system designed for 
 - June 24, 2025: Implemented lead edit and view dialogs with full CRUD operations
 - June 24, 2025: Fixed target management with proper Taka currency formatting and improved form design
 - June 24, 2025: Integrated edit/view functionality directly into pipeline board and lead management table
+- July 18, 2025: Fixed CommonJS import issues in server routes by converting to ES6 import syntax
+- July 18, 2025: Corrected role-based access control for target management (super_admin vs admin)
+- July 18, 2025: Fixed date handling in target schema to accept both strings and dates
+- July 18, 2025: Resolved user display issue in target creation modal - now shows fullName instead of firstName/lastName
+- July 18, 2025: Fixed target amount display in target cards to use targetValue field
+- July 18, 2025: Verified complete target functionality: creation, assignment, notifications, and progress tracking
 
 ## Test Users
 
