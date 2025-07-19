@@ -58,7 +58,9 @@ export default function AuthPage() {
       const result = await response.json();
       
       if (response.ok) {
+        // Set the user data in cache and invalidate the query to trigger a refresh
         queryClient.setQueryData(["/api/user"], result.user);
+        await queryClient.invalidateQueries({ queryKey: ["/api/user"] });
         
         if (!result.user.emailVerified) {
           setVerificationEmail(result.user.email);
@@ -90,7 +92,9 @@ export default function AuthPage() {
       const result = await response.json();
       
       if (response.ok) {
+        // Set the user data in cache and invalidate the query to trigger a refresh
         queryClient.setQueryData(["/api/user"], result.user);
+        await queryClient.invalidateQueries({ queryKey: ["/api/user"] });
         
         toast({
           title: "Email verified",
