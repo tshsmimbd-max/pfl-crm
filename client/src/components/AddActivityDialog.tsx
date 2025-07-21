@@ -84,10 +84,13 @@ export default function AddActivityDialog({ open, onOpenChange, leadId }: AddAct
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-2xl" aria-describedby="activity-dialog-description">
         <DialogHeader>
           <DialogTitle>Add Activity</DialogTitle>
         </DialogHeader>
+        <div id="activity-dialog-description" className="sr-only">
+          Add a new activity to track interactions with leads
+        </div>
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">

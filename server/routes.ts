@@ -458,6 +458,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get('/api/interactions/all', requireVerifiedEmail, async (req: any, res) => {
+    try {
+      const currentUser = await storage.getUser(req.user.id);
+      
+      // Get all interactions based on user role
+      let interactions = await storage.getAllInteractions();
+      
+      if (currentUser?.role === ROLES.SALES_AGENT) {
+        interactions = interactions.filter(i => i.userId === currentUser.id);
+      } else if (currentUser?.role === ROLES.SALES_MANAGER) {
+        // Get team member IDs
+        const teamMembers = await storage.getTeamMembers(currentUser.id);
+        const teamMemberIds = teamMembers.map(m => m.id);
+        interactions = interactions.filter(i => teamMemberIds.includes(i.userId) || i.userId === currentUser.id);
+      }
+      
+      res.json(interactions);
+    } catch (error) {
+      console.error("Error fetching all interactions:", error);
+      res.status(500).json({ message: "Failed to fetch interactions" });
+    }
+  });
+
   app.get('/api/interactions/user/:userId', requireVerifiedEmail, async (req: any, res) => {
     try {
       const currentUser = await storage.getUser(req.user.id);
