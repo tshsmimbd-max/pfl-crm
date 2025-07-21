@@ -446,6 +446,70 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Interaction/Activity routes
+  app.get('/api/interactions/:leadId', requireVerifiedEmail, async (req: any, res) => {
+    try {
+      const leadId = parseInt(req.params.leadId);
+      const interactions = await storage.getInteractions(leadId);
+      res.json(interactions);
+    } catch (error) {
+      console.error("Error fetching interactions:", error);
+      res.status(500).json({ message: "Failed to fetch interactions" });
+    }
+  });
+
+  app.get('/api/interactions/user/:userId', requireVerifiedEmail, async (req: any, res) => {
+    try {
+      const currentUser = await storage.getUser(req.user.id);
+      const userId = req.params.userId;
+      
+      // Check permissions
+      if (currentUser?.role === ROLES.SALES_AGENT && userId !== currentUser.id) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      if (currentUser?.role === ROLES.SALES_MANAGER) {
+        const canView = await canAccessUser(currentUser, userId);
+        if (!canView) {
+          return res.status(403).json({ message: "Access denied" });
+        }
+      }
+
+      const interactions = await storage.getAllInteractions();
+      const userInteractions = interactions.filter(i => i.userId === userId);
+      res.json(userInteractions);
+    } catch (error) {
+      console.error("Error fetching user interactions:", error);
+      res.status(500).json({ message: "Failed to fetch user interactions" });
+    }
+  });
+
+  app.post('/api/interactions', requireVerifiedEmail, async (req: any, res) => {
+    try {
+      const interactionData = insertInteractionSchema.parse({
+        ...req.body,
+        userId: req.user.id,
+      });
+      
+      const interaction = await storage.createInteraction(interactionData);
+      res.json(interaction);
+    } catch (error) {
+      console.error("Error creating interaction:", error);
+      res.status(500).json({ message: "Failed to create interaction" });
+    }
+  });
+
+  app.patch('/api/interactions/:id', requireVerifiedEmail, async (req: any, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const interaction = await storage.updateInteraction(id, req.body);
+      res.json(interaction);
+    } catch (error) {
+      console.error("Error updating interaction:", error);
+      res.status(500).json({ message: "Failed to update interaction" });
+    }
+  });
+
   // Notification routes
   app.get('/api/notifications', requireVerifiedEmail, async (req: any, res) => {
     try {

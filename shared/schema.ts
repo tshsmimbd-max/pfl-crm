@@ -161,7 +161,8 @@ export const insertInteractionSchema = createInsertSchema(interactions).omit({
   id: true,
   createdAt: true,
 }).extend({
-  scheduledAt: z.string().transform(val => new Date(val)),
+  scheduledAt: z.string().transform(val => new Date(val)).optional(),
+  completedAt: z.string().transform(val => new Date(val)).optional(),
 });
 
 export const insertTargetSchema = createInsertSchema(targets).omit({
