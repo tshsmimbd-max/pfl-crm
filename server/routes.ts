@@ -462,21 +462,99 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const currentUser = await storage.getUser(req.user.id);
       
-      // Get all interactions based on user role
+      // Get all interactions based on user role and lead access
       let interactions = await storage.getAllInteractions();
       
       if (currentUser?.role === ROLES.SALES_AGENT) {
-        interactions = interactions.filter(i => i.userId === currentUser.id);
+        // Agent can see interactions for leads assigned to them
+        const userLeads = await storage.getLeadsByUser(currentUser.id);
+        const userLeadIds = userLeads.map(lead => lead.id);
+        interactions = interactions.filter(i => 
+          i.userId === currentUser.id || userLeadIds.includes(i.leadId)
+        );
       } else if (currentUser?.role === ROLES.SALES_MANAGER) {
-        // Get team member IDs
+        // Manager can see team interactions
         const teamMembers = await storage.getTeamMembers(currentUser.id);
         const teamMemberIds = teamMembers.map(m => m.id);
-        interactions = interactions.filter(i => teamMemberIds.includes(i.userId) || i.userId === currentUser.id);
+        const teamLeads = await Promise.all(
+          teamMemberIds.map(id => storage.getLeadsByUser(id))
+        );
+        const teamLeadIds = teamLeads.flat().map(lead => lead.id);
+        const userLeads = await storage.getLeadsByUser(currentUser.id);
+        const userLeadIds = userLeads.map(lead => lead.id);
+        
+        interactions = interactions.filter(i => 
+          teamMemberIds.includes(i.userId) || 
+          i.userId === currentUser.id ||
+          teamLeadIds.includes(i.leadId) ||
+          userLeadIds.includes(i.leadId)
+        );
       }
+      // Super admin can see all interactions (no filtering)
       
       res.json(interactions);
     } catch (error) {
       console.error("Error fetching all interactions:", error);
+      res.status(500).json({ message: "Failed to fetch interactions" });
+    }
+  });
+
+  app.get('/api/interactions', requireVerifiedEmail, async (req: any, res) => {
+    try {
+      const leadId = parseInt(req.query.leadId as string);
+      
+      if (!leadId) {
+        // Return all interactions for the user if no leadId specified
+        const currentUser = await storage.getUser(req.user.id);
+        let interactions = await storage.getAllInteractions();
+        
+        if (currentUser?.role === ROLES.SALES_AGENT) {
+          // Agent can see interactions for leads assigned to them
+          const userLeads = await storage.getLeadsByUser(currentUser.id);
+          const userLeadIds = userLeads.map(lead => lead.id);
+          interactions = interactions.filter(i => 
+            i.userId === currentUser.id || userLeadIds.includes(i.leadId)
+          );
+        } else if (currentUser?.role === ROLES.SALES_MANAGER) {
+          // Manager can see team interactions
+          const teamMembers = await storage.getTeamMembers(currentUser.id);
+          const teamMemberIds = teamMembers.map(m => m.id);
+          interactions = interactions.filter(i => 
+            teamMemberIds.includes(i.userId) || i.userId === currentUser.id
+          );
+        }
+        
+        return res.json(interactions);
+      }
+      
+      // Check if user can access this lead
+      const lead = await storage.getLead(leadId);
+      if (!lead) {
+        return res.status(404).json({ message: "Lead not found" });
+      }
+      
+      const currentUser = await storage.getUser(req.user.id);
+      let canAccess = false;
+      
+      if (currentUser?.role === ROLES.SUPER_ADMIN) {
+        canAccess = true;
+      } else if (currentUser?.role === ROLES.SALES_MANAGER) {
+        // Manager can access team leads
+        const teamMembers = await storage.getTeamMembers(currentUser.id);
+        const teamMemberIds = teamMembers.map(m => m.id);
+        canAccess = teamMemberIds.includes(lead.assignedTo) || lead.assignedTo === currentUser.id;
+      } else if (currentUser?.role === ROLES.SALES_AGENT) {
+        canAccess = lead.assignedTo === currentUser.id;
+      }
+      
+      if (!canAccess) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      const interactions = await storage.getInteractions(leadId);
+      res.json(interactions);
+    } catch (error) {
+      console.error("Error fetching interactions:", error);
       res.status(500).json({ message: "Failed to fetch interactions" });
     }
   });

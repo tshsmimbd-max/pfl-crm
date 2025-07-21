@@ -89,7 +89,7 @@ export default function AddActivityDialog({ open, onOpenChange, leadId }: AddAct
           <DialogTitle>Add Activity</DialogTitle>
         </DialogHeader>
         <div id="activity-dialog-description" className="sr-only">
-          Add a new activity to track interactions with leads
+          Create and schedule activities such as calls, emails, meetings, or notes to track lead interactions
         </div>
 
         <Form {...form}>

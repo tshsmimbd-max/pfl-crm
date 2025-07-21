@@ -275,8 +275,8 @@ export default function PipelineBoard() {
 
               <Droppable droppableId={stage.id}>
                 {(provided, snapshot) => (
-                  <ScrollArea 
-                    className={`flex-1 p-2 border-2 border-t-0 rounded-b-lg ${
+                  <div 
+                    className={`flex-1 p-2 border-2 border-t-0 rounded-b-lg overflow-y-auto max-h-[calc(100vh-300px)] ${
                       snapshot.isDraggingOver ? 'bg-blue-50' : 'bg-white'
                     } ${stage.color.replace('bg-', 'border-').replace('-100', '-200')}`}
                     ref={provided.innerRef}
@@ -446,7 +446,7 @@ export default function PipelineBoard() {
                       ))}
                       {provided.placeholder}
                     </div>
-                  </ScrollArea>
+                  </div>
                 )}
               </Droppable>
             </div>

@@ -230,6 +230,13 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(interactions.createdAt));
   }
 
+  async getAllInteractions(): Promise<Interaction[]> {
+    return await db
+      .select()
+      .from(interactions)
+      .orderBy(desc(interactions.createdAt));
+  }
+
   async createInteraction(interaction: InsertInteraction): Promise<Interaction> {
     const [newInteraction] = await db.insert(interactions).values(interaction).returning();
     return newInteraction;

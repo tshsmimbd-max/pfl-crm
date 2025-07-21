@@ -90,9 +90,7 @@ export default function SimplePipelineBoard() {
   });
 
   useEffect(() => {
-    if (fetchedLeads) {
-      setLeads(fetchedLeads);
-    }
+    setLeads(fetchedLeads);
   }, [fetchedLeads]);
 
   const formatCurrency = (value: any) => {
