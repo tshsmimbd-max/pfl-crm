@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -46,7 +46,6 @@ export default function LeadEditDialog({ lead, open, onOpenChange }: LeadEditDia
       company: lead?.company || "",
       value: lead?.value || 0,
       stage: lead?.stage || "prospecting",
-      notes: lead?.notes || "",
       assignedTo: lead?.assignedTo || "",
     },
   });
@@ -77,19 +76,20 @@ export default function LeadEditDialog({ lead, open, onOpenChange }: LeadEditDia
     updateLeadMutation.mutate(data);
   };
 
-  // Reset form when lead changes
-  if (lead && open) {
-    form.reset({
-      contactName: lead.contactName,
-      email: lead.email,
-      phone: lead.phone || "",
-      company: lead.company,
-      value: lead.value,
-      stage: lead.stage,
-      notes: lead.notes || "",
-      assignedTo: lead.assignedTo,
-    });
-  }
+  // Reset form when lead changes or dialog opens
+  React.useEffect(() => {
+    if (lead && open) {
+      form.reset({
+        contactName: lead.contactName,
+        email: lead.email,
+        phone: lead.phone || "",
+        company: lead.company,
+        value: lead.value,
+        stage: lead.stage,
+        assignedTo: lead.assignedTo || "",
+      });
+    }
+  }, [lead, open, form]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -219,9 +219,9 @@ export default function LeadEditDialog({ lead, open, onOpenChange }: LeadEditDia
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {users.map((user: any) => (
+                      {Array.isArray(users) && users.map((user: any) => (
                         <SelectItem key={user.id} value={user.id}>
-                          {user.fullName || `${user.firstName} ${user.lastName}`}
+                          {user.fullName || user.email}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -231,23 +231,7 @@ export default function LeadEditDialog({ lead, open, onOpenChange }: LeadEditDia
               )}
             />
 
-            <FormField
-              control={form.control}
-              name="notes"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Notes</FormLabel>
-                  <FormControl>
-                    <Textarea 
-                      placeholder="Additional notes about this lead..."
-                      className="min-h-[100px]"
-                      {...field} 
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            {/* Notes field removed as it's not in the schema */}
 
             <div className="flex justify-end space-x-2 pt-4">
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>

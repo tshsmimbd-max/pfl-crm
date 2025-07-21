@@ -19,12 +19,12 @@ interface PipelineStage {
 }
 
 const PIPELINE_STAGES = [
-  { id: "Prospecting", title: "Prospecting", color: "bg-gray-100 border-gray-300" },
-  { id: "Qualification", title: "Qualification", color: "bg-blue-100 border-blue-300" },
-  { id: "Proposal", title: "Proposal", color: "bg-yellow-100 border-yellow-300" },
-  { id: "Negotiation", title: "Negotiation", color: "bg-orange-100 border-orange-300" },
-  { id: "Closed Won", title: "Closed Won", color: "bg-green-100 border-green-300" },
-  { id: "Closed Lost", title: "Closed Lost", color: "bg-red-100 border-red-300" },
+  { id: "prospecting", title: "Prospecting", color: "bg-gray-100 border-gray-300" },
+  { id: "qualification", title: "Qualification", color: "bg-blue-100 border-blue-300" },
+  { id: "proposal", title: "Proposal", color: "bg-yellow-100 border-yellow-300" },
+  { id: "negotiation", title: "Negotiation", color: "bg-orange-100 border-orange-300" },
+  { id: "closed_won", title: "Closed Won", color: "bg-green-100 border-green-300" },
+  { id: "closed_lost", title: "Closed Lost", color: "bg-red-100 border-red-300" },
 ];
 
 export default function PipelineBoard() {
@@ -41,7 +41,7 @@ export default function PipelineBoard() {
 
   const updateLeadStageMutation = useMutation({
     mutationFn: async ({ leadId, newStage }: { leadId: number; newStage: string }) => {
-      const response = await apiRequest("PATCH", `/api/leads/${leadId}`, { stage: newStage });
+      const response = await apiRequest("PUT", `/api/leads/${leadId}`, { stage: newStage });
       return response.json();
     },
     onSuccess: () => {
@@ -61,7 +61,7 @@ export default function PipelineBoard() {
   });
 
   useEffect(() => {
-    if (leads && leads.length > 0) {
+    if (Array.isArray(leads) && leads.length > 0) {
       console.log("Processing leads for pipeline:", leads);
       const stagesWithLeads = PIPELINE_STAGES.map(stage => {
         const stageLeads = leads.filter((lead: Lead) => {
@@ -196,18 +196,10 @@ export default function PipelineBoard() {
                                     {formatCurrency(lead.value)}
                                   </div>
                                   
-                                  {lead.orderVolume && (
-                                    <div className="flex items-center text-xs text-gray-600">
-                                      <Package className="w-3 h-3 mr-1" />
-                                      {lead.orderVolume}
-                                    </div>
-                                  )}
-
-                                  {lead.leadSource && (
-                                    <Badge variant="outline" className="text-xs">
-                                      {lead.leadSource}
-                                    </Badge>
-                                  )}
+                                  <div className="flex items-center text-xs text-gray-600">
+                                    <Building2 className="w-3 h-3 mr-1" />
+                                    {lead.company}
+                                  </div>
                                 </div>
 
                                 <div className="flex items-center justify-between mt-3 pt-3 border-t">
@@ -228,7 +220,7 @@ export default function PipelineBoard() {
                                     </Button>
                                   </div>
                                   <p className="text-xs text-gray-500">
-                                    {new Date(lead.updatedAt).toLocaleDateString()}
+                                    {lead.updatedAt ? new Date(lead.updatedAt).toLocaleDateString() : new Date().toLocaleDateString()}
                                   </p>
                                 </div>
                               </CardContent>

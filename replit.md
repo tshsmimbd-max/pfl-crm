@@ -146,6 +146,11 @@ Paperfly is a modern Customer Relationship Management (CRM) system designed for 
 - July 18, 2025: Resolved user display issue in target creation modal - now shows fullName instead of firstName/lastName
 - July 18, 2025: Fixed target amount display in target cards to use targetValue field
 - July 18, 2025: Verified complete target functionality: creation, assignment, notifications, and progress tracking
+- July 21, 2025: Fixed pipeline activity issues by correcting stage naming convention (lowercase format)
+- July 21, 2025: Resolved lead edit dialog form validation and field mapping issues
+- July 21, 2025: Updated pipeline board to use consistent stage values with lead edit dialog
+- July 21, 2025: Removed non-existent schema fields (notes, orderVolume, leadSource) from UI components
+- July 21, 2025: Verified lead CRUD operations working correctly with proper stage progression
 
 ## Test Users
 
