@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Bell, X, Target, User, Calendar, AlertCircle, CheckCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useLocation } from "wouter";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { isUnauthorizedError } from "@/lib/authUtils";
 import type { Notification } from "@shared/schema";
@@ -13,6 +14,7 @@ export default function NotificationSystem() {
   const [isOpen, setIsOpen] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
 
   const { data: notificationsData, isLoading } = useQuery({
     queryKey: ["/api/notifications"],
@@ -97,6 +99,23 @@ export default function NotificationSystem() {
     setNotifications(prev =>
       prev.map(n => n.id === notificationId ? { ...n, read: true } : n)
     );
+  };
+
+  const handleViewDetails = (notification: Notification) => {
+    // Mark as read first
+    handleMarkAsRead(notification.id);
+    
+    // Navigate to appropriate page based on notification type
+    if (notification.type === "target_assigned") {
+      setLocation("/targets");
+    } else if (notification.type === "lead_update") {
+      setLocation("/leads");
+    } else if (notification.type === "target_reminder") {
+      setLocation("/analytics");
+    }
+    
+    // Close notification panel
+    setIsOpen(false);
   };
 
   const getNotificationIcon = (type: string) => {
@@ -218,7 +237,7 @@ export default function NotificationSystem() {
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-start justify-between">
-                              <div className="flex-1">
+                              <div className="flex-1 cursor-pointer" onClick={() => handleViewDetails(notification)}>
                                 <p className={`text-sm ${isUnread ? "font-semibold" : "font-medium"} text-gray-900`}>
                                   {notification.title}
                                 </p>
@@ -229,16 +248,30 @@ export default function NotificationSystem() {
                                   {formatTimeAgo(notification.createdAt)}
                                 </p>
                               </div>
-                              {isUnread && (
+                              <div className="flex items-center space-x-1 ml-2">
+                                {isUnread && (
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleMarkAsRead(notification.id);
+                                    }}
+                                  >
+                                    <CheckCircle className="w-4 h-4" />
+                                  </Button>
+                                )}
                                 <Button
                                   variant="ghost"
                                   size="sm"
-                                  className="ml-2"
-                                  onClick={() => handleMarkAsRead(notification.id)}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleMarkAsRead(notification.id);
+                                  }}
                                 >
-                                  <CheckCircle className="w-4 h-4" />
+                                  <X className="w-3 h-3" />
                                 </Button>
-                              )}
+                              </div>
                             </div>
                           </div>
                         </div>
@@ -285,7 +318,7 @@ export default function NotificationSystem() {
                           size="sm"
                           variant="outline"
                           className="text-warning-700 border-warning-200 hover:bg-warning-100"
-                          onClick={() => handleMarkAsRead(notification.id)}
+                          onClick={() => handleViewDetails(notification)}
                         >
                           View Details
                         </Button>
