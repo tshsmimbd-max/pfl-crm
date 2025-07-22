@@ -52,9 +52,75 @@ export default function Analytics() {
     queryKey: ["/api/leads"],
   });
 
+  const { data: targets = [] } = useQuery({
+    queryKey: ["/api/targets"],
+  });
+
+  const { data: dailyRevenue = [] } = useQuery({
+    queryKey: ["/api/daily-revenue"],
+  });
+
+  const { data: customers = [] } = useQuery({
+    queryKey: ["/api/customers"],
+  });
+
   const formatCurrency = (amount: number) => {
     return `৳${amount.toLocaleString()}`;
   };
+
+  // Calculate target vs achieved metrics
+  const getTargetVsAchieved = () => {
+    const currentMonth = new Date();
+    const monthStart = startOfMonth(currentMonth);
+    const monthEnd = endOfMonth(currentMonth);
+
+    // Get monthly targets
+    const monthlyTargets = targets.filter((target: any) => 
+      target.period === 'monthly' && 
+      isWithinInterval(new Date(target.startDate), { start: monthStart, end: monthEnd })
+    );
+
+    // Calculate achieved revenue from daily revenue entries
+    const monthlyRevenue = dailyRevenue
+      .filter((rev: any) => isWithinInterval(new Date(rev.date), { start: monthStart, end: monthEnd }))
+      .reduce((sum: number, rev: any) => sum + (rev.revenue || 0), 0);
+
+    // Calculate achieved leads (won leads this month)
+    const monthlyLeads = leads
+      ?.filter((lead: any) => 
+        lead.stage === 'closed_won' && 
+        isWithinInterval(new Date(lead.updatedAt), { start: monthStart, end: monthEnd })
+      ).length || 0;
+
+    // Calculate converted customers this month
+    const monthlyCustomers = customers
+      .filter((customer: any) => 
+        isWithinInterval(new Date(customer.convertedAt), { start: monthStart, end: monthEnd })
+      ).length;
+
+    return {
+      revenue: {
+        target: monthlyTargets.reduce((sum: number, t: any) => sum + (t.targetValue || 0), 0),
+        achieved: monthlyRevenue,
+        percentage: monthlyTargets.length > 0 
+          ? Math.round((monthlyRevenue / monthlyTargets.reduce((sum: number, t: any) => sum + (t.targetValue || 0), 0)) * 100)
+          : 0
+      },
+      leads: {
+        target: monthlyTargets.reduce((sum: number, t: any) => sum + (t.leads || 0), 0),
+        achieved: monthlyLeads,
+        percentage: monthlyTargets.length > 0 
+          ? Math.round((monthlyLeads / monthlyTargets.reduce((sum: number, t: any) => sum + (t.leads || 0), 0)) * 100)
+          : 0
+      },
+      customers: {
+        achieved: monthlyCustomers,
+        total: customers.length
+      }
+    };
+  };
+
+  const targetMetrics = getTargetVsAchieved();
 
   // Generate sample data for charts (in a real app, this would come from API)
   const generateRevenueData = () => {
@@ -165,6 +231,77 @@ export default function Analytics() {
 
       {/* Content */}
       <div className="flex-1 overflow-auto p-6">
+        {/* Target vs Achieved Section */}
+        <div className="mb-8">
+          <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg font-semibold text-blue-900 flex items-center gap-2">
+                <Target className="h-5 w-5" />
+                Monthly Target Performance
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {/* Revenue Target */}
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-gray-700">Revenue Target</span>
+                    <span className={`text-xs px-2 py-1 rounded-full ${
+                      targetMetrics.revenue.percentage >= 100 
+                        ? 'bg-green-100 text-green-800' 
+                        : targetMetrics.revenue.percentage >= 75 
+                        ? 'bg-yellow-100 text-yellow-800' 
+                        : 'bg-red-100 text-red-800'
+                    }`}>
+                      {targetMetrics.revenue.percentage}%
+                    </span>
+                  </div>
+                  <Progress value={Math.min(targetMetrics.revenue.percentage, 100)} className="h-2" />
+                  <div className="text-xs text-gray-600">
+                    {formatCurrency(targetMetrics.revenue.achieved)} / {formatCurrency(targetMetrics.revenue.target)}
+                  </div>
+                </div>
+
+                {/* Leads Target */}
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-gray-700">Leads Target</span>
+                    <span className={`text-xs px-2 py-1 rounded-full ${
+                      targetMetrics.leads.percentage >= 100 
+                        ? 'bg-green-100 text-green-800' 
+                        : targetMetrics.leads.percentage >= 75 
+                        ? 'bg-yellow-100 text-yellow-800' 
+                        : 'bg-red-100 text-red-800'
+                    }`}>
+                      {targetMetrics.leads.percentage}%
+                    </span>
+                  </div>
+                  <Progress value={Math.min(targetMetrics.leads.percentage, 100)} className="h-2" />
+                  <div className="text-xs text-gray-600">
+                    {targetMetrics.leads.achieved} / {targetMetrics.leads.target} leads won
+                  </div>
+                </div>
+
+                {/* Customer Conversions */}
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-gray-700">Customer Conversions</span>
+                    <Badge variant="secondary">
+                      {targetMetrics.customers.achieved} this month
+                    </Badge>
+                  </div>
+                  <div className="text-2xl font-bold text-blue-600">
+                    {targetMetrics.customers.total}
+                  </div>
+                  <div className="text-xs text-gray-600">
+                    Total customers
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
         {/* Key Metrics */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <Card>

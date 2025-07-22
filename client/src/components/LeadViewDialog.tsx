@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -19,8 +19,12 @@ import {
   Edit,
   MessageSquare,
   TrendingUp,
-  FileText
+  FileText,
+  UserCheck,
+  Trophy
 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { Lead } from "@shared/schema";
 import ActivityTimeline from "./ActivityTimeline";
 
@@ -32,10 +36,43 @@ interface LeadViewDialogProps {
 }
 
 export default function LeadViewDialog({ lead, open, onOpenChange, onEdit }: LeadViewDialogProps) {
+  const { toast } = useToast();
+  const [convertingToCustomer, setConvertingToCustomer] = useState(false);
+
   const { data: interactions = [] } = useQuery({
     queryKey: ["/api/interactions", lead?.id],
     enabled: open && !!lead,
   });
+
+  const convertToCustomerMutation = useMutation({
+    mutationFn: async (leadId: number) => {
+      return await apiRequest("POST", `/api/customers/convert/${leadId}`, {});
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/leads"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/customers"] });
+      setConvertingToCustomer(false);
+      toast({
+        title: "Success",
+        description: "Lead successfully converted to customer!",
+      });
+      onOpenChange(false);
+    },
+    onError: (error: any) => {
+      setConvertingToCustomer(false);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to convert lead to customer",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleConvertToCustomer = () => {
+    if (!lead) return;
+    setConvertingToCustomer(true);
+    convertToCustomerMutation.mutate(lead.id);
+  };
 
   const formatCurrency = (value: any) => {
     const numValue = typeof value === 'string' ? parseFloat(value) : value;
@@ -76,12 +113,25 @@ export default function LeadViewDialog({ lead, open, onOpenChange, onEdit }: Lea
         <DialogHeader>
           <div className="flex items-center justify-between">
             <DialogTitle className="text-2xl">Lead Details</DialogTitle>
-            {onEdit && (
-              <Button onClick={() => onEdit(lead)} variant="outline" size="sm">
-                <Edit className="w-4 h-4 mr-2" />
-                Edit
-              </Button>
-            )}
+            <div className="flex gap-2">
+              {onEdit && (
+                <Button onClick={() => onEdit(lead)} variant="outline" size="sm">
+                  <Edit className="w-4 h-4 mr-2" />
+                  Edit
+                </Button>
+              )}
+              {lead.stage === 'closed_won' && (
+                <Button 
+                  onClick={handleConvertToCustomer}
+                  disabled={convertingToCustomer}
+                  size="sm"
+                  className="bg-green-600 hover:bg-green-700 text-white"
+                >
+                  <UserCheck className="w-4 h-4 mr-2" />
+                  {convertingToCustomer ? "Converting..." : "Convert to Customer"}
+                </Button>
+              )}
+            </div>
           </div>
         </DialogHeader>
         

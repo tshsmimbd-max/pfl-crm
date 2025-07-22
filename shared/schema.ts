@@ -76,6 +76,36 @@ export const targets = pgTable("targets", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Customers table (converted from won leads)
+export const customers = pgTable("customers", {
+  id: serial("id").primaryKey(),
+  originalLeadId: integer("original_lead_id").references(() => leads.id),
+  contactName: varchar("contact_name").notNull(),
+  email: varchar("email").notNull(),
+  phone: varchar("phone"),
+  company: varchar("company").notNull(),
+  totalValue: integer("total_value").notNull(), // Value from the original lead
+  assignedTo: varchar("assigned_to").references(() => users.id),
+  convertedBy: varchar("converted_by").references(() => users.id),
+  convertedAt: timestamp("converted_at").defaultNow(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Daily revenue entries
+export const dailyRevenue = pgTable("daily_revenue", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").references(() => users.id),
+  customerId: integer("customer_id").references(() => customers.id),
+  date: timestamp("date").notNull(),
+  revenue: integer("revenue").notNull(), // Daily revenue amount
+  orders: integer("orders").notNull().default(1), // Number of orders
+  description: text("description"),
+  createdBy: varchar("created_by").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // Notifications table
 export const notifications = pgTable("notifications", {
   id: serial("id").primaryKey(),
@@ -93,6 +123,8 @@ export const usersRelations = relations(users, ({ many }) => ({
   interactions: many(interactions),
   targets: many(targets),
   notifications: many(notifications),
+  customers: many(customers),
+  dailyRevenue: many(dailyRevenue),
 }));
 
 export const leadsRelations = relations(leads, ({ one, many }) => ({
@@ -125,6 +157,37 @@ export const targetsRelations = relations(targets, ({ one }) => ({
   }),
   createdByUser: one(users, {
     fields: [targets.createdBy],
+    references: [users.id],
+  }),
+}));
+
+export const customersRelations = relations(customers, ({ one, many }) => ({
+  originalLead: one(leads, {
+    fields: [customers.originalLeadId],
+    references: [leads.id],
+  }),
+  assignedUser: one(users, {
+    fields: [customers.assignedTo],
+    references: [users.id],
+  }),
+  convertedByUser: one(users, {
+    fields: [customers.convertedBy],
+    references: [users.id],
+  }),
+  dailyRevenue: many(dailyRevenue),
+}));
+
+export const dailyRevenueRelations = relations(dailyRevenue, ({ one }) => ({
+  user: one(users, {
+    fields: [dailyRevenue.userId],
+    references: [users.id],
+  }),
+  customer: one(customers, {
+    fields: [dailyRevenue.customerId],
+    references: [customers.id],
+  }),
+  createdByUser: one(users, {
+    fields: [dailyRevenue.createdBy],
     references: [users.id],
   }),
 }));
@@ -179,6 +242,21 @@ export const insertNotificationSchema = createInsertSchema(notifications).omit({
   createdAt: true,
 });
 
+export const insertCustomerSchema = createInsertSchema(customers).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  convertedAt: true,
+});
+
+export const insertDailyRevenueSchema = createInsertSchema(dailyRevenue).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+}).extend({
+  date: z.union([z.string(), z.date()]),
+});
+
 // Types
 // Authentication schemas
 export const loginSchema = z.object({
@@ -211,3 +289,7 @@ export type InsertTarget = z.infer<typeof insertTargetSchema>;
 export type Target = typeof targets.$inferSelect;
 export type InsertNotification = z.infer<typeof insertNotificationSchema>;
 export type Notification = typeof notifications.$inferSelect;
+export type Customer = typeof customers.$inferSelect;
+export type InsertCustomer = typeof customers.$inferInsert;
+export type DailyRevenue = typeof dailyRevenue.$inferSelect;
+export type InsertDailyRevenue = typeof dailyRevenue.$inferInsert;

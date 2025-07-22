@@ -3,6 +3,8 @@ import {
   leads,
   interactions,
   targets,
+  customers,
+  dailyRevenue,
   notifications,
   type User,
   type UpsertUser,
@@ -12,6 +14,10 @@ import {
   type InsertInteraction,
   type Target,
   type InsertTarget,
+  type Customer,
+  type InsertCustomer,
+  type DailyRevenue,
+  type InsertDailyRevenue,
   type Notification,
   type InsertNotification,
 } from "@shared/schema";
@@ -57,6 +63,22 @@ export interface IStorage {
   updateTarget(id: number, target: Partial<InsertTarget>): Promise<Target>;
   deleteTarget(id: number): Promise<void>;
   getCurrentTarget(userId: string, period: string): Promise<Target | undefined>;
+
+  // Customer operations
+  getCustomers(): Promise<Customer[]>;
+  getCustomer(id: number): Promise<Customer | undefined>;
+  createCustomer(customer: InsertCustomer): Promise<Customer>;
+  updateCustomer(id: number, customer: Partial<InsertCustomer>): Promise<Customer>;
+  deleteCustomer(id: number): Promise<void>;
+  convertLeadToCustomer(leadId: number, userId: string): Promise<Customer>;
+  getCustomersByUser(userId: string): Promise<Customer[]>;
+
+  // Daily Revenue operations
+  getDailyRevenue(userId?: string, startDate?: Date, endDate?: Date): Promise<DailyRevenue[]>;
+  createDailyRevenue(revenue: InsertDailyRevenue): Promise<DailyRevenue>;
+  updateDailyRevenue(id: number, revenue: Partial<InsertDailyRevenue>): Promise<DailyRevenue>;
+  deleteDailyRevenue(id: number): Promise<void>;
+  getTotalRevenueForPeriod(userId?: string, startDate?: Date, endDate?: Date): Promise<number>;
 
   // Notification operations
   getNotifications(userId: string): Promise<Notification[]>;
@@ -249,6 +271,135 @@ export class DatabaseStorage implements IStorage {
       .where(eq(interactions.id, id))
       .returning();
     return updatedInteraction;
+  }
+
+  // Customer operations
+  async getCustomers(): Promise<Customer[]> {
+    return await db.select().from(customers).orderBy(desc(customers.convertedAt));
+  }
+
+  async getCustomer(id: number): Promise<Customer | undefined> {
+    const [customer] = await db.select().from(customers).where(eq(customers.id, id));
+    return customer;
+  }
+
+  async createCustomer(customer: InsertCustomer): Promise<Customer> {
+    const [newCustomer] = await db.insert(customers).values(customer).returning();
+    return newCustomer;
+  }
+
+  async updateCustomer(id: number, customer: Partial<InsertCustomer>): Promise<Customer> {
+    const [updatedCustomer] = await db
+      .update(customers)
+      .set({ ...customer, updatedAt: new Date() })
+      .where(eq(customers.id, id))
+      .returning();
+    return updatedCustomer;
+  }
+
+  async deleteCustomer(id: number): Promise<void> {
+    await db.delete(customers).where(eq(customers.id, id));
+  }
+
+  async convertLeadToCustomer(leadId: number, userId: string): Promise<Customer> {
+    const lead = await this.getLead(leadId);
+    if (!lead) {
+      throw new Error("Lead not found");
+    }
+    
+    if (lead.stage !== "closed_won") {
+      throw new Error("Only won leads can be converted to customers");
+    }
+
+    // Create customer from lead data
+    const customerData: InsertCustomer = {
+      originalLeadId: lead.id,
+      contactName: lead.contactName,
+      email: lead.email,
+      phone: lead.phone,
+      company: lead.company,
+      totalValue: lead.value,
+      assignedTo: lead.assignedTo,
+      convertedBy: userId,
+    };
+
+    const customer = await this.createCustomer(customerData);
+    
+    // Create notification for successful conversion
+    await this.createNotification({
+      userId: lead.assignedTo || userId,
+      type: "lead_converted",
+      title: "Lead Converted to Customer",
+      message: `Lead "${lead.contactName}" has been successfully converted to a customer`,
+    });
+
+    return customer;
+  }
+
+  async getCustomersByUser(userId: string): Promise<Customer[]> {
+    return await db.select().from(customers).where(eq(customers.assignedTo, userId));
+  }
+
+  // Daily Revenue operations
+  async getDailyRevenue(userId?: string, startDate?: Date, endDate?: Date): Promise<DailyRevenue[]> {
+    let query = db.select().from(dailyRevenue);
+    
+    const conditions = [];
+    if (userId) {
+      conditions.push(eq(dailyRevenue.userId, userId));
+    }
+    if (startDate) {
+      conditions.push(gte(dailyRevenue.date, startDate));
+    }
+    if (endDate) {
+      conditions.push(lte(dailyRevenue.date, endDate));
+    }
+    
+    if (conditions.length > 0) {
+      query = query.where(and(...conditions));
+    }
+    
+    return await query.orderBy(desc(dailyRevenue.date));
+  }
+
+  async createDailyRevenue(revenue: InsertDailyRevenue): Promise<DailyRevenue> {
+    const [newRevenue] = await db.insert(dailyRevenue).values(revenue).returning();
+    return newRevenue;
+  }
+
+  async updateDailyRevenue(id: number, revenue: Partial<InsertDailyRevenue>): Promise<DailyRevenue> {
+    const [updatedRevenue] = await db
+      .update(dailyRevenue)
+      .set({ ...revenue, updatedAt: new Date() })
+      .where(eq(dailyRevenue.id, id))
+      .returning();
+    return updatedRevenue;
+  }
+
+  async deleteDailyRevenue(id: number): Promise<void> {
+    await db.delete(dailyRevenue).where(eq(dailyRevenue.id, id));
+  }
+
+  async getTotalRevenueForPeriod(userId?: string, startDate?: Date, endDate?: Date): Promise<number> {
+    let query = db.select({ total: sum(dailyRevenue.revenue) }).from(dailyRevenue);
+    
+    const conditions = [];
+    if (userId) {
+      conditions.push(eq(dailyRevenue.userId, userId));
+    }
+    if (startDate) {
+      conditions.push(gte(dailyRevenue.date, startDate));
+    }
+    if (endDate) {
+      conditions.push(lte(dailyRevenue.date, endDate));
+    }
+    
+    if (conditions.length > 0) {
+      query = query.where(and(...conditions));
+    }
+    
+    const result = await query;
+    return Number(result[0]?.total || 0);
   }
 
   // Target operations

@@ -7,6 +7,7 @@ import LeadManagement from "@/components/LeadManagement";
 import PipelineManagement from "@/components/PipelineManagement";
 import TargetManagement from "@/components/TargetManagement";
 import UserManagement from "@/components/UserManagement";
+import CustomerManagement from "@/components/CustomerManagement";
 import Analytics from "@/components/Analytics";
 import Calendar from "@/components/Calendar";
 import NotificationSystem from "@/components/NotificationSystem";
@@ -43,6 +44,7 @@ export default function Home() {
     else if (location === "/pipeline") setCurrentView("pipeline");
     else if (location === "/analytics") setCurrentView("analytics");
     else if (location === "/targets") setCurrentView("targets");
+    else if (location === "/customers") setCurrentView("customers");
     else if (location === "/user-management") setCurrentView("user-management");
     else if (location === "/calendar") setCurrentView("calendar");
     else setCurrentView("dashboard");
@@ -69,6 +71,8 @@ export default function Home() {
         return hasPermission(PERMISSIONS.ANALYTICS_PERSONAL) ? <Analytics /> : <Dashboard />;
       case "targets":
         return hasPermission(PERMISSIONS.TARGET_VIEW) ? <TargetManagement /> : <Dashboard />;
+      case "customers":
+        return hasPermission(PERMISSIONS.LEAD_VIEW) ? <CustomerManagement /> : <Dashboard />;
       case "user-management":
         return canManageUsers() ? <UserManagement /> : <Dashboard />;
       case "calendar":

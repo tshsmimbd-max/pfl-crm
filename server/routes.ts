@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { WebSocketServer, WebSocket } from "ws";
 import { storage } from "./storage";
 import { setupSimpleAuth, requireAuth, requireVerifiedEmail } from "./simpleAuth";
-import { insertLeadSchema, insertInteractionSchema, insertTargetSchema, insertNotificationSchema, updateUserRoleSchema, loginSchema, registerSchema, verifyCodeSchema } from "@shared/schema";
+import { insertLeadSchema, insertInteractionSchema, insertTargetSchema, insertCustomerSchema, insertDailyRevenueSchema, insertNotificationSchema, updateUserRoleSchema, loginSchema, registerSchema, verifyCodeSchema } from "@shared/schema";
 import { requirePermission, requireRole, hasPermission, canAccessResource, canAccessUser, PERMISSIONS, ROLES, Role } from "./rbac";
 import { z } from "zod";
 import { sendVerificationCode } from "./emailService";
@@ -608,6 +608,183 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error updating interaction:", error);
       res.status(500).json({ message: "Failed to update interaction" });
+    }
+  });
+
+  // Customer routes
+  app.get('/api/customers', requireVerifiedEmail, async (req: any, res) => {
+    try {
+      const currentUser = await storage.getUser(req.user.id);
+      let customers = await storage.getCustomers();
+      
+      // Apply role-based filtering
+      if (currentUser?.role === ROLES.SALES_AGENT) {
+        customers = customers.filter(customer => customer.assignedTo === currentUser.id);
+      } else if (currentUser?.role === ROLES.SALES_MANAGER) {
+        const teamMembers = await storage.getTeamMembers(currentUser.id);
+        const teamMemberIds = teamMembers.map(m => m.id);
+        customers = customers.filter(customer => 
+          teamMemberIds.includes(customer.assignedTo || '') || customer.assignedTo === currentUser.id
+        );
+      }
+      
+      res.json(customers);
+    } catch (error) {
+      console.error("Error fetching customers:", error);
+      res.status(500).json({ message: "Failed to fetch customers" });
+    }
+  });
+
+  app.post('/api/customers/convert/:leadId', requireVerifiedEmail, async (req: any, res) => {
+    try {
+      const leadId = parseInt(req.params.leadId);
+      const lead = await storage.getLead(leadId);
+      
+      if (!lead) {
+        return res.status(404).json({ message: "Lead not found" });
+      }
+      
+      // Check if user can convert this lead
+      const currentUser = await storage.getUser(req.user.id);
+      let canConvert = false;
+      
+      if (currentUser?.role === ROLES.SUPER_ADMIN) {
+        canConvert = true;
+      } else if (currentUser?.role === ROLES.SALES_MANAGER) {
+        const teamMembers = await storage.getTeamMembers(currentUser.id);
+        const teamMemberIds = teamMembers.map(m => m.id);
+        canConvert = teamMemberIds.includes(lead.assignedTo || '') || lead.assignedTo === currentUser.id;
+      } else if (currentUser?.role === ROLES.SALES_AGENT) {
+        canConvert = lead.assignedTo === currentUser.id;
+      }
+      
+      if (!canConvert) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      const customer = await storage.convertLeadToCustomer(leadId, req.user.id);
+      res.json(customer);
+    } catch (error) {
+      console.error("Error converting lead to customer:", error);
+      res.status(500).json({ message: error.message || "Failed to convert lead" });
+    }
+  });
+
+  // Daily Revenue routes
+  app.get('/api/daily-revenue', requireVerifiedEmail, async (req: any, res) => {
+    try {
+      const { startDate, endDate, userId } = req.query;
+      const currentUser = await storage.getUser(req.user.id);
+      
+      let targetUserId = userId as string;
+      
+      // Apply role-based filtering
+      if (currentUser?.role === ROLES.SALES_AGENT) {
+        targetUserId = currentUser.id; // Agents can only see their own revenue
+      } else if (currentUser?.role === ROLES.SALES_MANAGER && userId) {
+        // Managers can see team member revenue
+        const canView = await canAccessUser(currentUser, userId as string);
+        if (!canView && userId !== currentUser.id) {
+          return res.status(403).json({ message: "Access denied" });
+        }
+      }
+      
+      const revenue = await storage.getDailyRevenue(
+        targetUserId,
+        startDate ? new Date(startDate as string) : undefined,
+        endDate ? new Date(endDate as string) : undefined
+      );
+      
+      res.json(revenue);
+    } catch (error) {
+      console.error("Error fetching daily revenue:", error);
+      res.status(500).json({ message: "Failed to fetch daily revenue" });
+    }
+  });
+
+  app.post('/api/daily-revenue', requireVerifiedEmail, async (req: any, res) => {
+    try {
+      const revenueData = insertDailyRevenueSchema.parse({
+        ...req.body,
+        userId: req.user.id,
+        createdBy: req.user.id,
+      });
+      
+      const revenue = await storage.createDailyRevenue(revenueData);
+      res.json(revenue);
+    } catch (error) {
+      console.error("Error creating daily revenue:", error);
+      res.status(500).json({ message: "Failed to create daily revenue entry" });
+    }
+  });
+
+  app.put('/api/daily-revenue/:id', requireVerifiedEmail, async (req: any, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const currentUser = await storage.getUser(req.user.id);
+      
+      // Check if user can edit this revenue entry
+      const existingRevenue = await storage.getDailyRevenue();
+      const targetRevenue = existingRevenue.find(r => r.id === id);
+      
+      if (!targetRevenue) {
+        return res.status(404).json({ message: "Revenue entry not found" });
+      }
+      
+      let canEdit = false;
+      if (currentUser?.role === ROLES.SUPER_ADMIN) {
+        canEdit = true;
+      } else if (currentUser?.role === ROLES.SALES_MANAGER) {
+        const canAccess = await canAccessUser(currentUser, targetRevenue.userId);
+        canEdit = canAccess || targetRevenue.userId === currentUser.id;
+      } else if (currentUser?.role === ROLES.SALES_AGENT) {
+        canEdit = targetRevenue.userId === currentUser.id;
+      }
+      
+      if (!canEdit) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      const revenue = await storage.updateDailyRevenue(id, req.body);
+      res.json(revenue);
+    } catch (error) {
+      console.error("Error updating daily revenue:", error);
+      res.status(500).json({ message: "Failed to update daily revenue entry" });
+    }
+  });
+
+  app.delete('/api/daily-revenue/:id', requireVerifiedEmail, async (req: any, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const currentUser = await storage.getUser(req.user.id);
+      
+      // Check if user can delete this revenue entry
+      const existingRevenue = await storage.getDailyRevenue();
+      const targetRevenue = existingRevenue.find(r => r.id === id);
+      
+      if (!targetRevenue) {
+        return res.status(404).json({ message: "Revenue entry not found" });
+      }
+      
+      let canDelete = false;
+      if (currentUser?.role === ROLES.SUPER_ADMIN) {
+        canDelete = true;
+      } else if (currentUser?.role === ROLES.SALES_MANAGER) {
+        const canAccess = await canAccessUser(currentUser, targetRevenue.userId);
+        canDelete = canAccess || targetRevenue.userId === currentUser.id;
+      } else if (currentUser?.role === ROLES.SALES_AGENT) {
+        canDelete = targetRevenue.userId === currentUser.id;
+      }
+      
+      if (!canDelete) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      await storage.deleteDailyRevenue(id);
+      res.json({ message: "Daily revenue entry deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting daily revenue:", error);
+      res.status(500).json({ message: "Failed to delete daily revenue entry" });
     }
   });
 

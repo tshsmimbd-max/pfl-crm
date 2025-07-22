@@ -1,4 +1,4 @@
-import { Layers, BarChart3, Users, Target, Calendar, Settings, LogOut, Filter, Handshake, UserCog, Bell, Activity } from "lucide-react";
+import { Layers, BarChart3, Users, Target, Calendar, Settings, LogOut, Filter, Handshake, UserCog, Bell, Activity, UserCheck } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
@@ -27,6 +27,7 @@ export default function Sidebar({ user, currentView, setCurrentView }: SidebarPr
     ...(hasPermission(PERMISSIONS.LEAD_VIEW) ? [{ id: "leads", label: "Leads", icon: Users, badge: null }] : []),
     ...(hasPermission(PERMISSIONS.PIPELINE_VIEW) ? [{ id: "pipeline", label: "Pipeline", icon: Filter, badge: null }] : []),
     { id: "activities", label: "Activities", icon: Activity, badge: null },
+    ...(hasPermission(PERMISSIONS.LEAD_VIEW) ? [{ id: "customers", label: "Customers", icon: UserCheck, badge: null }] : []),
     ...(canViewAnalytics() ? [{ id: "analytics", label: "Analytics", icon: BarChart3, badge: null }] : []),
     ...(hasPermission(PERMISSIONS.TARGET_VIEW) ? [{ id: "targets", label: "Targets", icon: Target, badge: null }] : []),
     ...(hasPermission(PERMISSIONS.CALENDAR_VIEW) ? [{ id: "calendar", label: "Calendar", icon: Calendar, badge: null }] : []),
@@ -52,15 +53,7 @@ export default function Sidebar({ user, currentView, setCurrentView }: SidebarPr
       <div className="p-4 border-b border-gray-200">
         <div className="flex items-center space-x-3">
           <div className="w-10 h-10 bg-primary-100 rounded-full flex items-center justify-center">
-            {user.profileImageUrl ? (
-              <img
-                src={user.profileImageUrl}
-                alt={`${user.firstName} ${user.lastName}`}
-                className="w-10 h-10 rounded-full object-cover"
-              />
-            ) : (
-              <Users className="w-5 h-5 text-primary-600" />
-            )}
+            <span className="text-primary-600 font-medium">{user.fullName?.split(' ').map(n => n[0]).join('').toUpperCase()}</span>
           </div>
           <div className="flex-1">
             <p className="text-sm font-medium text-gray-900">
@@ -98,9 +91,9 @@ export default function Sidebar({ user, currentView, setCurrentView }: SidebarPr
                   {item.badge}
                 </Badge>
               )}
-              {item.id === "dashboard" && unreadCount?.count > 0 && (
+              {item.id === "dashboard" && unreadCount && typeof unreadCount === 'object' && 'count' in unreadCount && (unreadCount as any).count > 0 && (
                 <Badge variant="destructive" className="ml-auto text-xs">
-                  {unreadCount.count}
+                  {(unreadCount as any).count}
                 </Badge>
               )}
             </button>
