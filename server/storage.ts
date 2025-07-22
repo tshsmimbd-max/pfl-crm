@@ -470,6 +470,64 @@ export class DatabaseStorage implements IStorage {
     return result.count;
   }
 
+  // Customer operations
+  async getCustomers(): Promise<Customer[]> {
+    return await db.select().from(customers).orderBy(desc(customers.createdAt));
+  }
+
+  async getCustomer(id: number): Promise<Customer | undefined> {
+    const [customer] = await db.select().from(customers).where(eq(customers.id, id));
+    return customer;
+  }
+
+  async createCustomer(customer: InsertCustomer): Promise<Customer> {
+    const [newCustomer] = await db.insert(customers).values(customer).returning();
+    return newCustomer;
+  }
+
+  async updateCustomer(id: number, customer: Partial<InsertCustomer>): Promise<Customer> {
+    const [updatedCustomer] = await db
+      .update(customers)
+      .set({ ...customer, updatedAt: new Date() })
+      .where(eq(customers.id, id))
+      .returning();
+    return updatedCustomer;
+  }
+
+  async deleteCustomer(id: number): Promise<void> {
+    await db.delete(customers).where(eq(customers.id, id));
+  }
+
+  async convertLeadToCustomer(leadId: number, userId: string): Promise<Customer> {
+    const lead = await this.getLead(leadId);
+    if (!lead) {
+      throw new Error('Lead not found');
+    }
+
+    // Create customer from lead data
+    const customerData: InsertCustomer = {
+      name: lead.name,
+      email: lead.email,
+      phone: lead.phone,
+      company: lead.company,
+      assignedTo: lead.assignedTo,
+      convertedFromLeadId: leadId,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    const customer = await this.createCustomer(customerData);
+
+    // Update lead stage to converted
+    await this.updateLead(leadId, { stage: 'closed_won' });
+
+    return customer;
+  }
+
+  async getCustomersByUser(userId: string): Promise<Customer[]> {
+    return await db.select().from(customers).where(eq(customers.assignedTo, userId));
+  }
+
   // Analytics operations
   async getSalesMetrics(userId?: string): Promise<{
     totalRevenue: number;
@@ -541,6 +599,8 @@ class MemoryStorage implements IStorage {
   private leads: Map<number, Lead> = new Map();
   private interactions: Map<number, Interaction> = new Map();
   private targets: Map<number, Target> = new Map();
+  private customers: Map<number, Customer> = new Map();
+  private dailyRevenue: Map<number, DailyRevenue> = new Map();
   private notifications: Map<number, Notification> = new Map();
   private verificationCodes: Map<string, string> = new Map();
   private nextId = 1;
@@ -834,6 +894,117 @@ class MemoryStorage implements IStorage {
   async getUnreadNotificationCount(userId: string): Promise<number> {
     return Array.from(this.notifications.values())
       .filter(n => n.userId === userId && !n.isRead).length;
+  }
+
+  // Customer operations
+  async getCustomers(): Promise<Customer[]> {
+    return Array.from(this.customers.values());
+  }
+
+  async getCustomer(id: number): Promise<Customer | undefined> {
+    return this.customers.get(id);
+  }
+
+  async createCustomer(customer: InsertCustomer): Promise<Customer> {
+    const newCustomer: Customer = {
+      id: this.nextId++,
+      ...customer,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    this.customers.set(newCustomer.id, newCustomer);
+    return newCustomer;
+  }
+
+  async updateCustomer(id: number, customer: Partial<InsertCustomer>): Promise<Customer> {
+    const existing = this.customers.get(id);
+    if (!existing) throw new Error("Customer not found");
+    
+    const updated = { ...existing, ...customer, updatedAt: new Date() };
+    this.customers.set(id, updated);
+    return updated;
+  }
+
+  async deleteCustomer(id: number): Promise<void> {
+    this.customers.delete(id);
+  }
+
+  async convertLeadToCustomer(leadId: number, userId: string): Promise<Customer> {
+    const lead = await this.getLead(leadId);
+    if (!lead) {
+      throw new Error('Lead not found');
+    }
+
+    // Create customer from lead data
+    const customerData: InsertCustomer = {
+      name: lead.name,
+      email: lead.email,
+      phone: lead.phone,
+      company: lead.company,
+      assignedTo: lead.assignedTo,
+      convertedFromLeadId: leadId,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    const customer = await this.createCustomer(customerData);
+
+    // Update lead stage to converted
+    await this.updateLead(leadId, { stage: 'closed_won' });
+
+    return customer;
+  }
+
+  async getCustomersByUser(userId: string): Promise<Customer[]> {
+    return Array.from(this.customers.values()).filter(c => c.assignedTo === userId);
+  }
+
+  // Daily Revenue operations
+  async getDailyRevenue(userId?: string, startDate?: Date, endDate?: Date): Promise<DailyRevenue[]> {
+    let revenues = Array.from(this.dailyRevenue.values());
+    
+    if (userId) {
+      revenues = revenues.filter(r => r.userId === userId);
+    }
+    
+    if (startDate) {
+      revenues = revenues.filter(r => new Date(r.date) >= startDate);
+    }
+    
+    if (endDate) {
+      revenues = revenues.filter(r => new Date(r.date) <= endDate);
+    }
+    
+    return revenues.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  }
+
+  async createDailyRevenue(revenue: InsertDailyRevenue): Promise<DailyRevenue> {
+    const newRevenue: DailyRevenue = {
+      id: this.nextId++,
+      ...revenue,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    this.dailyRevenue.set(newRevenue.id, newRevenue);
+    return newRevenue;
+  }
+
+  async updateDailyRevenue(id: number, revenue: Partial<InsertDailyRevenue>): Promise<DailyRevenue> {
+    const existing = this.dailyRevenue.get(id);
+    if (!existing) throw new Error("Daily revenue record not found");
+    
+    const updated = { ...existing, ...revenue, updatedAt: new Date() };
+    this.dailyRevenue.set(id, updated);
+    return updated;
+  }
+
+  async deleteDailyRevenue(id: number): Promise<void> {
+    this.dailyRevenue.delete(id);
+  }
+
+  async getTotalRevenueForPeriod(userId?: string, startDate?: Date, endDate?: Date): Promise<number> {
+    const revenues = await this.getDailyRevenue(userId, startDate, endDate);
+    return revenues.reduce((sum, r) => sum + r.revenue, 0);
   }
 
   // Analytics operations
