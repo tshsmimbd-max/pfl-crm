@@ -29,7 +29,7 @@ export interface IStorage {
   // User operations
   getUser(id: string): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
-  createUser(user: { email: string; password: string; fullName: string; role?: string }): Promise<User>;
+  createUser(user: { id?: string; email: string; password: string; fullName: string; role?: string; managerId?: string | null; teamName?: string | null; emailVerified?: boolean; verificationCode?: string | null; codeExpiresAt?: Date | null }): Promise<User>;
   setVerificationCode(email: string, code: string): Promise<void>;
   verifyCode(email: string, code: string): Promise<User | null>;
   getAllUsers(): Promise<User[]>;
@@ -113,8 +113,8 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
 
-  async createUser(userData: { email: string; password: string; fullName: string; role?: string }): Promise<User> {
-    const userId = crypto.randomUUID();
+  async createUser(userData: { id?: string; email: string; password: string; fullName: string; role?: string; managerId?: string | null; teamName?: string | null; emailVerified?: boolean; verificationCode?: string | null; codeExpiresAt?: Date | null }): Promise<User> {
+    const userId = userData.id || crypto.randomUUID();
     const [user] = await db
       .insert(users)
       .values({
@@ -122,8 +122,12 @@ export class DatabaseStorage implements IStorage {
         email: userData.email,
         password: userData.password,
         fullName: userData.fullName,
-        role: userData.role || 'sales',
-        emailVerified: false,
+        role: userData.role || 'sales_agent',
+        managerId: userData.managerId || null,
+        teamName: userData.teamName || null,
+        emailVerified: userData.emailVerified ?? false,
+        verificationCode: userData.verificationCode || null,
+        codeExpiresAt: userData.codeExpiresAt || null,
       })
       .returning();
     return user;

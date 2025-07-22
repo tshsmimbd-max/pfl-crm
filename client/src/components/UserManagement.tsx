@@ -20,16 +20,27 @@ import { isUnauthorizedError } from "@/lib/authUtils";
 import type { User } from "@shared/schema";
 
 const updateRoleSchema = z.object({
-  role: z.enum(["admin", "sales"]),
+  role: z.enum(["super_admin", "sales_manager", "sales_agent"]),
+});
+
+const addUserSchema = z.object({
+  email: z.string().email("Please enter a valid email address"),
+  fullName: z.string().min(2, "Full name must be at least 2 characters"),
+  role: z.enum(["super_admin", "sales_manager", "sales_agent"]),
+  managerId: z.string().optional(),
+  teamName: z.string().min(2, "Team name is required").optional(),
+  password: z.string().min(6, "Password must be at least 6 characters"),
 });
 
 type UpdateRoleData = z.infer<typeof updateRoleSchema>;
+type AddUserData = z.infer<typeof addUserSchema>;
 
 export default function UserManagement() {
   const [searchTerm, setSearchTerm] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [isRoleDialogOpen, setIsRoleDialogOpen] = useState(false);
+  const [isAddUserDialogOpen, setIsAddUserDialogOpen] = useState(false);
   const { user: currentUser } = useAuth();
   const { toast } = useToast();
 
@@ -48,7 +59,19 @@ export default function UserManagement() {
   const form = useForm<UpdateRoleData>({
     resolver: zodResolver(updateRoleSchema),
     defaultValues: {
-      role: "sales",
+      role: "sales_agent",
+    },
+  });
+
+  const addUserForm = useForm<AddUserData>({
+    resolver: zodResolver(addUserSchema),
+    defaultValues: {
+      email: "",
+      fullName: "",
+      role: "sales_agent",
+      managerId: "",
+      teamName: "",
+      password: "",
     },
   });
 
@@ -86,6 +109,39 @@ export default function UserManagement() {
     },
   });
 
+  const addUserMutation = useMutation({
+    mutationFn: async (data: AddUserData) => {
+      await apiRequest("POST", "/api/users", data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+      setIsAddUserDialogOpen(false);
+      addUserForm.reset();
+      toast({
+        title: "Success",
+        description: "User added successfully",
+      });
+    },
+    onError: (error) => {
+      if (isUnauthorizedError(error)) {
+        toast({
+          title: "Unauthorized",
+          description: "You are logged out. Logging in again...",
+          variant: "destructive",
+        });
+        setTimeout(() => {
+          window.location.href = "/api/login";
+        }, 500);
+        return;
+      }
+      toast({
+        title: "Error",
+        description: "Failed to add user. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
   const onSubmit = (data: UpdateRoleData) => {
     if (selectedUser) {
       updateRoleMutation.mutate({
@@ -95,16 +151,19 @@ export default function UserManagement() {
     }
   };
 
+  const onAddUserSubmit = (data: AddUserData) => {
+    addUserMutation.mutate(data);
+  };
+
   const handleEditRole = (user: User) => {
     setSelectedUser(user);
-    form.setValue("role", user.role as "admin" | "sales");
+    form.setValue("role", user.role as "super_admin" | "sales_manager" | "sales_agent");
     setIsRoleDialogOpen(true);
   };
 
   const filteredUsers = users?.filter((user) => {
     const matchesSearch = 
-      user.firstName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.lastName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.fullName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.email?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesRole = roleFilter === "all" || user.role === roleFilter;
     return matchesSearch && matchesRole;
@@ -130,22 +189,65 @@ export default function UserManagement() {
   };
 
   const getRoleIcon = (role: string) => {
-    return role === "admin" ? Crown : Users;
+    switch (role) {
+      case "super_admin":
+        return Crown;
+      case "sales_manager":
+        return Shield;
+      case "sales_agent":
+        return Users;
+      default:
+        return Users;
+    }
   };
 
   const getRoleBadge = (role: string) => {
-    return role === "admin" ? (
-      <Badge className="bg-primary-100 text-primary-700">
-        <Crown className="w-3 h-3 mr-1" />
-        Admin
-      </Badge>
-    ) : (
-      <Badge variant="secondary">
-        <Users className="w-3 h-3 mr-1" />
-        Sales
-      </Badge>
-    );
+    switch (role) {
+      case "super_admin":
+        return (
+          <Badge className="bg-purple-100 text-purple-700">
+            <Crown className="w-3 h-3 mr-1" />
+            Super Admin
+          </Badge>
+        );
+      case "sales_manager":
+        return (
+          <Badge className="bg-blue-100 text-blue-700">
+            <Shield className="w-3 h-3 mr-1" />
+            Sales Manager
+          </Badge>
+        );
+      case "sales_agent":
+        return (
+          <Badge variant="secondary">
+            <Users className="w-3 h-3 mr-1" />
+            Sales Agent
+          </Badge>
+        );
+      default:
+        return (
+          <Badge variant="secondary">
+            <Users className="w-3 h-3 mr-1" />
+            Unknown
+          </Badge>
+        );
+    }
   };
+
+  // Get manager name for display
+  const getManagerName = (managerId?: string) => {
+    if (!managerId) return "No Manager";
+    const manager = users?.find(u => u.id === managerId);
+    return manager?.fullName || "Unknown Manager";
+  };
+
+  // Check if current user can add users (super_admin or sales_manager)
+  const canAddUsers = currentUser?.role === "super_admin" || currentUser?.role === "sales_manager";
+
+  // Get available managers for assignment (super_admin and sales_manager)
+  const availableManagers = users?.filter(u => 
+    u.role === "super_admin" || u.role === "sales_manager"
+  ) || [];
 
   if (isLoading) {
     return (
@@ -163,10 +265,11 @@ export default function UserManagement() {
     );
   }
 
-  const adminCount = users?.filter(u => u.role === "admin").length || 0;
-  const salesCount = users?.filter(u => u.role === "sales").length || 0;
+  const superAdminCount = users?.filter(u => u.role === "super_admin").length || 0;
+  const managerCount = users?.filter(u => u.role === "sales_manager").length || 0;
+  const agentCount = users?.filter(u => u.role === "sales_agent").length || 0;
   const usersWithoutTargets = users?.filter(u => 
-    u.role === "sales" && !targets?.some(t => t.userId === u.id)
+    u.role === "sales_agent" && !targets?.some(t => t.userId === u.id)
   ).length || 0;
 
   return (
@@ -180,8 +283,168 @@ export default function UserManagement() {
           </div>
           <div className="flex items-center space-x-4">
             <div className="text-sm text-gray-600">
-              {adminCount} Admins • {salesCount} Sales Users
+              {superAdminCount} Super Admins • {managerCount} Managers • {agentCount} Agents
             </div>
+            {canAddUsers && (
+              <Dialog open={isAddUserDialogOpen} onOpenChange={setIsAddUserDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button>
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add User
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Add New User</DialogTitle>
+                  </DialogHeader>
+                  <Form {...addUserForm}>
+                    <form onSubmit={addUserForm.handleSubmit(onAddUserSubmit)} className="space-y-4">
+                      <div className="grid grid-cols-2 gap-4">
+                        <FormField
+                          control={addUserForm.control}
+                          name="fullName"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Full Name</FormLabel>
+                              <FormControl>
+                                <Input placeholder="John Doe" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={addUserForm.control}
+                          name="email"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Email</FormLabel>
+                              <FormControl>
+                                <Input type="email" placeholder="john@company.com" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                      
+                      <FormField
+                        control={addUserForm.control}
+                        name="password"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Password</FormLabel>
+                            <FormControl>
+                              <Input type="password" placeholder="Minimum 6 characters" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={addUserForm.control}
+                        name="role"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Role</FormLabel>
+                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select role" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {currentUser?.role === "super_admin" && (
+                                  <SelectItem value="sales_manager">
+                                    <div className="flex items-center space-x-2">
+                                      <Shield className="w-4 h-4" />
+                                      <span>Sales Manager</span>
+                                    </div>
+                                  </SelectItem>
+                                )}
+                                <SelectItem value="sales_agent">
+                                  <div className="flex items-center space-x-2">
+                                    <Users className="w-4 h-4" />
+                                    <span>Sales Agent</span>
+                                  </div>
+                                </SelectItem>
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      {addUserForm.watch("role") === "sales_agent" && (
+                        <FormField
+                          control={addUserForm.control}
+                          name="managerId"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Assign Manager</FormLabel>
+                              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Select manager" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  {availableManagers.map((manager) => {
+                                    const ManagerIcon = getRoleIcon(manager.role);
+                                    return (
+                                      <SelectItem key={manager.id} value={manager.id}>
+                                        <div className="flex items-center space-x-2">
+                                          <div className="w-6 h-6 bg-primary-100 rounded-full flex items-center justify-center">
+                                            <ManagerIcon className="w-3 h-3 text-primary-600" />
+                                          </div>
+                                          <div>
+                                            <p className="font-medium">{manager.fullName}</p>
+                                            <p className="text-xs text-gray-500">{manager.role}</p>
+                                          </div>
+                                        </div>
+                                      </SelectItem>
+                                    );
+                                  })}
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      )}
+
+                      <FormField
+                        control={addUserForm.control}
+                        name="teamName"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Team Name (Optional)</FormLabel>
+                            <FormControl>
+                              <Input placeholder="Sales Team Alpha" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <div className="flex justify-end space-x-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => setIsAddUserDialogOpen(false)}
+                        >
+                          Cancel
+                        </Button>
+                        <Button type="submit" disabled={addUserMutation.isPending}>
+                          {addUserMutation.isPending ? "Adding..." : "Add User"}
+                        </Button>
+                      </div>
+                    </form>
+                  </Form>
+                </DialogContent>
+              </Dialog>
+            )}
           </div>
         </div>
       </header>
@@ -229,11 +492,11 @@ export default function UserManagement() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-600">Administrators</p>
-                  <p className="text-2xl font-bold text-gray-900">{adminCount}</p>
+                  <p className="text-sm text-gray-600">Sales Managers</p>
+                  <p className="text-2xl font-bold text-gray-900">{managerCount}</p>
                 </div>
-                <div className="w-12 h-12 bg-warning-100 rounded-lg flex items-center justify-center">
-                  <Crown className="w-6 h-6 text-warning-600" />
+                <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                  <Shield className="w-6 h-6 text-blue-600" />
                 </div>
               </div>
             </CardContent>
@@ -243,8 +506,8 @@ export default function UserManagement() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-600">Sales Team</p>
-                  <p className="text-2xl font-bold text-gray-900">{salesCount}</p>
+                  <p className="text-sm text-gray-600">Sales Agents</p>
+                  <p className="text-2xl font-bold text-gray-900">{agentCount}</p>
                 </div>
                 <div className="w-12 h-12 bg-success-100 rounded-lg flex items-center justify-center">
                   <Users className="w-6 h-6 text-success-600" />
@@ -289,8 +552,9 @@ export default function UserManagement() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Roles</SelectItem>
-                  <SelectItem value="admin">Administrators</SelectItem>
-                  <SelectItem value="sales">Sales Team</SelectItem>
+                  <SelectItem value="super_admin">Super Admins</SelectItem>
+                  <SelectItem value="sales_manager">Sales Managers</SelectItem>
+                  <SelectItem value="sales_agent">Sales Agents</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -308,10 +572,10 @@ export default function UserManagement() {
                 <TableRow>
                   <TableHead>User</TableHead>
                   <TableHead>Role</TableHead>
+                  <TableHead>Manager</TableHead>
                   <TableHead>Active Targets</TableHead>
                   <TableHead>Deals Closed</TableHead>
                   <TableHead>Revenue</TableHead>
-                  <TableHead>Target Progress</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -338,7 +602,7 @@ export default function UserManagement() {
                           </div>
                           <div>
                             <p className="font-medium text-gray-900">
-                              {user.firstName} {user.lastName}
+                              {user.fullName}
                               {isCurrentUser && <span className="text-xs text-gray-500 ml-2">(You)</span>}
                             </p>
                             <p className="text-sm text-gray-500">{user.email}</p>
@@ -349,6 +613,12 @@ export default function UserManagement() {
                         {getRoleBadge(user.role)}
                       </TableCell>
                       <TableCell>
+                        <div className="text-sm">
+                          <p className="text-gray-600">{getManagerName(user.managerId)}</p>
+                          {user.teamName && <p className="text-xs text-gray-500">{user.teamName}</p>}
+                        </div>
+                      </TableCell>
+                      <TableCell>
                         <span className="font-medium">{stats.activeTargets}</span>
                       </TableCell>
                       <TableCell>
@@ -356,22 +626,6 @@ export default function UserManagement() {
                       </TableCell>
                       <TableCell>
                         <span className="font-medium">{formatCurrency(stats.revenue)}</span>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center space-x-2">
-                          <div className="w-16 bg-gray-200 rounded-full h-2">
-                            <div 
-                              className={`h-2 rounded-full ${
-                                stats.targetProgress >= 75 ? 'bg-success-500' : 
-                                stats.targetProgress >= 50 ? 'bg-warning-500' : 'bg-gray-400'
-                              }`}
-                              style={{ width: `${Math.min(stats.targetProgress, 100)}%` }}
-                            ></div>
-                          </div>
-                          <span className="text-sm font-medium text-gray-600">
-                            {stats.targetProgress.toFixed(0)}%
-                          </span>
-                        </div>
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center space-x-2">
@@ -415,7 +669,7 @@ export default function UserManagement() {
                   </div>
                   <div>
                     <p className="font-medium text-gray-900">
-                      {selectedUser.firstName} {selectedUser.lastName}
+                      {selectedUser.fullName}
                     </p>
                     <p className="text-sm text-gray-500">{selectedUser.email}</p>
                   </div>
@@ -436,16 +690,22 @@ export default function UserManagement() {
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              <SelectItem value="admin">
+                              <SelectItem value="super_admin">
                                 <div className="flex items-center space-x-2">
                                   <Crown className="w-4 h-4" />
-                                  <span>Administrator</span>
+                                  <span>Super Admin</span>
                                 </div>
                               </SelectItem>
-                              <SelectItem value="sales">
+                              <SelectItem value="sales_manager">
+                                <div className="flex items-center space-x-2">
+                                  <Shield className="w-4 h-4" />
+                                  <span>Sales Manager</span>
+                                </div>
+                              </SelectItem>
+                              <SelectItem value="sales_agent">
                                 <div className="flex items-center space-x-2">
                                   <Users className="w-4 h-4" />
-                                  <span>Sales User</span>
+                                  <span>Sales Agent</span>
                                 </div>
                               </SelectItem>
                             </SelectContent>

@@ -158,6 +158,59 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post('/api/users', requireVerifiedEmail, async (req: any, res) => {
+    try {
+      const currentUser = await storage.getUser(req.user.id);
+      
+      // Only super_admin and sales_manager can create users
+      if (currentUser?.role !== 'super_admin' && currentUser?.role !== 'sales_manager') {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      const { email, fullName, password, role, managerId, teamName } = req.body;
+
+      // Validate required fields
+      if (!email || !fullName || !password || !role) {
+        return res.status(400).json({ message: "Missing required fields: email, fullName, password, role" });
+      }
+
+      // Sales managers can only create sales_agent users
+      if (currentUser.role === 'sales_manager' && role !== 'sales_agent') {
+        return res.status(403).json({ message: "Sales managers can only create sales agent users" });
+      }
+
+      // Check if email already exists
+      const existingUser = await storage.getUserByEmail(email);
+      if (existingUser) {
+        return res.status(400).json({ message: "Email already exists" });
+      }
+
+      // Hash password
+      const hashedPassword = await bcrypt.hash(password, 10);
+
+      // Create user
+      const newUser = await storage.createUser({
+        id: `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        email,
+        fullName,
+        password: hashedPassword,
+        role,
+        managerId: managerId || null,
+        teamName: teamName || null,
+        emailVerified: true, // New users are auto-verified
+        verificationCode: null,
+        codeExpiresAt: null
+      });
+
+      // Remove sensitive information before sending response
+      const { password: _, verificationCode: __, codeExpiresAt: ___, ...userResponse } = newUser;
+      res.json(userResponse);
+    } catch (error) {
+      console.error("Error creating user:", error);
+      res.status(500).json({ message: "Failed to create user" });
+    }
+  });
+
   // Lead management routes with RBAC
   app.get('/api/leads', requireAuth, requireVerifiedEmail, requirePermission(PERMISSIONS.LEAD_VIEW), async (req: any, res) => {
     try {
