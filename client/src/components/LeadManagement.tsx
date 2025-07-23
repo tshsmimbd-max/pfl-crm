@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Search, Filter, Edit, Trash2, Eye } from "lucide-react";
+import { Plus, Search, Filter, Edit, Trash2, Eye, MessageSquare } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertLeadSchema, type InsertLead } from "@shared/schema";
@@ -19,6 +19,7 @@ import { usePermissions, PERMISSIONS } from "@/hooks/usePermissions";
 import BulkLeadUpload from "./BulkLeadUpload";
 import LeadEditDialog from "./LeadEditDialog";
 import LeadViewDialog from "./LeadViewDialog";
+import AddActivityDialog from "./AddActivityDialog";
 
 export default function LeadManagement() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -27,6 +28,8 @@ export default function LeadManagement() {
   const [selectedLead, setSelectedLead] = useState<any>(null);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showViewDialog, setShowViewDialog] = useState(false);
+  const [showAddActivityDialog, setShowAddActivityDialog] = useState(false);
+  const [selectedLeadIdForActivity, setSelectedLeadIdForActivity] = useState<number | null>(null);
   const { toast } = useToast();
   const { hasPermission, canCreateLeads } = usePermissions();
 
@@ -440,6 +443,7 @@ export default function LeadManagement() {
                             setSelectedLead(lead);
                             setShowViewDialog(true);
                           }}
+                          title="View Lead"
                         >
                           <Eye className="w-4 h-4" />
                         </Button>
@@ -450,14 +454,27 @@ export default function LeadManagement() {
                             setSelectedLead(lead);
                             setShowEditDialog(true);
                           }}
+                          title="Edit Lead"
                         >
                           <Edit className="w-4 h-4" />
                         </Button>
                         <Button
                           variant="ghost"
                           size="sm"
+                          onClick={() => {
+                            setSelectedLeadIdForActivity(lead.id);
+                            setShowAddActivityDialog(true);
+                          }}
+                          title="Add Activity"
+                        >
+                          <MessageSquare className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
                           onClick={() => handleDelete(lead.id)}
                           disabled={deleteLeadMutation.isPending}
+                          title="Delete Lead"
                         >
                           <Trash2 className="w-4 h-4" />
                         </Button>
@@ -488,6 +505,13 @@ export default function LeadManagement() {
           setShowViewDialog(false);
           setShowEditDialog(true);
         }}
+      />
+
+      {/* Add Activity Dialog */}
+      <AddActivityDialog 
+        open={showAddActivityDialog}
+        onOpenChange={setShowAddActivityDialog}
+        leadId={selectedLeadIdForActivity || undefined}
       />
     </>
   );

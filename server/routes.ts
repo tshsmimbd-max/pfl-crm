@@ -552,6 +552,73 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Activity Reports for Managers and Admins
+  app.get('/api/interactions/team-report', requireVerifiedEmail, async (req: any, res) => {
+    try {
+      const currentUser = await storage.getUser(req.user.id);
+      
+      if (currentUser?.role === ROLES.SALES_AGENT) {
+        return res.status(403).json({ message: "Access denied. Managers and admins only." });
+      }
+
+      let interactions = await storage.getAllInteractions();
+      let users = await storage.getAllUsers();
+      let leads = await storage.getLeads();
+
+      // Filter based on user role
+      if (currentUser?.role === ROLES.SALES_MANAGER) {
+        const teamMembers = await storage.getTeamMembers(currentUser.id);
+        const teamMemberIds = [currentUser.id, ...teamMembers.map(m => m.id)];
+        
+        interactions = interactions.filter(i => teamMemberIds.includes(i.userId));
+        users = users.filter(u => teamMemberIds.includes(u.id));
+        
+        const teamLeads = leads.filter(lead => 
+          teamMemberIds.includes(lead.assignedTo) || teamMemberIds.includes(lead.createdBy)
+        );
+        leads = teamLeads;
+      }
+
+      // Create activity report
+      const report = users.map(user => {
+        const userInteractions = interactions.filter(i => i.userId === user.id);
+        const userLeads = leads.filter(lead => lead.assignedTo === user.id);
+        
+        return {
+          user: {
+            id: user.id,
+            name: user.fullName,
+            email: user.email,
+            role: user.role
+          },
+          stats: {
+            totalActivities: userInteractions.length,
+            activitiesByType: {
+              call: userInteractions.filter(i => i.type === 'call').length,
+              email: userInteractions.filter(i => i.type === 'email').length,
+              meeting: userInteractions.filter(i => i.type === 'meeting').length,
+              note: userInteractions.filter(i => i.type === 'note').length,
+            },
+            recentActivities: userInteractions
+              .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+              .slice(0, 5)
+              .map(activity => ({
+                ...activity,
+                leadName: leads.find(l => l.id === activity.leadId)?.contactName || 'Unknown Lead'
+              })),
+            assignedLeads: userLeads.length,
+            activeLeads: userLeads.filter(l => !['closed_won', 'closed_lost'].includes(l.stage)).length
+          }
+        };
+      });
+
+      res.json(report);
+    } catch (error) {
+      console.error("Error fetching team activity report:", error);
+      res.status(500).json({ message: "Failed to fetch team activity report" });
+    }
+  });
+
   app.get('/api/interactions', requireVerifiedEmail, async (req: any, res) => {
     try {
       const leadId = parseInt(req.query.leadId as string);

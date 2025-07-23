@@ -27,6 +27,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { Lead } from "@shared/schema";
 import ActivityTimeline from "./ActivityTimeline";
+import AddActivityDialog from "./AddActivityDialog";
 
 interface LeadViewDialogProps {
   lead: Lead | null;
@@ -38,6 +39,7 @@ interface LeadViewDialogProps {
 export default function LeadViewDialog({ lead, open, onOpenChange, onEdit }: LeadViewDialogProps) {
   const { toast } = useToast();
   const [convertingToCustomer, setConvertingToCustomer] = useState(false);
+  const [showAddActivityDialog, setShowAddActivityDialog] = useState(false);
 
   const { data: interactions = [] } = useQuery({
     queryKey: ["/api/interactions", lead?.id],
@@ -203,13 +205,27 @@ export default function LeadViewDialog({ lead, open, onOpenChange, onEdit }: Lea
             {/* Activity Timeline */}
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center text-lg">
-                  <Clock className="w-5 h-5 mr-2" />
-                  Activity Timeline
+                <CardTitle className="flex items-center justify-between text-lg">
+                  <div className="flex items-center">
+                    <Clock className="w-5 h-5 mr-2" />
+                    Activity Timeline
+                  </div>
+                  <Button
+                    size="sm"
+                    onClick={() => {
+                      setShowAddActivityDialog(true);
+                    }}
+                  >
+                    <MessageSquare className="w-4 h-4 mr-2" />
+                    Add Activity
+                  </Button>
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <ActivityTimeline leadId={lead.id} />
+                <ActivityTimeline 
+                  leadId={lead.id} 
+                  onAddActivity={() => setShowAddActivityDialog(true)}
+                />
               </CardContent>
             </Card>
           </div>
@@ -294,6 +310,13 @@ export default function LeadViewDialog({ lead, open, onOpenChange, onEdit }: Lea
           </div>
         </div>
       </DialogContent>
+
+      {/* Add Activity Dialog */}
+      <AddActivityDialog 
+        open={showAddActivityDialog}
+        onOpenChange={setShowAddActivityDialog}
+        leadId={lead?.id}
+      />
     </Dialog>
   );
 }
