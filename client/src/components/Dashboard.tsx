@@ -22,7 +22,11 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 
-export default function Dashboard() {
+interface DashboardProps {
+  setCurrentView?: (view: string) => void;
+}
+
+export default function Dashboard({ setCurrentView }: DashboardProps) {
   const { user } = useAuth();
   const [selectedPeriod, setSelectedPeriod] = useState("This Month");
 
@@ -141,7 +145,7 @@ export default function Dashboard() {
 
         {/* Key Metrics */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <Card>
+          <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => setCurrentView?.("analytics")}>
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -161,7 +165,7 @@ export default function Dashboard() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => setCurrentView?.("leads")}>
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -179,7 +183,7 @@ export default function Dashboard() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => setCurrentView?.("pipeline")}>
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -199,7 +203,7 @@ export default function Dashboard() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => setCurrentView?.("targets")}>
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -208,7 +212,7 @@ export default function Dashboard() {
                     {(metrics?.targetProgress || 0).toFixed(0)}%
                   </p>
                   <p className="text-sm text-gray-500 mt-1">
-                    ${formatCurrency((metrics?.totalRevenue || 0) * 0.85).replace('$', '')} of ${formatCurrency((metrics?.totalRevenue || 0) * 1.25).replace('$', '')} monthly goal
+                    {formatCurrency((metrics?.totalRevenue || 0) * 0.85)} of {formatCurrency((metrics?.totalRevenue || 0) * 1.25)} monthly goal
                   </p>
                 </div>
                 <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
@@ -271,30 +275,35 @@ export default function Dashboard() {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
+                <Button variant="ghost" className="w-full justify-start" onClick={() => setCurrentView?.("leads")}>
+                  <div className="w-8 h-8 bg-primary-100 rounded-lg flex items-center justify-center mr-3">
+                    <Plus className="w-4 h-4 text-primary-600" />
+                  </div>
+                  Add New Lead
+                </Button>
 
-
-                <Button variant="ghost" className="w-full justify-start">
+                <Button variant="ghost" className="w-full justify-start" onClick={() => setCurrentView?.("calendar")}>
                   <div className="w-8 h-8 bg-success-100 rounded-lg flex items-center justify-center mr-3">
                     <Calendar className="w-4 h-4 text-success-600" />
                   </div>
                   Schedule Meeting
                 </Button>
 
-                <Button variant="ghost" className="w-full justify-start">
+                <Button variant="ghost" className="w-full justify-start" onClick={() => setCurrentView?.("customers")}>
                   <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center mr-3">
-                    <FileText className="w-4 h-4 text-purple-600" />
+                    <UserPlus className="w-4 h-4 text-purple-600" />
                   </div>
-                  Create Proposal
+                  Add Customer
                 </Button>
 
-                <Button variant="ghost" className="w-full justify-start">
+                <Button variant="ghost" className="w-full justify-start" onClick={() => setCurrentView?.("targets")}>
                   <div className="w-8 h-8 bg-warning-100 rounded-lg flex items-center justify-center mr-3">
                     <Target className="w-4 h-4 text-warning-600" />
                   </div>
                   Update Targets
                 </Button>
 
-                <Button variant="ghost" className="w-full justify-start">
+                <Button variant="ghost" className="w-full justify-start" onClick={() => setCurrentView?.("analytics")}>
                   <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center mr-3">
                     <BarChart3 className="w-4 h-4 text-gray-600" />
                   </div>

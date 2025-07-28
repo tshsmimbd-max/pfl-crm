@@ -64,23 +64,23 @@ export default function Home() {
   const renderContent = () => {
     switch (currentView) {
       case "leads":
-        return hasPermission(PERMISSIONS.LEAD_VIEW) ? <LeadManagement /> : <Dashboard />;
+        return hasPermission(PERMISSIONS.LEAD_VIEW) ? <LeadManagement /> : <Dashboard setCurrentView={setCurrentView} />;
       case "pipeline":
-        return hasPermission(PERMISSIONS.PIPELINE_VIEW) ? <PipelineManagement /> : <Dashboard />;
+        return hasPermission(PERMISSIONS.PIPELINE_VIEW) ? <PipelineManagement /> : <Dashboard setCurrentView={setCurrentView} />;
       case "analytics":
-        return hasPermission(PERMISSIONS.ANALYTICS_PERSONAL) ? <Analytics /> : <Dashboard />;
+        return hasPermission(PERMISSIONS.ANALYTICS_PERSONAL) ? <Analytics /> : <Dashboard setCurrentView={setCurrentView} />;
       case "targets":
-        return hasPermission(PERMISSIONS.TARGET_VIEW) ? <TargetManagement /> : <Dashboard />;
+        return hasPermission(PERMISSIONS.TARGET_VIEW) ? <TargetManagement /> : <Dashboard setCurrentView={setCurrentView} />;
       case "customers":
-        return hasPermission(PERMISSIONS.LEAD_VIEW) ? <CustomerManagement /> : <Dashboard />;
+        return hasPermission(PERMISSIONS.LEAD_VIEW) ? <CustomerManagement /> : <Dashboard setCurrentView={setCurrentView} />;
       case "user-management":
-        return canManageUsers() ? <UserManagement /> : <Dashboard />;
+        return canManageUsers() ? <UserManagement /> : <Dashboard setCurrentView={setCurrentView} />;
       case "calendar":
-        return hasPermission(PERMISSIONS.CALENDAR_VIEW) ? <Calendar /> : <Dashboard />;
+        return hasPermission(PERMISSIONS.CALENDAR_VIEW) ? <Calendar /> : <Dashboard setCurrentView={setCurrentView} />;
       case "notifications":
         return <NotificationSystem />;
       default:
-        return <Dashboard />;
+        return <Dashboard setCurrentView={setCurrentView} />;
     }
   };
 

@@ -319,9 +319,9 @@ export default function LeadManagement() {
                             </FormControl>
                             <SelectContent>
                               <SelectItem value="myself">Assign to Myself</SelectItem>
-                              {hasPermission(PERMISSIONS.LEAD_ASSIGN) && users?.filter(u => u.id !== "myself").map((user) => (
+                              {hasPermission(PERMISSIONS.LEAD_ASSIGN) && users?.filter(u => u.id !== "myself" && u.fullName !== "Myself").map((user) => (
                                 <SelectItem key={user.id} value={user.id}>
-                                  {user.fullName} ({user.role.replace('_', ' ')})
+                                  {user.fullName} ({user.role?.replace('_', ' ') || 'Agent'})
                                 </SelectItem>
                               ))}
                             </SelectContent>

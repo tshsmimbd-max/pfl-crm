@@ -221,7 +221,7 @@ export default function LeadEditDialog({ lead, open, onOpenChange }: LeadEditDia
                     <SelectContent>
                       {Array.isArray(users) && users.map((user: any) => (
                         <SelectItem key={user.id} value={user.id}>
-                          {user.fullName || user.email}
+                          {user.fullName === "Myself" ? "Assign to Myself" : `${user.fullName || user.email} (${user.role?.replace('_', ' ') || 'Agent'})`}
                         </SelectItem>
                       ))}
                     </SelectContent>

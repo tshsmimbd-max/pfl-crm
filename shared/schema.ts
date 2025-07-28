@@ -213,10 +213,19 @@ export const insertLeadSchema = createInsertSchema(leads).omit({
   updatedAt: true,
   createdBy: true,
 }).extend({
+  contactName: z.string().min(2, "Contact name must be at least 2 characters"),
+  email: z.string().email("Please enter a valid email address"),
+  phone: z.string().min(10, "Phone number must be at least 10 digits").optional(),
+  company: z.string().min(2, "Company name must be at least 2 characters"),
   value: z.union([
-    z.string().transform(val => parseInt(val)),
-    z.number()
+    z.string().min(1, "Value is required").transform(val => {
+      const num = parseInt(val);
+      if (isNaN(num) || num < 0) throw new Error("Value must be a positive number");
+      return num;
+    }),
+    z.number().min(0, "Value must be a positive number")
   ]),
+  stage: z.enum(["prospecting", "qualification", "proposal", "negotiation", "closed_won", "closed_lost"]),
   assignedTo: z.string().optional(),
 });
 
@@ -247,6 +256,13 @@ export const insertCustomerSchema = createInsertSchema(customers).omit({
   createdAt: true,
   updatedAt: true,
   convertedAt: true,
+}).extend({
+  contactName: z.string().min(2, "Contact name must be at least 2 characters"),
+  email: z.string().email("Please enter a valid email address"),
+  phone: z.string().optional(),
+  company: z.string().min(2, "Company name must be at least 2 characters"),
+  industry: z.string().optional(),
+  address: z.string().optional(),
 });
 
 export const insertDailyRevenueSchema = createInsertSchema(dailyRevenue).omit({

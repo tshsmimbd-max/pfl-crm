@@ -16,9 +16,11 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 import DailyRevenueDialog from "./DailyRevenueDialog";
+import CreateCustomerDialog from "./CreateCustomerDialog";
 
 export default function CustomerManagement() {
   const [showRevenueDialog, setShowRevenueDialog] = useState(false);
+  const [showCreateCustomerDialog, setShowCreateCustomerDialog] = useState(false);
 
   const { data: customers = [], isLoading } = useQuery({
     queryKey: ["/api/customers"],
@@ -65,13 +67,22 @@ export default function CustomerManagement() {
           <h1 className="text-3xl font-bold text-gray-900">Customer Management</h1>
           <p className="text-gray-600 mt-1">Manage converted customers and track revenue</p>
         </div>
-        <Button 
-          onClick={() => setShowRevenueDialog(true)}
-          className="bg-green-600 hover:bg-green-700"
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          Add Daily Revenue
-        </Button>
+        <div className="flex space-x-3">
+          <Button 
+            onClick={() => setShowCreateCustomerDialog(true)}
+            className="bg-primary-600 hover:bg-primary-700"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Add Customer
+          </Button>
+          <Button 
+            onClick={() => setShowRevenueDialog(true)}
+            className="bg-green-600 hover:bg-green-700"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Add Daily Revenue
+          </Button>
+        </div>
       </div>
 
       {/* Stats Cards */}
@@ -204,6 +215,12 @@ export default function CustomerManagement() {
       <DailyRevenueDialog 
         open={showRevenueDialog} 
         onOpenChange={setShowRevenueDialog} 
+      />
+
+      {/* Create Customer Dialog */}
+      <CreateCustomerDialog 
+        open={showCreateCustomerDialog} 
+        onOpenChange={setShowCreateCustomerDialog} 
       />
     </div>
   );

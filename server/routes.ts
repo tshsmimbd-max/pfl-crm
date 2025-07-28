@@ -158,6 +158,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get users for assignment dropdown (role-based filtering)
+  app.get('/api/users/assignment', requireAuth, requireVerifiedEmail, async (req: any, res) => {
+    try {
+      const currentUser = req.user;
+      let users = await storage.getUsersForAssignment(currentUser.id, currentUser.role);
+      
+      // Add current user as "Myself" option for all roles
+      users = [
+        { id: currentUser.id, fullName: "Myself", role: currentUser.role },
+        ...users.filter(u => u.id !== currentUser.id)
+      ];
+      
+      res.json(users);
+    } catch (error) {
+      console.error("Error fetching assignment users:", error);
+      res.status(500).json({ message: "Failed to fetch users for assignment" });
+    }
+  });
+
   app.post('/api/users', requireVerifiedEmail, async (req: any, res) => {
     try {
       const currentUser = await storage.getUser(req.user.id);
@@ -271,10 +290,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
+      // Handle "myself" assignment
+      const finalAssignedTo = validation.assignedTo === "myself" || !validation.assignedTo 
+        ? req.user.id 
+        : validation.assignedTo;
+
       const lead = await storage.createLead({
         ...validation,
         createdBy: req.user.id,
-        assignedTo: validation.assignedTo || req.user.id // Use specified assignedTo or default to current user
+        assignedTo: finalAssignedTo
       });
       res.status(201).json(lead);
     } catch (error) {
@@ -752,6 +776,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching customers:", error);
       res.status(500).json({ message: "Failed to fetch customers" });
+    }
+  });
+
+  app.post('/api/customers', requireVerifiedEmail, async (req: any, res) => {
+    try {
+      const customerData = insertCustomerSchema.parse({
+        ...req.body,
+        convertedAt: new Date(),
+        assignedTo: req.user.id,
+      });
+      
+      const customer = await storage.createCustomer(customerData);
+      res.status(201).json(customer);
+    } catch (error) {
+      console.error("Error creating customer:", error);
+      res.status(500).json({ message: "Failed to create customer" });
     }
   });
 
