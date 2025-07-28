@@ -2,7 +2,7 @@
 
 ## Overview
 
-Paperfly is a modern Customer Relationship Management (CRM) system designed for sales teams. It provides comprehensive lead management, pipeline tracking, analytics, and team collaboration features. The application is built as a full-stack web application with a React frontend and Express.js backend, utilizing PostgreSQL for data persistence.
+Paperfly is a modern Customer Relationship Management (CRM) system designed for sales teams. It provides comprehensive lead management, pipeline tracking, analytics, and team collaboration features. The application is built as a full-stack web application with a React frontend and Express.js backend. Currently using memory storage for development (data resets on restart).
 
 ## System Architecture
 
@@ -116,6 +116,16 @@ Paperfly is a modern Customer Relationship Management (CRM) system designed for 
 - OAuth provider configurations through environment variables
 
 ## Recent Changes
+- July 28, 2025: Systematically addressed critical issues from PDF feedback
+- July 28, 2025: Fixed dashboard functionality - made components clickable with proper navigation
+- July 28, 2025: Strengthened input validation across all forms with enhanced schema rules
+- July 28, 2025: Added missing "Add Customer" functionality with complete dialog and validation
+- July 28, 2025: Fixed "Assigned To" dropdown population and enhanced role-based user filtering
+- July 28, 2025: Enhanced lead creation permissions for sales agents with "Assign to Myself" option
+- July 28, 2025: Fixed routing issues between Dashboard, Settings, and Activities components
+- July 28, 2025: Improved form field validation with proper error messages and type safety
+- July 28, 2025: Added comprehensive role-based filtering for user assignments across system
+- July 28, 2025: User ready for deployment - using memory storage (data will reset on deployment)
 - June 24, 2025: Replaced complex authentication (Firebase, Passport) with simple email/password system
 - June 24, 2025: Implemented email verification with 6-digit codes
 - June 24, 2025: Created test users with admin and sales roles for system testing
