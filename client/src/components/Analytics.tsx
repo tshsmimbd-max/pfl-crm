@@ -135,28 +135,73 @@ export default function Analytics() {
   const targetMetrics = getTargetVsAchieved();
 
   // Generate sample data for charts (in a real app, this would come from API)
-  const generateRevenueData = () => {
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
-    return months.map((month, index) => ({
-      month,
-      revenue: Math.floor(Math.random() * 50000) + 20000,
-      target: 45000,
-      leads: Math.floor(Math.random() * 20) + 10,
-    }));
-  };
 
-  const generatePipelineData = () => {
+
+  // Calculate real pipeline data from leads
+  const calculatePipelineData = () => {
+    if (!Array.isArray(leads)) return [];
+    
     const stages = [
-      { name: 'Prospecting', value: 15, amount: 48500 },
-      { name: 'Qualification', value: 12, amount: 62300 },
-      { name: 'Proposal', value: 8, amount: 71200 },
-      { name: 'Negotiation', value: 5, amount: 89400 },
+      'prospecting',
+      'qualification', 
+      'proposal',
+      'negotiation',
+      'closed_won',
+      'closed_lost'
     ];
-    return stages;
+    
+    return stages.map(stage => {
+      const stageLeads = leads.filter((lead: any) => lead.stage === stage);
+      const totalValue = stageLeads.reduce((sum: number, lead: any) => {
+        const value = typeof lead.value === 'string' ? parseFloat(lead.value) : lead.value;
+        return sum + (isNaN(value) ? 0 : value);
+      }, 0);
+      
+      return {
+        name: stage.charAt(0).toUpperCase() + stage.slice(1).replace('_', ' '),
+        value: stageLeads.length,
+        amount: totalValue
+      };
+    }).filter(stage => stage.value > 0); // Only show stages with leads
   };
 
-  const revenueData = generateRevenueData();
-  const pipelineData = generatePipelineData();
+  // Use real data from leads for pipeline calculations
+  const pipelineData = calculatePipelineData();
+  
+  // Calculate real revenue trends from daily revenue data
+  const calculateRevenueData = () => {
+    if (!Array.isArray(dailyRevenue)) return [];
+    
+    // Group revenue by month for last 6 months
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
+    const currentDate = new Date();
+    
+    return months.map((month, index) => {
+      const monthStart = new Date(currentDate.getFullYear(), currentDate.getMonth() - (5 - index), 1);
+      const monthEnd = new Date(currentDate.getFullYear(), currentDate.getMonth() - (5 - index) + 1, 0);
+      
+      const monthRevenue = dailyRevenue
+        .filter((rev: any) => {
+          const revDate = new Date(rev.date);
+          return revDate >= monthStart && revDate <= monthEnd;
+        })
+        .reduce((sum: number, rev: any) => sum + (rev.revenue || 0), 0);
+      
+      const monthLeads = leads.filter((lead: any) => {
+        const leadDate = new Date(lead.createdAt);
+        return leadDate >= monthStart && leadDate <= monthEnd;
+      }).length;
+      
+      return {
+        month,
+        revenue: monthRevenue,
+        target: targetMetrics.revenue.target / 6, // Spread annual target across months
+        leads: monthLeads,
+      };
+    });
+  };
+
+  const revenueData = calculateRevenueData();
 
   if (metricsLoading || teamLoading || leadsLoading) {
     return (
