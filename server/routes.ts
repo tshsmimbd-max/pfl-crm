@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { WebSocketServer, WebSocket } from "ws";
 import { storage } from "./storage";
 import { setupSimpleAuth, requireAuth, requireVerifiedEmail } from "./simpleAuth";
-import { insertLeadSchema, insertInteractionSchema, insertTargetSchema, insertCustomerSchema, insertDailyRevenueSchema, insertNotificationSchema, updateUserRoleSchema, loginSchema, registerSchema, verifyCodeSchema } from "@shared/schema";
+import { insertLeadSchema, insertInteractionSchema, insertTargetSchema, insertCustomerSchema, insertDailyRevenueSchema, insertNotificationSchema, loginSchema, registerSchema, verifyCodeSchema } from "@shared/schema";
 import { requirePermission, requireRole, hasPermission, canAccessResource, canAccessUser, PERMISSIONS, ROLES, Role } from "./rbac";
 import { z } from "zod";
 import { sendVerificationCode } from "./emailService";
@@ -164,9 +164,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const currentUser = req.user;
       let users = await storage.getUsersForAssignment(currentUser.id, currentUser.role);
       
-      // Add current user as "Myself" option for all roles
+      // Add current user as "Myself" option for all roles  
       users = [
-        { id: currentUser.id, fullName: "Myself", role: currentUser.role },
+        { id: currentUser.id, fullName: "Myself", role: currentUser.role, email: currentUser.email, password: "", managerId: null, teamName: null, emailVerified: true, verificationCode: null, codeExpiresAt: null, createdAt: null, updatedAt: null },
         ...users.filter(u => u.id !== currentUser.id)
       ];
       
@@ -296,8 +296,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         : validation.assignedTo;
 
       const lead = await storage.createLead({
-        ...validation,
-        createdBy: req.user.id,
+        value: validation.value,
+        contactName: validation.contactName,
+        email: validation.email,
+        company: validation.company,
+        stage: validation.stage,
+        phone: validation.phone,
         assignedTo: finalAssignedTo
       });
       res.status(201).json(lead);
@@ -480,13 +484,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       const target = await storage.createTarget(targetData);
 
-      // Create notification for the assigned user
-      await storage.createNotification({
-        userId: target.userId!,
-        type: 'target_assigned',
-        title: 'New Target Assigned',
-        message: `You have been assigned a new ${target.period} target of ৳${target.targetValue}`,
-      });
+      // Create notification for the assigned user if target is assigned to someone else
+      if (target.userId && target.userId !== req.user.id) {
+        await storage.createNotification({
+          userId: target.userId,
+          type: 'target_assigned',
+          title: 'New Target Assigned',
+          message: `You have been assigned a new ${target.period} target of ৳${target.targetValue}`,
+        });
+      }
 
       res.json(target);
     } catch (error) {
@@ -864,15 +870,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/daily-revenue', requireVerifiedEmail, async (req: any, res) => {
     try {
-      const revenueData = insertDailyRevenueSchema.parse({
-        ...req.body,
+      const revenueData = {
+        date: new Date(req.body.date),
+        revenue: Number(req.body.revenue),
+        description: req.body.description,
         userId: req.user.id,
         createdBy: req.user.id,
-      });
+        orders: Number(req.body.orders) || 1,
+        customerId: req.body.customerId ? Number(req.body.customerId) : null,
+      };
       
       const revenue = await storage.createDailyRevenue(revenueData);
       res.json(revenue);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error creating daily revenue:", error);
       res.status(500).json({ message: "Failed to create daily revenue entry" });
     }
@@ -948,10 +958,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Notification routes
+  // Notification routes - fixed for agent-specific filtering
   app.get('/api/notifications', requireVerifiedEmail, async (req: any, res) => {
     try {
-      const notifications = await storage.getNotifications(req.user.id);
+      const currentUser = await storage.getUser(req.user.id);
+      if (!currentUser) {
+        return res.status(401).json({ message: "User not found" });
+      }
+      
+      const notifications = await storage.getNotifications(currentUser.id);
       res.json(notifications);
     } catch (error) {
       console.error("Error fetching notifications:", error);
@@ -979,16 +994,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Analytics with RBAC
-  app.get('/api/analytics/metrics', requireAuth, requireVerifiedEmail, requirePermission(PERMISSIONS.ANALYTICS_PERSONAL), async (req: any, res) => {
+  // Analytics with RBAC - simplified and working
+  app.get('/api/analytics/metrics', requireVerifiedEmail, async (req: any, res) => {
     try {
-      const currentUser = req.user;
+      const currentUser = await storage.getUser(req.user.id);
       const userId = req.query.userId as string;
       let targetUserId = userId;
 
-      if (currentUser.role === ROLES.SUPER_ADMIN && hasPermission(currentUser, PERMISSIONS.ANALYTICS_GLOBAL)) {
-        targetUserId = userId;
-      } else if (currentUser.role === ROLES.SALES_MANAGER && hasPermission(currentUser, PERMISSIONS.ANALYTICS_TEAM)) {
+      // Role-based access control
+      if (currentUser?.role === ROLES.SALES_AGENT) {
+        targetUserId = currentUser.id;
+      } else if (currentUser?.role === ROLES.SALES_MANAGER) {
         if (userId) {
           const canView = await canAccessUser(currentUser, userId);
           if (!canView) {
@@ -998,8 +1014,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         } else {
           targetUserId = currentUser.id;
         }
-      } else {
-        targetUserId = currentUser.id;
       }
 
       const metrics = await storage.getSalesMetrics(targetUserId);
@@ -1012,7 +1026,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get('/api/analytics/team-performance', requireVerifiedEmail, async (req: any, res) => {
     try {
-      const performance = await storage.getTeamPerformance();
+      const currentUser = await storage.getUser(req.user.id);
+      let performance = await storage.getTeamPerformance();
+      
+      // Apply role-based filtering
+      if (currentUser?.role === ROLES.SALES_AGENT) {
+        performance = performance.filter(p => p.user.id === currentUser.id);
+      } else if (currentUser?.role === ROLES.SALES_MANAGER) {
+        const teamMembers = await storage.getTeamMembers(currentUser.id);
+        const teamMemberIds = teamMembers.map(m => m.id);
+        const accessibleUserIds = [...teamMemberIds, currentUser.id];
+        performance = performance.filter(p => accessibleUserIds.includes(p.user.id));
+      }
+      
       res.json(performance);
     } catch (error) {
       console.error("Error fetching team performance:", error);

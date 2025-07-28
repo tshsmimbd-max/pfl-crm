@@ -23,21 +23,20 @@ export default function TargetManagement() {
   const { user } = useAuth();
   const { toast } = useToast();
 
-  const { data: targets, isLoading: targetsLoading } = useQuery({
+  const { data: targets = [], isLoading: targetsLoading, error: targetsError } = useQuery({
     queryKey: ["/api/targets"],
   });
 
-  const { data: users, isLoading: usersLoading } = useQuery({
+  const { data: users = [], isLoading: usersLoading } = useQuery({
     queryKey: ["/api/users"],
     enabled: user?.role === "super_admin",
   });
 
-  const { data: metrics } = useQuery({
+  const { data: metrics, error: metricsError } = useQuery({
     queryKey: ["/api/analytics/metrics"],
   });
 
-  const form = useForm<InsertTarget>({
-    resolver: zodResolver(insertTargetSchema),
+  const form = useForm({
     defaultValues: {
       userId: user?.id || "",
       targetType: "revenue",

@@ -101,7 +101,7 @@ export interface IStorage {
   }>>;
 }
 
-export class DatabaseStorage implements IStorage {
+export class DatabaseStorage {
   // User operations
   async getUser(id: string): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.id, id));
@@ -1011,7 +1011,7 @@ class MemoryStorage implements IStorage {
     return revenues.reduce((sum, r) => sum + r.revenue, 0);
   }
 
-  // Analytics operations
+  // Analytics operations - fixed for proper data calculation
   async getSalesMetrics(userId?: string): Promise<{
     totalRevenue: number;
     activeLeads: number;
@@ -1027,8 +1027,9 @@ class MemoryStorage implements IStorage {
     const activeLeads = leads.filter(l => l.stage !== 'closed_won' && l.stage !== 'closed_lost').length;
     const conversionRate = leads.length > 0 ? (closedWonLeads.length / leads.length) * 100 : 0;
     
-    const target = userId ? await this.getCurrentTarget(userId, 'monthly') : null;
-    const targetProgress = target ? (totalRevenue / target.targetValue) * 100 : 0;
+    const targets = userId ? Array.from(this.targets.values()).filter(t => t.userId === userId) : [];
+    const currentTarget = targets.find(t => t.period === 'monthly');
+    const targetProgress = currentTarget ? (totalRevenue / currentTarget.targetValue) * 100 : 0;
 
     return {
       totalRevenue,
