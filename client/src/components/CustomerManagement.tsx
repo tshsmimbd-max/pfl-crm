@@ -35,8 +35,15 @@ export default function CustomerManagement() {
     return `৳${(isNaN(numValue) ? 0 : numValue).toLocaleString()}`;
   };
 
-  const formatDate = (dateStr: string) => {
-    return format(new Date(dateStr), 'MMM dd, yyyy');
+  const formatDate = (dateStr: string | null | undefined) => {
+    if (!dateStr) return 'N/A';
+    try {
+      const date = new Date(dateStr);
+      if (isNaN(date.getTime())) return 'N/A';
+      return format(date, 'MMM dd, yyyy');
+    } catch (error) {
+      return 'N/A';
+    }
   };
 
   const getTotalRevenueForCustomer = (customerId: number) => {
