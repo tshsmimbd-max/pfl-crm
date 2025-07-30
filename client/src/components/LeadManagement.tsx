@@ -48,13 +48,13 @@ export default function LeadManagement() {
       email: "",
       phone: "",
       company: "",
-      value: "0",
+      value: 0,
       stage: "prospecting",
       assignedTo: "myself", // Default to self for sales agents
       // New enhanced fields
       leadSource: "Others",
       packageSize: "",
-      preferredPickTime: "",
+      preferredPickTime: null,
       pickupAddress: "",
       website: "",
       facebookPageUrl: "",
@@ -213,7 +213,7 @@ export default function LeadManagement() {
                 <DialogTitle>Create New Lead</DialogTitle>
               </DialogHeader>
               <Form {...form}>
-                <form onSubmit={form.handleSubmit((data) => createLeadMutation.mutate(data))} className="space-y-4">
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <FormField
                       control={form.control}
@@ -327,7 +327,7 @@ export default function LeadManagement() {
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              {users?.map((user) => (
+                              {(users || []).map((user) => (
                                 <SelectItem key={user.id} value={user.id}>
                                   {user.employeeName || user.fullName || user.email}
                                 </SelectItem>
