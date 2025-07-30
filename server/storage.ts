@@ -610,7 +610,24 @@ class MemoryStorage implements IStorage {
   private nextId = 1;
 
   constructor() {
-    // No test users for production
+    // Initialize with single admin user for production
+    this.initializeSingleAdminUser();
+  }
+
+  private initializeSingleAdminUser() {
+    const adminUser = {
+      id: "admin",
+      email: "admin@paperfly.com",
+      password: "$2b$10$K8pn8F0PxOyQJ3D0EQnLB.YvO/N8.yLvwq8cHZJz8EqHvHmADBxDi", // admin123
+      fullName: "System Administrator",
+      role: "super_admin",
+      isActive: true,
+      emailVerified: true,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    this.users.set(adminUser.id, adminUser as User);
   }
 
 
@@ -1026,6 +1043,6 @@ class MemoryStorage implements IStorage {
   }
 }
 
-// Use database storage for production
-console.log("Using database storage for production");
-export const storage = new DatabaseStorage();
+// Use memory storage with clean single admin user for production
+console.log("Using memory storage with single admin user for production");
+export const storage = new MemoryStorage();
