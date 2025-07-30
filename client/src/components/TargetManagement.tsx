@@ -32,7 +32,7 @@ export default function TargetManagement() {
     enabled: user?.role === "super_admin",
   });
 
-  const { data: metrics, error: metricsError } = useQuery({
+  const { data: metrics, error: metricsError, isLoading: metricsLoading } = useQuery({
     queryKey: ["/api/analytics/metrics"],
   });
 
@@ -134,9 +134,14 @@ export default function TargetManagement() {
   };
 
   const calculateProgress = (target: any) => {
-    if (!metrics?.totalRevenue || !target.targetValue) return 0;
+    if (!target.targetValue) return 0;
     const targetAmount = typeof target.targetValue === 'string' ? parseFloat(target.targetValue) : target.targetValue;
-    return Math.min((metrics.totalRevenue / targetAmount) * 100, 100);
+    if (targetAmount <= 0) return 0;
+    
+    // Calculate current revenue from metrics (this includes revenue from closed deals)
+    const currentRevenue = metrics?.totalRevenue || 0;
+    const progress = (currentRevenue / targetAmount) * 100;
+    return Math.min(Math.max(progress, 0), 100); // Ensure progress is between 0-100%
   };
 
   const getPeriodColor = (period: string) => {
@@ -368,7 +373,7 @@ export default function TargetManagement() {
                       </div>
                       <div>
                         <h3 className="font-medium text-gray-900">
-                          {targetUser ? targetUser.fullName : 'Unknown User'}
+                          {targetUser?.fullName || targetUser?.employeeName || user?.employeeName || "My Target"}
                         </h3>
                         <Badge className={`text-xs ${getPeriodColor(target.period)}`}>
                           {target.period.charAt(0).toUpperCase() + target.period.slice(1)}

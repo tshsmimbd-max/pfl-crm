@@ -612,6 +612,8 @@ class MemoryStorage implements IStorage {
   constructor() {
     // Initialize with single admin user for production
     this.initializeSingleAdminUser();
+    // Add sample data to demonstrate target progress tracking
+    this.initializeSampleData();
   }
 
   private initializeSingleAdminUser() {
@@ -1074,6 +1076,98 @@ class MemoryStorage implements IStorage {
     }
 
     return performance;
+  }
+
+  // Initialize with sample data for testing target progress
+  private initializeSampleData() {
+    // Create a sample target for the admin user
+    const sampleTarget: Target = {
+      id: 1,
+      userId: 'admin',
+      targetType: 'revenue',
+      targetValue: 100000, // 1 lakh target
+      period: 'monthly',
+      description: 'Monthly revenue target for admin',
+      createdBy: 'admin',
+      startDate: new Date(2025, 0, 1), // January 1, 2025
+      endDate: new Date(2025, 0, 31), // January 31, 2025
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    this.targets.set(1, sampleTarget);
+
+    // Create sample leads with closed_won status to generate revenue
+    const sampleLeads: Lead[] = [
+      {
+        id: 1,
+        contactName: 'John Doe',
+        email: 'john@example.com',
+        phone: '+1234567890',
+        company: 'TechCorp',
+        value: 25000,
+        stage: 'closed_won',
+        assignedTo: 'admin',
+        createdBy: 'admin',
+        leadSource: 'Social Media',
+        packageSize: 'Large',
+        preferredPickTime: null,
+        pickupAddress: '123 Tech Street',
+        website: 'https://techcorp.com',
+        facebookPageUrl: null,
+        customerType: 'new',
+        notes: 'High value enterprise client',
+        createdAt: new Date(2025, 0, 15),
+        updatedAt: new Date(),
+      },
+      {
+        id: 2,
+        contactName: 'Jane Smith',
+        email: 'jane@business.com',
+        phone: '+1987654321',
+        company: 'Business Solutions',
+        value: 15000,
+        stage: 'closed_won',
+        assignedTo: 'admin',
+        createdBy: 'admin',
+        leadSource: 'Referral',
+        packageSize: 'Medium',
+        preferredPickTime: null,
+        pickupAddress: '456 Business Ave',
+        website: 'https://business.com',
+        facebookPageUrl: null,
+        customerType: 'returning',
+        notes: 'Repeat customer, good relationship',
+        createdAt: new Date(2025, 0, 20),
+        updatedAt: new Date(),
+      },
+      {
+        id: 3,
+        contactName: 'Mike Johnson',
+        email: 'mike@startup.io',
+        phone: '+1555123456',
+        company: 'StartupXYZ',
+        value: 30000,
+        stage: 'negotiation',
+        assignedTo: 'admin',
+        createdBy: 'admin',
+        leadSource: 'Ads',
+        packageSize: 'Large',
+        preferredPickTime: null,
+        pickupAddress: '789 Innovation Blvd',
+        website: 'https://startupxyz.io',
+        facebookPageUrl: 'https://facebook.com/startupxyz',
+        customerType: 'new',
+        notes: 'Promising startup, good growth potential',
+        createdAt: new Date(2025, 0, 25),
+        updatedAt: new Date(),
+      }
+    ];
+
+    sampleLeads.forEach(lead => {
+      this.leads.set(lead.id, lead);
+    });
+
+    this.nextId = 4; // Set next ID after sample data
   }
 }
 
