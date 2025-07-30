@@ -692,7 +692,14 @@ class MemoryStorage implements IStorage {
   }
 
   async getTeamMembers(managerId: string): Promise<User[]> {
-    return Array.from(this.users.values()).filter(u => u.managerId === managerId);
+    const users = Array.from(this.users.values());
+    const manager = users.find(u => u.id === managerId);
+    
+    // Return only team members from the same team as the manager
+    return users.filter(u => 
+      u.managerId === managerId && 
+      u.teamName === manager?.teamName
+    );
   }
 
   async isTeamMember(managerId: string, userId: string): Promise<boolean> {
@@ -718,10 +725,16 @@ class MemoryStorage implements IStorage {
 
   async getUsersForAssignment(currentUserId: string, currentUserRole: string): Promise<User[]> {
     const users = Array.from(this.users.values());
+    const currentUser = users.find(u => u.id === currentUserId);
+    
     if (currentUserRole === 'super_admin') {
       return users.filter(u => u.id !== currentUserId);
     } else if (currentUserRole === 'sales_manager') {
-      return users.filter(u => u.managerId === currentUserId);
+      // Manager can only assign to team members in the same team
+      return users.filter(u => 
+        u.managerId === currentUserId && 
+        u.teamName === currentUser?.teamName
+      );
     }
     return [];
   }
@@ -756,7 +769,23 @@ class MemoryStorage implements IStorage {
   async createLead(lead: InsertLead): Promise<Lead> {
     const newLead: Lead = {
       id: this.nextId++,
-      ...lead,
+      contactName: lead.contactName,
+      email: lead.email,
+      phone: lead.phone || null,
+      company: lead.company,
+      value: lead.value,
+      stage: lead.stage || "prospecting",
+      assignedTo: lead.assignedTo || null,
+      createdBy: lead.createdBy || null,
+      // New enhanced fields
+      leadSource: lead.leadSource || "Others",
+      packageSize: lead.packageSize || null,
+      preferredPickTime: lead.preferredPickTime || null,
+      pickupAddress: lead.pickupAddress || null,
+      website: lead.website || null,
+      facebookPageUrl: lead.facebookPageUrl || null,
+      customerType: lead.customerType || "new",
+      notes: lead.notes || null,
       createdAt: new Date(),
       updatedAt: new Date(),
     };

@@ -45,6 +45,15 @@ export const leads = pgTable("leads", {
   stage: varchar("stage").notNull().default("Prospecting"), // Prospecting, Qualified, Proposal, Negotiation, Closed Won, Closed Lost
   assignedTo: varchar("assigned_to").references(() => users.id),
   createdBy: varchar("created_by").references(() => users.id),
+  // New enhanced fields
+  leadSource: varchar("lead_source").notNull().default("Others"), // Social Media, Referral, Ads, Others
+  packageSize: varchar("package_size"),
+  preferredPickTime: timestamp("preferred_pick_time"),
+  pickupAddress: text("pickup_address"),
+  website: varchar("website"),
+  facebookPageUrl: varchar("facebook_page_url"),
+  customerType: varchar("customer_type").notNull().default("new"), // new, returning
+  notes: text("notes"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -230,6 +239,18 @@ export const insertLeadSchema = createInsertSchema(leads).omit({
   ]),
   stage: z.enum(["prospecting", "qualification", "proposal", "negotiation", "closed_won", "closed_lost"]),
   assignedTo: z.string().optional(),
+  // New enhanced fields
+  leadSource: z.enum(["Social Media", "Referral", "Ads", "Others"]).default("Others"),
+  packageSize: z.string().optional(),
+  preferredPickTime: z.union([
+    z.date(),
+    z.string().transform(val => val ? new Date(val) : null)
+  ]).optional().nullable(),
+  pickupAddress: z.string().optional(),
+  website: z.string().url("Please enter a valid URL").optional().or(z.literal("")),
+  facebookPageUrl: z.string().url("Please enter a valid Facebook URL").optional().or(z.literal("")),
+  customerType: z.enum(["new", "returning"]).default("new"),
+  notes: z.string().optional(),
 });
 
 export const insertInteractionSchema = createInsertSchema(interactions).omit({

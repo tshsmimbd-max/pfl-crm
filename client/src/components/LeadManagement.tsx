@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Search, Filter, Edit, Trash2, Eye, MessageSquare } from "lucide-react";
+import { Plus, Search, Filter, Edit, Edit2, Trash2, Eye, MessageSquare } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertLeadSchema, type InsertLead } from "@shared/schema";
@@ -49,8 +49,17 @@ export default function LeadManagement() {
       phone: "",
       company: "",
       value: "0",
-      stage: "Prospecting",
+      stage: "prospecting",
       assignedTo: "myself", // Default to self for sales agents
+      // New enhanced fields
+      leadSource: "Others",
+      packageSize: "",
+      preferredPickTime: "",
+      pickupAddress: "",
+      website: "",
+      facebookPageUrl: "",
+      customerType: "new",
+      notes: "",
     },
   });
 
@@ -181,7 +190,7 @@ export default function LeadManagement() {
   }
 
   return (
-    <>
+    <div className="flex flex-col h-full">
       {/* Header */}
       <header className="bg-white shadow-sm border-b border-gray-200 px-6 py-4">
         <div className="flex items-center justify-between">
@@ -204,7 +213,7 @@ export default function LeadManagement() {
                 <DialogTitle>Create New Lead</DialogTitle>
               </DialogHeader>
               <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                <form onSubmit={form.handleSubmit((data) => createLeadMutation.mutate(data))} className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <FormField
                       control={form.control}
@@ -310,18 +319,17 @@ export default function LeadManagement() {
                       name="assignedTo"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Assigned To</FormLabel>
-                          <Select onValueChange={field.onChange} defaultValue={field.value || "myself"}>
+                          <FormLabel>Assign To</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
                             <FormControl>
                               <SelectTrigger>
-                                <SelectValue placeholder="Assign to myself" />
+                                <SelectValue placeholder="Select assignee" />
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              <SelectItem value="myself">Assign to Myself</SelectItem>
-                              {hasPermission(PERMISSIONS.LEAD_ASSIGN) && users?.filter(u => u.id !== "myself" && u.fullName !== "Myself").map((user) => (
+                              {users?.map((user) => (
                                 <SelectItem key={user.id} value={user.id}>
-                                  {user.fullName} ({user.role?.replace('_', ' ') || 'Agent'})
+                                  {user.employeeName || user.fullName || user.email}
                                 </SelectItem>
                               ))}
                             </SelectContent>
@@ -331,15 +339,166 @@ export default function LeadManagement() {
                       )}
                     />
                   </div>
-                  <div className="flex justify-end space-x-2">
-                    <Button
-                      type="button"
-                      variant="outline"
+
+                  {/* Enhanced Lead Fields */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="leadSource"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Lead Source</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select lead source" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="Social Media">Social Media</SelectItem>
+                              <SelectItem value="Referral">Referral</SelectItem>
+                              <SelectItem value="Ads">Ads</SelectItem>
+                              <SelectItem value="Others">Others</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="packageSize"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Package Size</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Enter package size" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="preferredPickTime"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Preferred Pick Time</FormLabel>
+                          <FormControl>
+                            <Input 
+                              type="datetime-local" 
+                              {...field}
+                              value={field.value ? new Date(field.value).toISOString().slice(0, 16) : ""}
+                              onChange={(e) => field.onChange(e.target.value ? new Date(e.target.value) : null)}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="customerType"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Customer Type</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select customer type" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="new">New Customer</SelectItem>
+                              <SelectItem value="returning">Returning Customer</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  <div className="space-y-4">
+                    <FormField
+                      control={form.control}
+                      name="pickupAddress"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Pickup Address</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Enter pickup address" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <div className="grid grid-cols-2 gap-4">
+                      <FormField
+                        control={form.control}
+                        name="website"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Website</FormLabel>
+                            <FormControl>
+                              <Input placeholder="https://example.com" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="facebookPageUrl"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Facebook Page URL</FormLabel>
+                            <FormControl>
+                              <Input placeholder="https://facebook.com/page" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+
+                    <FormField
+                      control={form.control}
+                      name="notes"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Notes</FormLabel>
+                          <FormControl>
+                            <textarea 
+                              className="w-full min-h-[80px] px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-vertical"
+                              placeholder="Additional notes about the lead..."
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  <div className="flex justify-end space-x-3 pt-4">
+                    <Button 
+                      type="button" 
+                      variant="outline" 
                       onClick={() => setIsCreateDialogOpen(false)}
+                      disabled={createLeadMutation.isPending}
                     >
                       Cancel
                     </Button>
-                    <Button type="submit" disabled={createLeadMutation.isPending}>
+                    <Button 
+                      type="submit" 
+                      disabled={createLeadMutation.isPending}
+                      className="bg-primary-600 hover:bg-primary-700"
+                    >
                       {createLeadMutation.isPending ? "Creating..." : "Create Lead"}
                     </Button>
                   </div>
@@ -347,172 +506,148 @@ export default function LeadManagement() {
               </Form>
             </DialogContent>
           </Dialog>
-            </div>
-          )}
         </div>
-      </header>
+      )}
+    </div>
+  </header>
 
-      {/* Content */}
-      <div className="flex-1 overflow-auto p-6">
-        {/* Filters */}
-        <Card className="mb-6">
-          <CardContent className="pt-6">
-            <div className="flex items-center space-x-4">
-              <div className="flex-1">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                  <Input
-                    placeholder="Search leads..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10"
-                  />
-                </div>
-              </div>
-              <Select value={stageFilter} onValueChange={setStageFilter}>
-                <SelectTrigger className="w-48">
-                  <SelectValue placeholder="Filter by stage" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Stages</SelectItem>
-                  <SelectItem value="prospecting">Prospecting</SelectItem>
-                  <SelectItem value="qualification">Qualification</SelectItem>
-                  <SelectItem value="proposal">Proposal</SelectItem>
-                  <SelectItem value="negotiation">Negotiation</SelectItem>
-                  <SelectItem value="closed_won">Closed Won</SelectItem>
-                  <SelectItem value="closed_lost">Closed Lost</SelectItem>
-                </SelectContent>
-              </Select>
+  <div className="flex-1 overflow-auto p-6 space-y-6">
+    {/* Search and Filter */}
+    <Card>
+      <CardContent className="p-6">
+        <div className="flex items-center justify-between space-x-4">
+          <div className="flex items-center space-x-4 flex-1">
+            <div className="relative flex-1 max-w-sm">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+              <Input
+                placeholder="Search leads..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
             </div>
-          </CardContent>
-        </Card>
+          </div>
+          <Select value={stageFilter} onValueChange={setStageFilter}>
+            <SelectTrigger className="w-48">
+              <SelectValue placeholder="Filter by stage" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Stages</SelectItem>
+              <SelectItem value="prospecting">Prospecting</SelectItem>
+              <SelectItem value="qualification">Qualification</SelectItem>
+              <SelectItem value="proposal">Proposal</SelectItem>
+              <SelectItem value="negotiation">Negotiation</SelectItem>
+              <SelectItem value="closed_won">Closed Won</SelectItem>
+              <SelectItem value="closed_lost">Closed Lost</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </CardContent>
+    </Card>
 
-        {/* Leads Table */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Leads ({filteredLeads.length})</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Lead</TableHead>
-                  <TableHead>Company</TableHead>
-                  <TableHead>Value</TableHead>
-                  <TableHead>Order Volume</TableHead>
-                  <TableHead>Lead Source</TableHead>
-                  <TableHead>Stage</TableHead>
-                  <TableHead>Assigned To</TableHead>
-                  <TableHead>Actions</TableHead>
+    {/* Leads Table */}
+    <Card>
+      <CardHeader>
+        <CardTitle>Leads ({filteredLeads.length})</CardTitle>
+      </CardHeader>
+      <CardContent>
+        {isLoading ? (
+          <div className="flex justify-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+          </div>
+        ) : filteredLeads?.length === 0 ? (
+          <div className="text-center py-8 text-gray-500">
+            <p>No leads found</p>
+          </div>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Lead</TableHead>
+                <TableHead>Company</TableHead>
+                <TableHead>Value</TableHead>
+                <TableHead>Package Size</TableHead>
+                <TableHead>Lead Source</TableHead>
+                <TableHead>Stage</TableHead>
+                <TableHead>Assigned To</TableHead>
+                <TableHead>Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredLeads.map((lead) => (
+                <TableRow key={lead.id}>
+                  <TableCell>
+                    <div className="flex items-center space-x-3">
+                      <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
+                        <span className="text-xs font-medium text-gray-600">
+                          {lead.contactName.split(' ').map(n => n[0]).join('')}
+                        </span>
+                      </div>
+                      <div>
+                        <p className="font-medium text-gray-900">{lead.contactName}</p>
+                        <p className="text-sm text-gray-500">{lead.email}</p>
+                      </div>
+                    </div>
+                  </TableCell>
+                  <TableCell className="font-medium">{lead.company}</TableCell>
+                  <TableCell className="font-medium">৳{parseFloat(lead.value).toLocaleString()}</TableCell>
+                  <TableCell>{lead.packageSize || '-'}</TableCell>
+                  <TableCell>{lead.leadSource || '-'}</TableCell>
+                  <TableCell>
+                    <Badge className={`${getStageColor(lead.stage)}`}>
+                      {lead.stage.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    {users?.find(u => u.id === lead.assignedTo)?.employeeName || 'Unassigned'}
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center space-x-2">
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={() => {
+                          setSelectedLead(lead);
+                          setIsViewDialogOpen(true);
+                        }}
+                      >
+                        <Eye className="w-4 h-4" />
+                      </Button>
+                      {hasPermission(PERMISSIONS.LEAD_EDIT) && (
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => {
+                            setSelectedLead(lead);
+                            setIsEditDialogOpen(true);
+                          }}
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </Button>
+                      )}
+                      {hasPermission(PERMISSIONS.LEAD_DELETE) && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            if (confirm('Are you sure you want to delete this lead?')) {
+                              deleteLeadMutation.mutate(lead.id);
+                            }
+                          }}
+                        >
+                          <Trash2 className="w-4 h-4 text-red-500" />
+                        </Button>
+                      )}
+                    </div>
+                  </TableCell>
                 </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredLeads.map((lead) => (
-                  <TableRow key={lead.id}>
-                    <TableCell>
-                      <div className="flex items-center space-x-3">
-                        <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
-                          <span className="text-xs font-medium text-gray-600">
-                            {lead.contactName.split(' ').map(n => n[0]).join('')}
-                          </span>
-                        </div>
-                        <div>
-                          <p className="font-medium text-gray-900">{lead.contactName}</p>
-                          <p className="text-sm text-gray-500">{lead.email}</p>
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell className="font-medium">{lead.company}</TableCell>
-                    <TableCell className="font-medium">৳{parseFloat(lead.value).toLocaleString()}</TableCell>
-                    <TableCell>{lead.orderVolume || '-'}</TableCell>
-                    <TableCell>{lead.leadSource || '-'}</TableCell>
-                    <TableCell>
-                      <Badge className={`${getStageColor(lead.stage)}`}>
-                        {lead.stage.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      {users?.find(u => u.id === lead.assignedTo)?.firstName || 'Unassigned'}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center space-x-2">
-                        <Button 
-                          variant="ghost" 
-                          size="sm"
-                          onClick={() => {
-                            setSelectedLead(lead);
-                            setShowViewDialog(true);
-                          }}
-                          title="View Lead"
-                        >
-                          <Eye className="w-4 h-4" />
-                        </Button>
-                        <Button 
-                          variant="ghost" 
-                          size="sm"
-                          onClick={() => {
-                            setSelectedLead(lead);
-                            setShowEditDialog(true);
-                          }}
-                          title="Edit Lead"
-                        >
-                          <Edit className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => {
-                            setSelectedLeadIdForActivity(lead.id);
-                            setShowAddActivityDialog(true);
-                          }}
-                          title="Add Activity"
-                        >
-                          <MessageSquare className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleDelete(lead.id)}
-                          disabled={deleteLeadMutation.isPending}
-                          title="Delete Lead"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Edit Dialog */}
-      <LeadEditDialog 
-        lead={selectedLead}
-        open={showEditDialog}
-        onOpenChange={setShowEditDialog}
-      />
-
-      {/* View Dialog */}
-      <LeadViewDialog 
-        lead={selectedLead}
-        open={showViewDialog}
-        onOpenChange={setShowViewDialog}
-        onEdit={(lead) => {
-          setSelectedLead(lead);
-          setShowViewDialog(false);
-          setShowEditDialog(true);
-        }}
-      />
-
-      {/* Add Activity Dialog */}
-      <AddActivityDialog 
-        open={showAddActivityDialog}
-        onOpenChange={setShowAddActivityDialog}
-        leadId={selectedLeadIdForActivity || undefined}
-      />
-    </>
-  );
+              ))}
+            </TableBody>
+          </Table>
+        )}
+      </CardContent>
+    </Card>
+    </div>
+  </div>
+);
 }

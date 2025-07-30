@@ -362,9 +362,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   company: row.company || '',
                   value: parseFloat(row.value) || 0,
                   stage: row.stage || 'prospecting',
-                  notes: row.notes || '',
                   createdBy: req.user.id,
                   assignedTo: req.user.id,
+                  // Enhanced fields from CSV
+                  leadSource: row.leadSource || row.lead_source || 'Others',
+                  packageSize: row.packageSize || row.package_size || '',
+                  preferredPickTime: row.preferredPickTime || row.preferred_pick_time ? new Date(row.preferredPickTime || row.preferred_pick_time) : null,
+                  pickupAddress: row.pickupAddress || row.pickup_address || '',
+                  website: row.website || '',
+                  facebookPageUrl: row.facebookPageUrl || row.facebook_page_url || '',
+                  customerType: row.customerType || row.customer_type || 'new',
+                  notes: row.notes || '',
                 };
 
                 if (!leadData.contactName || !leadData.email) {
