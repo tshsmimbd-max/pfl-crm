@@ -610,52 +610,10 @@ class MemoryStorage implements IStorage {
   private nextId = 1;
 
   constructor() {
-    // Initialize with test users
-    this.initializeTestUsers();
+    // No test users for production
   }
 
-  private initializeTestUsers() {
-    const testUsers = [
-      {
-        id: "admin",
-        email: "admin@paperfly.com",
-        password: "$2b$10$EmAT/tDAz9Uwa1SdZ5eM4.mpCJ7ggCZWBvQp/KGdkSbKkDWg/Ot9m", // admin123
-        fullName: "Super Admin",
-        role: "super_admin",
-        isActive: true,
-        emailVerified: true,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      },
-      {
-        id: "manager",
-        email: "manager.fixed@paperfly.com",
-        password: "$2b$10$gZ6fCjsVFmVmhWVh793rquw3q9jb7a505ebcq59M9zu7gCobyHGQa", // manager123
-        fullName: "Manager Fixed",
-        role: "sales_manager",
-        isActive: true,
-        emailVerified: true,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      },
-      {
-        id: "agent",
-        email: "agent.fixed@paperfly.com",
-        password: "$2b$10$DkBr9jZ9epZAAPfTSJrxRuVkh0TNy.bJLQOWUnZGM3N4tIX5QUsdi", // agent123
-        fullName: "Agent Fixed",
-        role: "sales_agent",
-        isActive: true,
-        emailVerified: true,
-        managerId: "manager",
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      },
-    ];
 
-    testUsers.forEach(user => {
-      this.users.set(user.id, user as User);
-    });
-  }
 
   async getUser(id: string): Promise<User | undefined> {
     return this.users.get(id);
@@ -1068,6 +1026,6 @@ class MemoryStorage implements IStorage {
   }
 }
 
-// Use memory storage due to database connection issues
-console.log("Using memory storage for development");
-export const storage = new MemoryStorage();
+// Use database storage for production
+console.log("Using database storage for production");
+export const storage = new DatabaseStorage();
