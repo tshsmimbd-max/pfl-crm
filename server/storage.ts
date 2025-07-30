@@ -618,7 +618,7 @@ class MemoryStorage implements IStorage {
     const adminUser = {
       id: "admin",
       email: "admin@paperfly.com",
-      password: "$2b$10$K8pn8F0PxOyQJ3D0EQnLB.YvO/N8.yLvwq8cHZJz8EqHvHmADBxDi", // admin123
+      password: "$2b$10$M/qluBLTkmxuzQnnC.5zJOEJdy64PjZSiK7zUEu2GnZY5pbqYl..6", // admin123
       fullName: "System Administrator",
       role: "super_admin",
       isActive: true,
