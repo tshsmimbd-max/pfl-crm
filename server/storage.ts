@@ -619,8 +619,10 @@ class MemoryStorage implements IStorage {
       id: "admin",
       email: "admin@paperfly.com",
       password: "$2b$10$M/qluBLTkmxuzQnnC.5zJOEJdy64PjZSiK7zUEu2GnZY5pbqYl..6", // admin123
-      fullName: "System Administrator",
+      employeeName: "System Administrator",
+      employeeCode: "ADM001",
       role: "super_admin",
+      teamName: "Sales Titans",
       isActive: true,
       emailVerified: true,
       createdAt: new Date(),
@@ -640,15 +642,18 @@ class MemoryStorage implements IStorage {
     return Array.from(this.users.values()).find(u => u.email === email);
   }
 
-  async createUser(user: { email: string; password: string; fullName: string; role?: string }): Promise<User> {
+  async createUser(user: { email: string; password: string; employeeName: string; employeeCode: string; role?: string; teamName?: string; managerId?: string }): Promise<User> {
     const newUser: User = {
       id: String(this.nextId++),
       email: user.email,
       password: user.password,
-      fullName: user.fullName,
+      employeeName: user.employeeName,
+      employeeCode: user.employeeCode,
       role: user.role || 'sales_agent',
+      teamName: user.teamName,
+      managerId: user.managerId,
       isActive: true,
-      emailVerified: false,
+      emailVerified: true, // Set to true for production
       createdAt: new Date(),
       updatedAt: new Date(),
     };

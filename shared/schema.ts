@@ -22,10 +22,11 @@ export const users = pgTable("users", {
   id: varchar("id").primaryKey().notNull(),
   email: varchar("email").unique().notNull(),
   password: varchar("password").notNull(),
-  fullName: varchar("full_name").notNull(),
+  employeeName: varchar("employee_name").notNull(), // Changed from fullName
+  employeeCode: varchar("employee_code").unique().notNull(), // New field
   role: varchar("role").notNull().default("sales_agent"), // super_admin, sales_manager, sales_agent
   managerId: varchar("manager_id"),
-  teamName: varchar("team_name"), // Simple team assignment without foreign key
+  teamName: varchar("team_name"), // Sales Titans or Revenue Rangers
   emailVerified: boolean("email_verified").default(false),
   verificationCode: varchar("verification_code"),
   codeExpiresAt: timestamp("code_expires_at"),
@@ -203,6 +204,8 @@ export const notificationsRelations = relations(notifications, ({ one }) => ({
 export const insertUserSchema = createInsertSchema(users).omit({
   createdAt: true,
   updatedAt: true,
+}).extend({
+  teamName: z.enum(["Sales Titans", "Revenue Rangers"]).optional(),
 });
 
 

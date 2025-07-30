@@ -166,7 +166,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Add current user as "Myself" option for all roles  
       users = [
-        { id: currentUser.id, fullName: "Myself", role: currentUser.role, email: currentUser.email, password: "", managerId: null, teamName: null, emailVerified: true, verificationCode: null, codeExpiresAt: null, createdAt: null, updatedAt: null },
+        { id: currentUser.id, employeeName: "Myself", role: currentUser.role, email: currentUser.email },
         ...users.filter(u => u.id !== currentUser.id)
       ];
       
@@ -186,11 +186,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Access denied" });
       }
 
-      const { email, fullName, password, role, managerId, teamName } = req.body;
+      const { email, employeeName, employeeCode, password, role, managerId, teamName } = req.body;
 
       // Validate required fields
-      if (!email || !fullName || !password || !role) {
-        return res.status(400).json({ message: "Missing required fields: email, fullName, password, role" });
+      if (!email || !employeeName || !employeeCode || !password || !role) {
+        return res.status(400).json({ message: "Missing required fields: email, employeeName, employeeCode, password, role" });
       }
 
       // Sales managers can only create sales_agent users
@@ -209,16 +209,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Create user
       const newUser = await storage.createUser({
-        id: `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         email,
-        fullName,
+        employeeName,
+        employeeCode,
         password: hashedPassword,
         role,
-        managerId: managerId || null,
-        teamName: teamName || null,
-        emailVerified: true, // New users are auto-verified
-        verificationCode: null,
-        codeExpiresAt: null
+        managerId: managerId || undefined,
+        teamName: teamName || undefined
       });
 
       // Remove sensitive information before sending response

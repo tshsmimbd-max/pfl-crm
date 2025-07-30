@@ -25,10 +25,11 @@ const updateRoleSchema = z.object({
 
 const addUserSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
-  fullName: z.string().min(2, "Full name must be at least 2 characters"),
+  employeeName: z.string().min(2, "Employee name must be at least 2 characters"),
+  employeeCode: z.string().min(2, "Employee code is required"),
   role: z.enum(["super_admin", "sales_manager", "sales_agent"]),
   managerId: z.string().optional(),
-  teamName: z.string().min(2, "Team name is required").optional(),
+  teamName: z.enum(["Sales Titans", "Revenue Rangers"]),
   password: z.string().min(6, "Password must be at least 6 characters"),
 });
 
@@ -67,10 +68,11 @@ export default function UserManagement() {
     resolver: zodResolver(addUserSchema),
     defaultValues: {
       email: "",
-      fullName: "",
+      employeeName: "",
+      employeeCode: "",
       role: "sales_agent",
       managerId: "",
-      teamName: "",
+      teamName: "Sales Titans",
       password: "",
     },
   });
@@ -163,8 +165,9 @@ export default function UserManagement() {
 
   const filteredUsers = users?.filter((user) => {
     const matchesSearch = 
-      user.fullName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.email?.toLowerCase().includes(searchTerm.toLowerCase());
+      user.employeeName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.employeeCode?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesRole = roleFilter === "all" || user.role === roleFilter;
     return matchesSearch && matchesRole;
   }) || [];
@@ -238,7 +241,7 @@ export default function UserManagement() {
   const getManagerName = (managerId?: string) => {
     if (!managerId) return "No Manager";
     const manager = users?.find(u => u.id === managerId);
-    return manager?.fullName || "Unknown Manager";
+    return manager?.employeeName || "Unknown Manager";
   };
 
   // Check if current user can add users (super_admin or sales_manager)
@@ -302,10 +305,10 @@ export default function UserManagement() {
                       <div className="grid grid-cols-2 gap-4">
                         <FormField
                           control={addUserForm.control}
-                          name="fullName"
+                          name="employeeName"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel>Full Name</FormLabel>
+                              <FormLabel>Employee Name</FormLabel>
                               <FormControl>
                                 <Input placeholder="John Doe" {...field} />
                               </FormControl>
@@ -315,18 +318,31 @@ export default function UserManagement() {
                         />
                         <FormField
                           control={addUserForm.control}
-                          name="email"
+                          name="employeeCode"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel>Email</FormLabel>
+                              <FormLabel>Employee Code</FormLabel>
                               <FormControl>
-                                <Input type="email" placeholder="john@company.com" {...field} />
+                                <Input placeholder="EMP001" {...field} />
                               </FormControl>
                               <FormMessage />
                             </FormItem>
                           )}
                         />
                       </div>
+                      <FormField
+                        control={addUserForm.control}
+                        name="email"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Email</FormLabel>
+                            <FormControl>
+                              <Input type="email" placeholder="john@company.com" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
                       
                       <FormField
                         control={addUserForm.control}
@@ -399,7 +415,7 @@ export default function UserManagement() {
                                             <ManagerIcon className="w-3 h-3 text-primary-600" />
                                           </div>
                                           <div>
-                                            <p className="font-medium">{manager.fullName}</p>
+                                            <p className="font-medium">{manager.employeeName}</p>
                                             <p className="text-xs text-gray-500">{manager.role}</p>
                                           </div>
                                         </div>
@@ -419,10 +435,18 @@ export default function UserManagement() {
                         name="teamName"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Team Name (Optional)</FormLabel>
-                            <FormControl>
-                              <Input placeholder="Sales Team Alpha" {...field} />
-                            </FormControl>
+                            <FormLabel>Team</FormLabel>
+                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select team" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                <SelectItem value="Sales Titans">Sales Titans</SelectItem>
+                                <SelectItem value="Revenue Rangers">Revenue Rangers</SelectItem>
+                              </SelectContent>
+                            </Select>
                             <FormMessage />
                           </FormItem>
                         )}
@@ -602,9 +626,12 @@ export default function UserManagement() {
                           </div>
                           <div>
                             <p className="font-medium text-gray-900">
-                              {user.fullName}
+                              {user.employeeName}
                               {isCurrentUser && <span className="text-xs text-gray-500 ml-2">(You)</span>}
                             </p>
+                            {user.employeeCode && (
+                              <p className="text-xs text-gray-400">{user.employeeCode}</p>
+                            )}
                             <p className="text-sm text-gray-500">{user.email}</p>
                           </div>
                         </div>
@@ -669,7 +696,7 @@ export default function UserManagement() {
                   </div>
                   <div>
                     <p className="font-medium text-gray-900">
-                      {selectedUser.fullName}
+                      {selectedUser.employeeName}
                     </p>
                     <p className="text-sm text-gray-500">{selectedUser.email}</p>
                   </div>
