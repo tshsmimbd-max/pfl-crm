@@ -1180,6 +1180,6 @@ class MemoryStorage implements IStorage {
   }
 }
 
-// Use memory storage with clean single admin user for production
-console.log("Using memory storage with single admin user for production");
-export const storage = new MemoryStorage();
+// Production database storage - prevents data loss
+console.log("Using database storage for production - data will persist");
+export const storage = new DatabaseStorage();
