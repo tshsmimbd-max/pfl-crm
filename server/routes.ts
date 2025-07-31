@@ -266,7 +266,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/leads/:id', requireVerifiedEmail, async (req: any, res) => {
+  app.get('/api/leads/:id', requireAuth, async (req: any, res) => {
     try {
       const lead = await storage.getLead(parseInt(req.params.id));
       if (!lead) {
@@ -328,7 +328,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch('/api/leads/:id', requireVerifiedEmail, async (req: any, res) => {
+  app.patch('/api/leads/:id', requireAuth, async (req: any, res) => {
     try {
       const leadData = req.body;
       const lead = await storage.updateLead(parseInt(req.params.id), leadData);
@@ -339,7 +339,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put('/api/leads/:id', requireVerifiedEmail, async (req: any, res) => {
+  app.put('/api/leads/:id', requireAuth, async (req: any, res) => {
     try {
       const leadData = req.body;
       const lead = await storage.updateLead(parseInt(req.params.id), leadData);
@@ -351,7 +351,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Bulk lead upload
-  app.post('/api/leads/bulk-upload', requireVerifiedEmail, async (req: any, res) => {
+  app.post('/api/leads/bulk-upload', requireAuth, async (req: any, res) => {
     const upload = multer({ dest: 'uploads/' });
     
     upload.single('file')(req, res, async (err: any) => {
