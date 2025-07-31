@@ -1,5 +1,4 @@
-const { spawn } = require('child_process');
-const readline = require('readline');
+import { spawn } from 'child_process';
 
 const child = spawn('npx', ['drizzle-kit', 'push'], {
   stdio: ['pipe', 'inherit', 'inherit']
