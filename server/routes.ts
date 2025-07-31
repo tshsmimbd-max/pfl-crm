@@ -141,7 +141,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
 
   // User management routes (Admin only)
-  app.get('/api/users', requireVerifiedEmail, async (req: any, res) => {
+  app.get('/api/users', requireAuth, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.id);
       if (user?.role !== 'super_admin') {
