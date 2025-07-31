@@ -155,7 +155,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch('/api/users/:id/role', requireVerifiedEmail, async (req: any, res) => {
+  app.patch('/api/users/:id/role', requireAuth, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.id);
       if (user?.role !== 'super_admin') {
@@ -189,7 +189,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/users', requireVerifiedEmail, async (req: any, res) => {
+  app.post('/api/users', requireAuth, async (req: any, res) => {
     try {
       const currentUser = await storage.getUser(req.user.id);
       
@@ -434,7 +434,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
 
-  app.delete('/api/leads/:id', requireVerifiedEmail, async (req: any, res) => {
+  app.delete('/api/leads/:id', requireAuth, async (req: any, res) => {
     try {
       await storage.deleteLead(parseInt(req.params.id));
       res.json({ message: "Lead deleted successfully" });
@@ -445,7 +445,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Interaction routes
-  app.get('/api/leads/:id/interactions', requireVerifiedEmail, async (req: any, res) => {
+  app.get('/api/leads/:id/interactions', requireAuth, async (req: any, res) => {
     try {
       const interactions = await storage.getInteractions(parseInt(req.params.id));
       res.json(interactions);
@@ -455,7 +455,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/interactions', requireVerifiedEmail, async (req: any, res) => {
+  app.post('/api/interactions', requireAuth, async (req: any, res) => {
     try {
       const interactionData = insertInteractionSchema.parse({
         ...req.body,
@@ -601,7 +601,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Interaction/Activity routes
-  app.get('/api/interactions/:leadId', requireVerifiedEmail, async (req: any, res) => {
+  app.get('/api/interactions/:leadId', requireAuth, async (req: any, res) => {
     try {
       const leadId = parseInt(req.params.leadId);
       const interactions = await storage.getInteractions(leadId);
@@ -612,7 +612,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/interactions/all', requireVerifiedEmail, async (req: any, res) => {
+  app.get('/api/interactions/all', requireAuth, async (req: any, res) => {
     try {
       const currentUser = await storage.getUser(req.user.id);
       
@@ -654,7 +654,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Activity Reports for Managers and Admins
-  app.get('/api/interactions/team-report', requireVerifiedEmail, async (req: any, res) => {
+  app.get('/api/interactions/team-report', requireAuth, async (req: any, res) => {
     try {
       const currentUser = await storage.getUser(req.user.id);
       
@@ -720,7 +720,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/interactions', requireVerifiedEmail, async (req: any, res) => {
+  app.get('/api/interactions', requireAuth, async (req: any, res) => {
     try {
       const leadId = parseInt(req.query.leadId as string);
       
@@ -780,7 +780,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/interactions/user/:userId', requireVerifiedEmail, async (req: any, res) => {
+  app.get('/api/interactions/user/:userId', requireAuth, async (req: any, res) => {
     try {
       const currentUser = await storage.getUser(req.user.id);
       const userId = req.params.userId;
@@ -806,7 +806,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/interactions', requireVerifiedEmail, async (req: any, res) => {
+  app.post('/api/interactions', requireAuth, async (req: any, res) => {
     try {
       const interactionData = insertInteractionSchema.parse({
         ...req.body,
@@ -821,7 +821,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch('/api/interactions/:id', requireVerifiedEmail, async (req: any, res) => {
+  app.patch('/api/interactions/:id', requireAuth, async (req: any, res) => {
     try {
       const id = parseInt(req.params.id);
       const interaction = await storage.updateInteraction(id, req.body);
@@ -833,7 +833,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Customer routes
-  app.get('/api/customers', requireVerifiedEmail, async (req: any, res) => {
+  app.get('/api/customers', requireAuth, async (req: any, res) => {
     try {
       const currentUser = await storage.getUser(req.user.id);
       let customers = await storage.getCustomers();
@@ -856,7 +856,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/customers', requireVerifiedEmail, async (req: any, res) => {
+  app.post('/api/customers', requireAuth, async (req: any, res) => {
     try {
       const customerData = insertCustomerSchema.parse({
         ...req.body,
@@ -873,7 +873,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Bulk customer upload route
-  app.post('/api/customers/bulk-upload', requireVerifiedEmail, upload.single('customers'), async (req: any, res) => {
+  app.post('/api/customers/bulk-upload', requireAuth, upload.single('customers'), async (req: any, res) => {
     try {
       if (!req.file) {
         return res.status(400).json({ message: "No file uploaded" });
@@ -933,7 +933,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/customers/convert/:leadId', requireVerifiedEmail, async (req: any, res) => {
+  app.post('/api/customers/convert/:leadId', requireAuth, async (req: any, res) => {
     try {
       const leadId = parseInt(req.params.leadId);
       const lead = await storage.getLead(leadId);
@@ -969,7 +969,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Daily Revenue routes
-  app.get('/api/daily-revenue', requireVerifiedEmail, async (req: any, res) => {
+  app.get('/api/daily-revenue', requireAuth, async (req: any, res) => {
     try {
       const { startDate, endDate, userId } = req.query;
       const currentUser = await storage.getUser(req.user.id);
@@ -1000,7 +1000,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/daily-revenue', requireVerifiedEmail, async (req: any, res) => {
+  app.post('/api/daily-revenue', requireAuth, async (req: any, res) => {
     try {
       const revenueData = {
         date: new Date(req.body.date),
@@ -1020,7 +1020,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put('/api/daily-revenue/:id', requireVerifiedEmail, async (req: any, res) => {
+  app.put('/api/daily-revenue/:id', requireAuth, async (req: any, res) => {
     try {
       const id = parseInt(req.params.id);
       const currentUser = await storage.getUser(req.user.id);
@@ -1055,7 +1055,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete('/api/daily-revenue/:id', requireVerifiedEmail, async (req: any, res) => {
+  app.delete('/api/daily-revenue/:id', requireAuth, async (req: any, res) => {
     try {
       const id = parseInt(req.params.id);
       const currentUser = await storage.getUser(req.user.id);
