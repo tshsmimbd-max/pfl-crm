@@ -98,6 +98,15 @@ export const customers = pgTable("customers", {
   assignedTo: varchar("assigned_to").references(() => users.id),
   convertedBy: varchar("converted_by").references(() => users.id),
   convertedAt: timestamp("converted_at").defaultNow(),
+  // Enhanced customer fields based on lead fields
+  leadSource: varchar("lead_source"),
+  packageSize: varchar("package_size"),
+  preferredPickTime: timestamp("preferred_pick_time"),
+  pickupAddress: text("pickup_address"),
+  website: text("website"),
+  facebookPageUrl: text("facebook_page_url"),
+  customerType: varchar("customer_type").default("new"), // new, returning
+  notes: text("notes"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -285,8 +294,26 @@ export const insertCustomerSchema = createInsertSchema(customers).omit({
   email: z.string().email("Please enter a valid email address"),
   phone: z.string().optional(),
   company: z.string().min(2, "Company name must be at least 2 characters"),
-  industry: z.string().optional(),
-  address: z.string().optional(),
+  totalValue: z.union([
+    z.string().min(1, "Value is required").transform(val => {
+      const num = parseInt(val);
+      if (isNaN(num) || num < 0) throw new Error("Value must be a positive number");
+      return num;
+    }),
+    z.number().min(0, "Value must be a positive number")
+  ]),
+  // Enhanced customer fields
+  leadSource: z.enum(["Social Media", "Referral", "Ads", "Others"]).default("Others"),
+  packageSize: z.string().optional(),
+  preferredPickTime: z.union([
+    z.date(),
+    z.string().transform(val => val ? new Date(val) : null)
+  ]).optional().nullable(),
+  pickupAddress: z.string().optional(),
+  website: z.string().url("Please enter a valid URL").optional().or(z.literal("")),
+  facebookPageUrl: z.string().url("Please enter a valid Facebook URL").optional().or(z.literal("")),
+  customerType: z.enum(["new", "returning"]).default("new"),
+  notes: z.string().optional(),
 });
 
 export const insertDailyRevenueSchema = createInsertSchema(dailyRevenue).omit({

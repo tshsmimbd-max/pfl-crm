@@ -950,16 +950,25 @@ class MemoryStorage implements IStorage {
       throw new Error('Lead not found');
     }
 
-    // Create customer from lead data
+    // Create customer from lead data with enhanced fields
     const customerData: InsertCustomer = {
-      name: lead.name,
+      contactName: lead.contactName,
       email: lead.email,
       phone: lead.phone,
       company: lead.company,
+      totalValue: lead.value || 0,
       assignedTo: lead.assignedTo,
-      convertedFromLeadId: leadId,
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      convertedBy: userId,
+      originalLeadId: leadId,
+      // Enhanced fields from lead
+      leadSource: lead.leadSource,
+      packageSize: lead.packageSize,
+      preferredPickTime: lead.preferredPickTime,
+      pickupAddress: lead.pickupAddress,
+      website: lead.website,
+      facebookPageUrl: lead.facebookPageUrl,
+      customerType: lead.customerType,
+      notes: lead.notes,
     };
 
     const customer = await this.createCustomer(customerData);

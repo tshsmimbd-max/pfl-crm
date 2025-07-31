@@ -17,6 +17,7 @@ import {
 import { format } from "date-fns";
 import DailyRevenueDialog from "./DailyRevenueDialog";
 import CreateCustomerDialog from "./CreateCustomerDialog";
+import BulkCustomerUpload from "./BulkCustomerUpload";
 
 export default function CustomerManagement() {
   const [showRevenueDialog, setShowRevenueDialog] = useState(false);
@@ -82,6 +83,7 @@ export default function CustomerManagement() {
             <Plus className="h-4 w-4 mr-2" />
             Add Customer
           </Button>
+          <BulkCustomerUpload />
           <Button 
             onClick={() => setShowRevenueDialog(true)}
             className="bg-green-600 hover:bg-green-700"

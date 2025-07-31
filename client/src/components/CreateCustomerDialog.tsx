@@ -5,6 +5,8 @@ import { useMutation } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { insertCustomerSchema, type InsertCustomer } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
@@ -20,7 +22,15 @@ type CustomerFormData = {
   email: string;
   phone?: string;
   company: string;
-  totalValue?: number;
+  totalValue: number;
+  leadSource?: string;
+  packageSize?: string;
+  preferredPickTime?: string;
+  pickupAddress?: string;
+  website?: string;
+  facebookPageUrl?: string;
+  customerType?: string;
+  notes?: string;
 };
 
 export default function CreateCustomerDialog({ 
@@ -30,12 +40,21 @@ export default function CreateCustomerDialog({
   const { toast } = useToast();
   
   const form = useForm<CustomerFormData>({
+    resolver: zodResolver(insertCustomerSchema),
     defaultValues: {
       contactName: "",
       email: "",
       phone: "",
       company: "",
       totalValue: 0,
+      leadSource: "Others",
+      packageSize: "",
+      preferredPickTime: "",
+      pickupAddress: "",
+      website: "",
+      facebookPageUrl: "",
+      customerType: "new",
+      notes: "",
     },
   });
 
@@ -147,6 +166,143 @@ export default function CreateCustomerDialog({
                       {...field}
                       onChange={e => field.onChange(Number(e.target.value))}
                     />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {/* Enhanced Customer Fields */}
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="leadSource"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Lead Source</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select lead source" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="Social Media">Social Media</SelectItem>
+                        <SelectItem value="Referral">Referral</SelectItem>
+                        <SelectItem value="Ads">Ads</SelectItem>
+                        <SelectItem value="Others">Others</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="packageSize"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Package Size</FormLabel>
+                    <FormControl>
+                      <Input placeholder="e.g., Small, Medium, Large" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="customerType"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Customer Type</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select customer type" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="new">New Customer</SelectItem>
+                        <SelectItem value="returning">Returning Customer</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="preferredPickTime"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Preferred Pick Time</FormLabel>
+                    <FormControl>
+                      <Input type="datetime-local" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            <FormField
+              control={form.control}
+              name="pickupAddress"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Pickup Address</FormLabel>
+                  <FormControl>
+                    <Textarea placeholder="Enter pickup address..." {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="website"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Website</FormLabel>
+                    <FormControl>
+                      <Input placeholder="https://company.com" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="facebookPageUrl"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Facebook Page</FormLabel>
+                    <FormControl>
+                      <Input placeholder="https://facebook.com/company" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            <FormField
+              control={form.control}
+              name="notes"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Notes</FormLabel>
+                  <FormControl>
+                    <Textarea placeholder="Any additional notes..." {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

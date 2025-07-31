@@ -12,6 +12,9 @@ import multer from "multer";
 import fs from "fs";
 import csv from "csv-parser";
 
+// Configure multer for file uploads
+const upload = multer({ storage: multer.memoryStorage() });
+
 export async function registerRoutes(app: Express): Promise<Server> {
   setupSimpleAuth(app);
 
@@ -794,7 +797,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const customerData = insertCustomerSchema.parse({
         ...req.body,
-        convertedAt: new Date(),
+        convertedBy: req.user.id,
         assignedTo: req.user.id,
       });
       
@@ -803,6 +806,59 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error creating customer:", error);
       res.status(500).json({ message: "Failed to create customer" });
+    }
+  });
+
+  // Bulk customer upload route
+  app.post('/api/customers/bulk-upload', requireVerifiedEmail, upload.single('customers'), async (req: any, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ message: "No file uploaded" });
+      }
+
+      const csvContent = req.file.buffer.toString('utf-8');
+      const customers = await csvParser(csvContent);
+      
+      let processed = 0;
+      let failed = 0;
+      const errors: string[] = [];
+
+      for (let i = 0; i < customers.length; i++) {
+        try {
+          const row = customers[i];
+          
+          // Enhanced customer data parsing with all fields
+          const customerData = insertCustomerSchema.parse({
+            contactName: row.contactName?.trim(),
+            email: row.email?.trim(),
+            phone: row.phone?.trim() || null,
+            company: row.company?.trim(),
+            totalValue: row.totalValue ? parseInt(row.totalValue.toString()) : 0,
+            assignedTo: req.user.id,
+            convertedBy: req.user.id,
+            // Enhanced fields
+            leadSource: row.leadSource?.trim() || "Others",
+            packageSize: row.packageSize?.trim() || null,
+            preferredPickTime: row.preferredPickTime ? new Date(row.preferredPickTime) : null,
+            pickupAddress: row.pickupAddress?.trim() || null,
+            website: row.website?.trim() || null,
+            facebookPageUrl: row.facebookPageUrl?.trim() || null,
+            customerType: row.customerType?.trim() || "new",
+            notes: row.notes?.trim() || null,
+          });
+
+          await storage.createCustomer(customerData);
+          processed++;
+        } catch (error: any) {
+          failed++;
+          errors.push(`Row ${i + 2}: ${error.message}`);
+        }
+      }
+
+      res.json({ processed, failed, errors });
+    } catch (error) {
+      console.error("Error in bulk customer upload:", error);
+      res.status(500).json({ message: "Failed to process bulk upload" });
     }
   });
 
