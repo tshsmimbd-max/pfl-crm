@@ -311,7 +311,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         company: validation.company,
         stage: validation.stage,
         phone: validation.phone,
-        assignedTo: finalAssignedTo
+        assignedTo: finalAssignedTo,
+        leadSource: validation.leadSource || "Others",
+        customerType: validation.customerType || "new",
+        packageSize: validation.packageSize,
+        preferredPickTime: validation.preferredPickTime,
+        pickupAddress: validation.pickupAddress,
+        website: validation.website,
+        facebookPageUrl: validation.facebookPageUrl,
+        notes: validation.notes
       });
       res.status(201).json(lead);
     } catch (error) {
@@ -825,8 +833,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "No file uploaded" });
       }
 
-      const csvContent = req.file.buffer.toString('utf-8');
-      const customers = await csvParser(csvContent);
+      const customers: any[] = [];
+      
+      // Parse CSV file using promise
+      await new Promise((resolve, reject) => {
+        fs.createReadStream(req.file.path)
+          .pipe(csv())
+          .on('data', (data) => customers.push(data))
+          .on('end', resolve)
+          .on('error', reject);
+      });
       
       let processed = 0;
       let failed = 0;
