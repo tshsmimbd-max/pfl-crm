@@ -13,7 +13,16 @@ import fs from "fs";
 import csv from "csv-parser";
 
 // Configure multer for file uploads
-const upload = multer({ storage: multer.memoryStorage() });
+const upload = multer({ 
+  storage: multer.diskStorage({
+    destination: (req, file, cb) => {
+      cb(null, 'uploads/');
+    },
+    filename: (req, file, cb) => {
+      cb(null, `${Date.now()}-${file.originalname}`);
+    }
+  })
+});
 
 export async function registerRoutes(app: Express): Promise<Server> {
   setupSimpleAuth(app);

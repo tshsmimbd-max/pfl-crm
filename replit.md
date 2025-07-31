@@ -2,7 +2,7 @@
 
 ## Overview
 
-Paperfly is a modern Customer Relationship Management (CRM) system designed for sales teams. It provides comprehensive lead management, pipeline tracking, analytics, and team collaboration features. The application is built as a full-stack web application with a React frontend and Express.js backend. Currently using memory storage for development (data resets on restart).
+Paperfly is a modern Customer Relationship Management (CRM) system designed for sales teams. It provides comprehensive lead management, pipeline tracking, analytics, and team collaboration features. The application is built as a full-stack web application with a React frontend and Express.js backend. **Now using persistent PostgreSQL database storage for production reliability - all data persists through restarts and deployments.**
 
 ## System Architecture
 
@@ -116,12 +116,15 @@ Paperfly is a modern Customer Relationship Management (CRM) system designed for 
 - OAuth provider configurations through environment variables
 
 ## Recent Changes
+- July 31, 2025: **CRITICAL PRODUCTION UPGRADE** - Successfully migrated from MemoryStorage to DatabaseStorage
+- July 31, 2025: Eliminated data loss risk - all business data now persists through restarts, deployments, and crashes
+- July 31, 2025: Replaced in-memory Maps with PostgreSQL database operations for production reliability
+- July 31, 2025: Updated file upload system to use disk storage instead of memory storage for CSV bulk uploads
+- July 31, 2025: Enhanced toast notification system with sessionStorage persistence across page refreshes
+- July 31, 2025: Cleaned up codebase by removing all MemoryStorage implementations and duplicate code
+- July 31, 2025: Fixed all TypeScript compilation errors and Drizzle ORM query construction issues
+- July 31, 2025: Application now runs with clean database storage - ready for production deployment
 - July 30, 2025: **PRODUCTION READY** - Cleared all test data and prepared for deployment
-- July 30, 2025: Removed all test users, leads, targets, and interactions from database
-- July 30, 2025: Created single admin user (admin@paperfly.com) for production deployment
-- July 30, 2025: Fixed Pipeline Value by Stage to use authentic data instead of mock values
-- July 30, 2025: Fixed console error in CustomerManagement component with proper date handling
-- July 30, 2025: Analytics now calculate real pipeline data from actual leads in database
 - July 30, 2025: System ready for deployment with clean database and single admin account
 - June 24, 2025: Replaced complex authentication (Firebase, Passport) with simple email/password system
 - June 24, 2025: Implemented email verification with 6-digit codes

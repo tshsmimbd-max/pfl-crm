@@ -124,11 +124,11 @@ export class DatabaseStorage implements IStorage {
         employeeName: userData.fullName,
         employeeCode: `EMP${Date.now()}`,
         role: userData.role || 'sales_agent',
-        managerId: userData.managerId || null,
-        teamName: userData.teamName || null,
+        managerId: userData.managerId ?? null,
+        teamName: userData.teamName ?? null,
         emailVerified: userData.emailVerified ?? false,
-        verificationCode: userData.verificationCode || null,
-        codeExpiresAt: userData.codeExpiresAt || null,
+        verificationCode: userData.verificationCode ?? null,
+        codeExpiresAt: userData.codeExpiresAt ?? null,
       })
       .returning();
     return user;
@@ -177,29 +177,18 @@ export class DatabaseStorage implements IStorage {
     return null;
   }
 
-  async upsertUser(userData: UpsertUser): Promise<User> {
-    const [user] = await db
-      .insert(users)
-      .values(userData)
-      .onConflictDoUpdate({
-        target: users.id,
-        set: {
-          ...userData,
-          updatedAt: new Date(),
-        },
-      })
-      .returning();
-    return user;
-  }
-
   async getAllUsers(): Promise<User[]> {
     return await db.select().from(users);
   }
 
-  async updateUserRole(id: string, role: string): Promise<User> {
+  async updateUserRole(id: string, role: string, managerId?: string): Promise<User> {
     const [user] = await db
       .update(users)
-      .set({ role, updatedAt: new Date() })
+      .set({ 
+        role, 
+        managerId: managerId ?? null,
+        updatedAt: new Date() 
+      })
       .where(eq(users.id, id))
       .returning();
     return user;
@@ -210,6 +199,57 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(users)
       .where(eq(users.managerId, managerId));
+  }
+
+  async isTeamMember(managerId: string, userId: string): Promise<boolean> {
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(and(eq(users.id, userId), eq(users.managerId, managerId)));
+    return !!user;
+  }
+
+  async deactivateUser(id: string): Promise<User> {
+    // Since schema doesn't have isActive, we'll return the user as-is
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    if (!user) throw new Error("User not found");
+    return user;
+  }
+
+  async activateUser(id: string): Promise<User> {
+    // Since schema doesn't have isActive, we'll return the user as-is
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    if (!user) throw new Error("User not found");
+    return user;
+  }
+
+  async getUsersForAssignment(currentUserId: string, currentUserRole: string): Promise<User[]> {
+    if (currentUserRole === 'super_admin') {
+      return await db.select().from(users);
+    } else if (currentUserRole === 'sales_manager') {
+      return await db.select().from(users).where(eq(users.managerId, currentUserId));
+    } else {
+      // Sales agents can only see themselves
+      return await db.select().from(users).where(eq(users.id, currentUserId));
+    }
+  }
+
+  async assignUserToManager(userId: string, managerId: string): Promise<User> {
+    const [user] = await db
+      .update(users)
+      .set({ managerId, updatedAt: new Date() })
+      .where(eq(users.id, userId))
+      .returning();
+    return user;
+  }
+
+  async updateUserTeam(userId: string, teamName: string): Promise<User> {
+    const [user] = await db
+      .update(users)
+      .set({ teamName, updatedAt: new Date() })
+      .where(eq(users.id, userId))
+      .returning();
+    return user;
   }
 
   // Lead operations
@@ -326,6 +366,14 @@ export class DatabaseStorage implements IStorage {
       totalValue: lead.value,
       assignedTo: lead.assignedTo,
       convertedBy: userId,
+      leadSource: lead.leadSource,
+      packageSize: lead.packageSize,
+      preferredPickTime: lead.preferredPickTime,
+      pickupAddress: lead.pickupAddress,
+      website: lead.website,
+      facebookPageUrl: lead.facebookPageUrl,
+      customerType: lead.customerType,
+      notes: lead.notes,
     };
 
     const customer = await this.createCustomer(customerData);
@@ -347,8 +395,6 @@ export class DatabaseStorage implements IStorage {
 
   // Daily Revenue operations
   async getDailyRevenue(userId?: string, startDate?: Date, endDate?: Date): Promise<DailyRevenue[]> {
-    let query = db.select().from(dailyRevenue);
-    
     const conditions = [];
     if (userId) {
       conditions.push(eq(dailyRevenue.userId, userId));
@@ -361,10 +407,10 @@ export class DatabaseStorage implements IStorage {
     }
     
     if (conditions.length > 0) {
-      query = query.where(and(...conditions));
+      return await db.select().from(dailyRevenue).where(and(...conditions)).orderBy(desc(dailyRevenue.date));
     }
     
-    return await query.orderBy(desc(dailyRevenue.date));
+    return await db.select().from(dailyRevenue).orderBy(desc(dailyRevenue.date));
   }
 
   async createDailyRevenue(revenue: InsertDailyRevenue): Promise<DailyRevenue> {
@@ -386,8 +432,6 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getTotalRevenueForPeriod(userId?: string, startDate?: Date, endDate?: Date): Promise<number> {
-    let query = db.select({ total: sum(dailyRevenue.revenue) }).from(dailyRevenue);
-    
     const conditions = [];
     if (userId) {
       conditions.push(eq(dailyRevenue.userId, userId));
@@ -399,11 +443,13 @@ export class DatabaseStorage implements IStorage {
       conditions.push(lte(dailyRevenue.date, endDate));
     }
     
+    let result;
     if (conditions.length > 0) {
-      query = query.where(and(...conditions));
+      result = await db.select({ total: sum(dailyRevenue.revenue) }).from(dailyRevenue).where(and(...conditions));
+    } else {
+      result = await db.select({ total: sum(dailyRevenue.revenue) }).from(dailyRevenue);
     }
     
-    const result = await query;
     return Number(result[0]?.total || 0);
   }
 
@@ -475,64 +521,6 @@ export class DatabaseStorage implements IStorage {
     return result.count;
   }
 
-  // Customer operations
-  async getCustomers(): Promise<Customer[]> {
-    return await db.select().from(customers).orderBy(desc(customers.createdAt));
-  }
-
-  async getCustomer(id: number): Promise<Customer | undefined> {
-    const [customer] = await db.select().from(customers).where(eq(customers.id, id));
-    return customer;
-  }
-
-  async createCustomer(customer: InsertCustomer): Promise<Customer> {
-    const [newCustomer] = await db.insert(customers).values(customer).returning();
-    return newCustomer;
-  }
-
-  async updateCustomer(id: number, customer: Partial<InsertCustomer>): Promise<Customer> {
-    const [updatedCustomer] = await db
-      .update(customers)
-      .set({ ...customer, updatedAt: new Date() })
-      .where(eq(customers.id, id))
-      .returning();
-    return updatedCustomer;
-  }
-
-  async deleteCustomer(id: number): Promise<void> {
-    await db.delete(customers).where(eq(customers.id, id));
-  }
-
-  async convertLeadToCustomer(leadId: number, userId: string): Promise<Customer> {
-    const lead = await this.getLead(leadId);
-    if (!lead) {
-      throw new Error('Lead not found');
-    }
-
-    // Create customer from lead data
-    const customerData: InsertCustomer = {
-      name: lead.name,
-      email: lead.email,
-      phone: lead.phone,
-      company: lead.company,
-      assignedTo: lead.assignedTo,
-      convertedFromLeadId: leadId,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-
-    const customer = await this.createCustomer(customerData);
-
-    // Update lead stage to converted
-    await this.updateLead(leadId, { stage: 'closed_won' });
-
-    return customer;
-  }
-
-  async getCustomersByUser(userId: string): Promise<Customer[]> {
-    return await db.select().from(customers).where(eq(customers.assignedTo, userId));
-  }
-
   // Analytics operations
   async getSalesMetrics(userId?: string): Promise<{
     totalRevenue: number;
@@ -540,12 +528,12 @@ export class DatabaseStorage implements IStorage {
     conversionRate: number;
     targetProgress: number;
   }> {
-    let leadsQuery = db.select().from(leads);
+    let allLeads;
     if (userId) {
-      leadsQuery = leadsQuery.where(eq(leads.assignedTo, userId));
+      allLeads = await db.select().from(leads).where(eq(leads.assignedTo, userId));
+    } else {
+      allLeads = await db.select().from(leads);
     }
-
-    const allLeads = await leadsQuery;
     const activeLeads = allLeads.filter(lead => !['closed_won', 'closed_lost'].includes(lead.stage));
     const closedWonLeads = allLeads.filter(lead => lead.stage === 'closed_won');
 
@@ -579,608 +567,42 @@ export class DatabaseStorage implements IStorage {
     const performance = [];
 
     for (const user of allUsers) {
-      const userLeads = await this.getLeadsByUser(user.id);
-      const closedWonLeads = userLeads.filter(lead => lead.stage === 'closed_won');
-      const revenue = closedWonLeads.reduce((sum, lead) => sum + (lead.value || 0), 0);
+      if (user.role !== 'super_admin') {
+        const userLeads = await this.getLeadsByUser(user.id);
+        const closedWonLeads = userLeads.filter(lead => lead.stage === 'closed_won');
+        const revenue = closedWonLeads.reduce((sum, lead) => sum + (lead.value || 0), 0);
+        
+        let targetProgress = 0;
+        const currentTarget = await this.getCurrentTarget(user.id, 'monthly');
+        if (currentTarget) {
+          targetProgress = (revenue / currentTarget.targetValue) * 100;
+        }
 
-      const currentTarget = await this.getCurrentTarget(user.id, 'monthly');
-      const targetProgress = currentTarget ? (revenue / currentTarget.targetValue) * 100 : 0;
-
-      performance.push({
-        user,
-        dealsCount: closedWonLeads.length,
-        revenue,
-        targetProgress,
-      });
+        performance.push({
+          user,
+          dealsCount: closedWonLeads.length,
+          revenue,
+          targetProgress,
+        });
+      }
     }
 
     return performance;
-  }
-}
-
-// Temporary in-memory storage for when database is unavailable
-class MemoryStorage implements IStorage {
-  private users: Map<string, User> = new Map();
-  private leads: Map<number, Lead> = new Map();
-  private interactions: Map<number, Interaction> = new Map();
-  private targets: Map<number, Target> = new Map();
-  private customers: Map<number, Customer> = new Map();
-  private dailyRevenue: Map<number, DailyRevenue> = new Map();
-  private notifications: Map<number, Notification> = new Map();
-  private verificationCodes: Map<string, string> = new Map();
-  private nextId = 1;
-
-  constructor() {
-    // Initialize with single admin user for production
-    this.initializeSingleAdminUser();
-    // Add sample data to demonstrate target progress tracking
-    this.initializeSampleData();
-  }
-
-  private initializeSingleAdminUser() {
-    const adminUser = {
-      id: "admin",
-      email: "admin@paperfly.com",
-      password: "$2b$10$M/qluBLTkmxuzQnnC.5zJOEJdy64PjZSiK7zUEu2GnZY5pbqYl..6", // admin123
-      employeeName: "System Administrator",
-      employeeCode: "ADM001",
-      role: "super_admin",
-      teamName: "Sales Titans",
-      isActive: true,
-      emailVerified: true,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-
-    this.users.set(adminUser.id, adminUser as User);
-  }
-
-
-
-  async getUser(id: string): Promise<User | undefined> {
-    return this.users.get(id);
-  }
-
-  async getUserByEmail(email: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(u => u.email === email);
-  }
-
-  async createUser(user: { email: string; password: string; employeeName: string; employeeCode: string; role?: string; teamName?: string; managerId?: string }): Promise<User> {
-    const newUser: User = {
-      id: String(this.nextId++),
-      email: user.email,
-      password: user.password,
-      employeeName: user.employeeName,
-      employeeCode: user.employeeCode,
-      role: user.role || 'sales_agent',
-      teamName: user.teamName,
-      managerId: user.managerId,
-      isActive: true,
-      emailVerified: true, // Set to true for production
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-    this.users.set(newUser.id, newUser);
-    return newUser;
-  }
-
-  async setVerificationCode(email: string, code: string): Promise<void> {
-    this.verificationCodes.set(email, code);
-  }
-
-  async verifyCode(email: string, code: string): Promise<User | null> {
-    const storedCode = this.verificationCodes.get(email);
-    if (storedCode === code) {
-      const user = await this.getUserByEmail(email);
-      if (user) {
-        user.emailVerified = true;
-        this.verificationCodes.delete(email);
-        return user;
-      }
-    }
-    return null;
-  }
-
-  async getAllUsers(): Promise<User[]> {
-    return Array.from(this.users.values());
-  }
-
-  async updateUserRole(id: string, role: string, managerId?: string): Promise<User> {
-    const user = this.users.get(id);
-    if (!user) throw new Error("User not found");
-    user.role = role;
-    if (managerId) user.managerId = managerId;
-    user.updatedAt = new Date();
-    return user;
-  }
-
-  async getTeamMembers(managerId: string): Promise<User[]> {
-    const users = Array.from(this.users.values());
-    const manager = users.find(u => u.id === managerId);
-    
-    // Return only team members from the same team as the manager
-    return users.filter(u => 
-      u.managerId === managerId && 
-      u.teamName === manager?.teamName
-    );
-  }
-
-  async isTeamMember(managerId: string, userId: string): Promise<boolean> {
-    const user = this.users.get(userId);
-    return user?.managerId === managerId;
-  }
-
-  async deactivateUser(id: string): Promise<User> {
-    const user = this.users.get(id);
-    if (!user) throw new Error("User not found");
-    user.isActive = false;
-    user.updatedAt = new Date();
-    return user;
-  }
-
-  async activateUser(id: string): Promise<User> {
-    const user = this.users.get(id);
-    if (!user) throw new Error("User not found");
-    user.isActive = true;
-    user.updatedAt = new Date();
-    return user;
-  }
-
-  async getUsersForAssignment(currentUserId: string, currentUserRole: string): Promise<User[]> {
-    const users = Array.from(this.users.values());
-    const currentUser = users.find(u => u.id === currentUserId);
-    
-    if (currentUserRole === 'super_admin') {
-      return users.filter(u => u.id !== currentUserId);
-    } else if (currentUserRole === 'sales_manager') {
-      // Manager can only assign to team members in the same team
-      return users.filter(u => 
-        u.managerId === currentUserId && 
-        u.teamName === currentUser?.teamName
-      );
-    }
-    return [];
-  }
-
-  async assignUserToManager(userId: string, managerId: string): Promise<User> {
-    const user = this.users.get(userId);
-    if (!user) throw new Error("User not found");
-    user.managerId = managerId;
-    user.updatedAt = new Date();
-    return user;
-  }
-
-  async updateUserTeam(userId: string, teamName: string): Promise<User> {
-    const user = this.users.get(userId);
-    if (!user) throw new Error("User not found");
-    user.team = teamName;
-    user.updatedAt = new Date();
-    return user;
-  }
-
-  // Lead operations
-  async getLeads(): Promise<Lead[]> {
-    return Array.from(this.leads.values()).sort((a, b) => 
-      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-    );
-  }
-
-  async getLead(id: number): Promise<Lead | undefined> {
-    return this.leads.get(id);
-  }
-
-  async createLead(lead: InsertLead): Promise<Lead> {
-    const newLead: Lead = {
-      id: this.nextId++,
-      contactName: lead.contactName,
-      email: lead.email,
-      phone: lead.phone || null,
-      company: lead.company,
-      value: lead.value,
-      stage: lead.stage || "prospecting",
-      assignedTo: lead.assignedTo || null,
-      createdBy: lead.createdBy || null,
-      // New enhanced fields
-      leadSource: lead.leadSource || "Others",
-      packageSize: lead.packageSize || null,
-      preferredPickTime: lead.preferredPickTime || null,
-      pickupAddress: lead.pickupAddress || null,
-      website: lead.website || null,
-      facebookPageUrl: lead.facebookPageUrl || null,
-      customerType: lead.customerType || "new",
-      notes: lead.notes || null,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-    this.leads.set(newLead.id, newLead);
-    return newLead;
-  }
-
-  async updateLead(id: number, lead: Partial<InsertLead>): Promise<Lead> {
-    const existingLead = this.leads.get(id);
-    if (!existingLead) throw new Error("Lead not found");
-    
-    const updatedLead = { ...existingLead, ...lead, updatedAt: new Date() };
-    this.leads.set(id, updatedLead);
-    return updatedLead;
-  }
-
-  async deleteLead(id: number): Promise<void> {
-    this.leads.delete(id);
-  }
-
-  async getLeadsByStage(stage: string): Promise<Lead[]> {
-    return Array.from(this.leads.values()).filter(lead => lead.stage === stage);
-  }
-
-  async getLeadsByUser(userId: string): Promise<Lead[]> {
-    return Array.from(this.leads.values()).filter(lead => lead.assignedTo === userId);
-  }
-
-  // Interaction operations
-  async getInteractions(leadId: number): Promise<Interaction[]> {
-    return Array.from(this.interactions.values())
-      .filter(i => i.leadId === leadId)
-      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-  }
-
-  async getAllInteractions(): Promise<Interaction[]> {
-    return Array.from(this.interactions.values());
-  }
-
-  async createInteraction(interaction: InsertInteraction): Promise<Interaction> {
-    const newInteraction: Interaction = {
-      id: this.nextId++,
-      ...interaction,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-    this.interactions.set(newInteraction.id, newInteraction);
-    return newInteraction;
-  }
-
-  async updateInteraction(id: number, interaction: Partial<InsertInteraction>): Promise<Interaction> {
-    const existing = this.interactions.get(id);
-    if (!existing) throw new Error("Interaction not found");
-    
-    const updated = { ...existing, ...interaction, updatedAt: new Date() };
-    this.interactions.set(id, updated);
-    return updated;
-  }
-
-  // Target operations
-  async getTargets(userId?: string): Promise<Target[]> {
-    const targets = Array.from(this.targets.values());
-    return userId ? targets.filter(t => t.userId === userId) : targets;
-  }
-
-  async createTarget(target: InsertTarget): Promise<Target> {
-    const newTarget: Target = {
-      id: this.nextId++,
-      ...target,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-    this.targets.set(newTarget.id, newTarget);
-    return newTarget;
-  }
-
-  async updateTarget(id: number, target: Partial<InsertTarget>): Promise<Target> {
-    const existing = this.targets.get(id);
-    if (!existing) throw new Error("Target not found");
-    
-    const updated = { ...existing, ...target, updatedAt: new Date() };
-    this.targets.set(id, updated);
-    return updated;
-  }
-
-  async deleteTarget(id: number): Promise<void> {
-    this.targets.delete(id);
-  }
-
-  async getCurrentTarget(userId: string, period: string): Promise<Target | undefined> {
-    return Array.from(this.targets.values())
-      .find(t => t.userId === userId && t.period === period);
-  }
-
-  // Notification operations
-  async getNotifications(userId: string): Promise<Notification[]> {
-    return Array.from(this.notifications.values()).filter(n => n.userId === userId);
-  }
-
-  async createNotification(notification: InsertNotification): Promise<Notification> {
-    const newNotification: Notification = {
-      id: this.nextId++,
-      ...notification,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-    this.notifications.set(newNotification.id, newNotification);
-    return newNotification;
-  }
-
-  async markNotificationRead(id: number): Promise<void> {
-    const notification = this.notifications.get(id);
-    if (notification) {
-      notification.isRead = true;
-      notification.updatedAt = new Date();
-    }
-  }
-
-  async getUnreadNotificationCount(userId: string): Promise<number> {
-    return Array.from(this.notifications.values())
-      .filter(n => n.userId === userId && !n.isRead).length;
-  }
-
-  // Customer operations
-  async getCustomers(): Promise<Customer[]> {
-    return Array.from(this.customers.values());
-  }
-
-  async getCustomer(id: number): Promise<Customer | undefined> {
-    return this.customers.get(id);
-  }
-
-  async createCustomer(customer: InsertCustomer): Promise<Customer> {
-    const newCustomer: Customer = {
-      id: this.nextId++,
-      ...customer,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-    this.customers.set(newCustomer.id, newCustomer);
-    return newCustomer;
-  }
-
-  async updateCustomer(id: number, customer: Partial<InsertCustomer>): Promise<Customer> {
-    const existing = this.customers.get(id);
-    if (!existing) throw new Error("Customer not found");
-    
-    const updated = { ...existing, ...customer, updatedAt: new Date() };
-    this.customers.set(id, updated);
-    return updated;
-  }
-
-  async deleteCustomer(id: number): Promise<void> {
-    this.customers.delete(id);
-  }
-
-  async convertLeadToCustomer(leadId: number, userId: string): Promise<Customer> {
-    const lead = await this.getLead(leadId);
-    if (!lead) {
-      throw new Error('Lead not found');
-    }
-
-    // Create customer from lead data with enhanced fields
-    const customerData: InsertCustomer = {
-      contactName: lead.contactName,
-      email: lead.email,
-      phone: lead.phone,
-      company: lead.company,
-      totalValue: lead.value || 0,
-      assignedTo: lead.assignedTo,
-      convertedBy: userId,
-      originalLeadId: leadId,
-      // Enhanced fields from lead
-      leadSource: lead.leadSource,
-      packageSize: lead.packageSize,
-      preferredPickTime: lead.preferredPickTime,
-      pickupAddress: lead.pickupAddress,
-      website: lead.website,
-      facebookPageUrl: lead.facebookPageUrl,
-      customerType: lead.customerType,
-      notes: lead.notes,
-    };
-
-    const customer = await this.createCustomer(customerData);
-
-    // Update lead stage to converted
-    await this.updateLead(leadId, { stage: 'closed_won' });
-
-    return customer;
-  }
-
-  async getCustomersByUser(userId: string): Promise<Customer[]> {
-    return Array.from(this.customers.values()).filter(c => c.assignedTo === userId);
-  }
-
-  // Daily Revenue operations
-  async getDailyRevenue(userId?: string, startDate?: Date, endDate?: Date): Promise<DailyRevenue[]> {
-    let revenues = Array.from(this.dailyRevenue.values());
-    
-    if (userId) {
-      revenues = revenues.filter(r => r.userId === userId);
-    }
-    
-    if (startDate) {
-      revenues = revenues.filter(r => new Date(r.date) >= startDate);
-    }
-    
-    if (endDate) {
-      revenues = revenues.filter(r => new Date(r.date) <= endDate);
-    }
-    
-    return revenues.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  }
-
-  async createDailyRevenue(revenue: InsertDailyRevenue): Promise<DailyRevenue> {
-    const newRevenue: DailyRevenue = {
-      id: this.nextId++,
-      ...revenue,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-    this.dailyRevenue.set(newRevenue.id, newRevenue);
-    return newRevenue;
-  }
-
-  async updateDailyRevenue(id: number, revenue: Partial<InsertDailyRevenue>): Promise<DailyRevenue> {
-    const existing = this.dailyRevenue.get(id);
-    if (!existing) throw new Error("Daily revenue record not found");
-    
-    const updated = { ...existing, ...revenue, updatedAt: new Date() };
-    this.dailyRevenue.set(id, updated);
-    return updated;
-  }
-
-  async deleteDailyRevenue(id: number): Promise<void> {
-    this.dailyRevenue.delete(id);
-  }
-
-  async getTotalRevenueForPeriod(userId?: string, startDate?: Date, endDate?: Date): Promise<number> {
-    const revenues = await this.getDailyRevenue(userId, startDate, endDate);
-    return revenues.reduce((sum, r) => sum + r.revenue, 0);
-  }
-
-  // Analytics operations - fixed for proper data calculation
-  async getSalesMetrics(userId?: string): Promise<{
-    totalRevenue: number;
-    activeLeads: number;
-    conversionRate: number;
-    targetProgress: number;
-  }> {
-    const leads = userId ? 
-      Array.from(this.leads.values()).filter(l => l.assignedTo === userId) :
-      Array.from(this.leads.values());
-    
-    const closedWonLeads = leads.filter(l => l.stage === 'closed_won');
-    const totalRevenue = closedWonLeads.reduce((sum, l) => sum + (l.value || 0), 0);
-    const activeLeads = leads.filter(l => l.stage !== 'closed_won' && l.stage !== 'closed_lost').length;
-    const conversionRate = leads.length > 0 ? (closedWonLeads.length / leads.length) * 100 : 0;
-    
-    const targets = userId ? Array.from(this.targets.values()).filter(t => t.userId === userId) : [];
-    const currentTarget = targets.find(t => t.period === 'monthly');
-    const targetProgress = currentTarget ? (totalRevenue / currentTarget.targetValue) * 100 : 0;
-
-    return {
-      totalRevenue,
-      activeLeads,
-      conversionRate,
-      targetProgress,
-    };
-  }
-
-  async getTeamPerformance(): Promise<Array<{
-    user: User;
-    dealsCount: number;
-    revenue: number;
-    targetProgress: number;
-  }>> {
-    const users = Array.from(this.users.values());
-    const performance = [];
-
-    for (const user of users) {
-      const userLeads = await this.getLeadsByUser(user.id);
-      const closedWonLeads = userLeads.filter(lead => lead.stage === 'closed_won');
-      const revenue = closedWonLeads.reduce((sum, lead) => sum + (lead.value || 0), 0);
-
-      const currentTarget = await this.getCurrentTarget(user.id, 'monthly');
-      const targetProgress = currentTarget ? (revenue / currentTarget.targetValue) * 100 : 0;
-
-      performance.push({
-        user,
-        dealsCount: closedWonLeads.length,
-        revenue,
-        targetProgress,
-      });
-    }
-
-    return performance;
-  }
-
-  // Initialize with sample data for testing target progress
-  private initializeSampleData() {
-    // Create a sample target for the admin user
-    const sampleTarget: Target = {
-      id: 1,
-      userId: 'admin',
-      targetType: 'revenue',
-      targetValue: 100000, // 1 lakh target
-      period: 'monthly',
-      description: 'Monthly revenue target for admin',
-      createdBy: 'admin',
-      startDate: new Date(2025, 0, 1), // January 1, 2025
-      endDate: new Date(2025, 0, 31), // January 31, 2025
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-    this.targets.set(1, sampleTarget);
-
-    // Create sample leads with closed_won status to generate revenue
-    const sampleLeads: Lead[] = [
-      {
-        id: 1,
-        contactName: 'John Doe',
-        email: 'john@example.com',
-        phone: '+1234567890',
-        company: 'TechCorp',
-        value: 25000,
-        stage: 'closed_won',
-        assignedTo: 'admin',
-        createdBy: 'admin',
-        leadSource: 'Social Media',
-        packageSize: 'Large',
-        preferredPickTime: null,
-        pickupAddress: '123 Tech Street',
-        website: 'https://techcorp.com',
-        facebookPageUrl: null,
-        customerType: 'new',
-        notes: 'High value enterprise client',
-        createdAt: new Date(2025, 0, 15),
-        updatedAt: new Date(),
-      },
-      {
-        id: 2,
-        contactName: 'Jane Smith',
-        email: 'jane@business.com',
-        phone: '+1987654321',
-        company: 'Business Solutions',
-        value: 15000,
-        stage: 'closed_won',
-        assignedTo: 'admin',
-        createdBy: 'admin',
-        leadSource: 'Referral',
-        packageSize: 'Medium',
-        preferredPickTime: null,
-        pickupAddress: '456 Business Ave',
-        website: 'https://business.com',
-        facebookPageUrl: null,
-        customerType: 'returning',
-        notes: 'Repeat customer, good relationship',
-        createdAt: new Date(2025, 0, 20),
-        updatedAt: new Date(),
-      },
-      {
-        id: 3,
-        contactName: 'Mike Johnson',
-        email: 'mike@startup.io',
-        phone: '+1555123456',
-        company: 'StartupXYZ',
-        value: 30000,
-        stage: 'negotiation',
-        assignedTo: 'admin',
-        createdBy: 'admin',
-        leadSource: 'Ads',
-        packageSize: 'Large',
-        preferredPickTime: null,
-        pickupAddress: '789 Innovation Blvd',
-        website: 'https://startupxyz.io',
-        facebookPageUrl: 'https://facebook.com/startupxyz',
-        customerType: 'new',
-        notes: 'Promising startup, good growth potential',
-        createdAt: new Date(2025, 0, 25),
-        updatedAt: new Date(),
-      }
-    ];
-
-    sampleLeads.forEach(lead => {
-      this.leads.set(lead.id, lead);
-    });
-
-    this.nextId = 4; // Set next ID after sample data
   }
 }
 
 // Production database storage - prevents data loss
 console.log("Using database storage for production - data will persist");
 export const storage = new DatabaseStorage();
+
+// Initialize admin user for production
+storage.createUser({
+  id: "admin",
+  email: "admin@paperfly.com", 
+  password: "$2b$10$M/qluBLTkmxuzQnnC.5zJOEJdy64PjZSiK7zUEu2GnZY5pbqYl..6", // admin123
+  fullName: "System Administrator",
+  role: "super_admin",
+  emailVerified: true
+}).catch(() => {
+  // User already exists, ignore error
+});

@@ -128,10 +128,31 @@ export const reducer = (state: State, action: Action): State => {
 
 const listeners: Array<(state: State) => void> = []
 
-let memoryState: State = { toasts: [] }
+// Use sessionStorage for toast persistence across page refreshes
+const getStoredToasts = (): Toast[] => {
+  if (typeof window === 'undefined') return [];
+  try {
+    const stored = sessionStorage.getItem('paperfly_toasts');
+    return stored ? JSON.parse(stored) : [];
+  } catch {
+    return [];
+  }
+};
+
+const setStoredToasts = (toasts: Toast[]) => {
+  if (typeof window === 'undefined') return;
+  try {
+    sessionStorage.setItem('paperfly_toasts', JSON.stringify(toasts));
+  } catch {
+    // Ignore storage errors
+  }
+};
+
+let memoryState: State = { toasts: getStoredToasts() }
 
 function dispatch(action: Action) {
   memoryState = reducer(memoryState, action)
+  setStoredToasts(memoryState.toasts)
   listeners.forEach((listener) => {
     listener(memoryState)
   })
