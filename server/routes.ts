@@ -470,7 +470,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Target Management with RBAC
-  app.get('/api/targets', requireAuth, requireVerifiedEmail, requirePermission(PERMISSIONS.TARGET_VIEW), async (req: any, res) => {
+  app.get('/api/targets', requireAuth, requirePermission(PERMISSIONS.TARGET_VIEW), async (req: any, res) => {
     try {
       const currentUser = req.user;
       const userId = req.query.userId as string;
@@ -497,7 +497,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/targets', requireVerifiedEmail, async (req: any, res) => {
+  app.post('/api/targets', requireAuth, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.id);
       if (user?.role !== 'super_admin') {
@@ -526,7 +526,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch('/api/targets/:id', requireVerifiedEmail, async (req: any, res) => {
+  app.patch('/api/targets/:id', requireAuth, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.id);
       if (user?.role !== 'super_admin') {
@@ -540,7 +540,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete('/api/targets/:id', requireVerifiedEmail, async (req: any, res) => {
+  app.delete('/api/targets/:id', requireAuth, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.id);
       if (user?.role !== 'super_admin') {
@@ -551,6 +551,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error deleting target:", error);
       res.status(500).json({ message: "Failed to delete target" });
+    }
+  });
+
+  // Target progress endpoint
+  app.get('/api/targets/progress/:userId', requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.params.userId;
+      const currentUser = await storage.getUser(req.user.id);
+      
+      // Check permissions
+      if (currentUser?.role === ROLES.SALES_AGENT && userId !== currentUser.id) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      if (currentUser?.role === ROLES.SALES_MANAGER) {
+        const canView = await canAccessUser(currentUser, userId);
+        if (!canView && userId !== currentUser.id) {
+          return res.status(403).json({ message: "Access denied" });
+        }
+      }
+
+      const targets = await storage.getTargets(userId);
+      const leads = await storage.getLeadsByUser(userId);
+      
+      const progress = targets.map(target => {
+        const closedWonLeads = leads.filter(lead => 
+          lead.stage === 'closed_won' && 
+          new Date(lead.updatedAt || lead.createdAt).getTime() >= new Date(target.startDate).getTime() &&
+          new Date(lead.updatedAt || lead.createdAt).getTime() <= new Date(target.endDate).getTime()
+        );
+        
+        const achieved = closedWonLeads.reduce((sum, lead) => sum + lead.value, 0);
+        const percentage = (achieved / target.targetValue) * 100;
+        
+        return {
+          ...target,
+          achieved,
+          percentage: Math.min(percentage, 100),
+          remaining: Math.max(target.targetValue - achieved, 0)
+        };
+      });
+
+      res.json(progress);
+    } catch (error) {
+      console.error("Error fetching target progress:", error);
+      res.status(500).json({ message: "Failed to fetch target progress" });
     }
   });
 
@@ -1045,7 +1091,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Notification routes - fixed for agent-specific filtering
-  app.get('/api/notifications', requireVerifiedEmail, async (req: any, res) => {
+  app.get('/api/notifications', requireAuth, async (req: any, res) => {
     try {
       const currentUser = await storage.getUser(req.user.id);
       if (!currentUser) {
@@ -1060,7 +1106,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch('/api/notifications/:id/read', requireVerifiedEmail, async (req: any, res) => {
+  app.patch('/api/notifications/:id/read', requireAuth, async (req: any, res) => {
     try {
       await storage.markNotificationRead(parseInt(req.params.id));
       res.json({ message: "Notification marked as read" });
@@ -1070,7 +1116,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/notifications/unread-count', requireVerifiedEmail, async (req: any, res) => {
+  app.get('/api/notifications/unread-count', requireAuth, async (req: any, res) => {
     try {
       const count = await storage.getUnreadNotificationCount(req.user.id);
       res.json({ count });
@@ -1081,7 +1127,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Analytics with RBAC - simplified and working
-  app.get('/api/analytics/metrics', requireVerifiedEmail, async (req: any, res) => {
+  app.get('/api/analytics/metrics', requireAuth, async (req: any, res) => {
     try {
       const currentUser = await storage.getUser(req.user.id);
       const userId = req.query.userId as string;
@@ -1110,7 +1156,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/analytics/team-performance', requireVerifiedEmail, async (req: any, res) => {
+  app.get('/api/analytics/team-performance', requireAuth, async (req: any, res) => {
     try {
       const currentUser = await storage.getUser(req.user.id);
       let performance = await storage.getTeamPerformance();
