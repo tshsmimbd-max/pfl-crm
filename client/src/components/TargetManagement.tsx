@@ -27,9 +27,12 @@ export default function TargetManagement() {
     queryKey: ["/api/targets"],
   });
 
-  const { data: users = [], isLoading: usersLoading } = useQuery({
+  const { data: users = [], isLoading: usersLoading, error: usersError } = useQuery({
     queryKey: ["/api/users"],
     enabled: user?.role === "super_admin",
+    staleTime: 0, // Force refresh
+    cacheTime: 0, // Don't cache
+    retry: 1,
   });
 
   const { data: metrics, error: metricsError, isLoading: metricsLoading } = useQuery({
@@ -218,9 +221,17 @@ export default function TargetManagement() {
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              {users?.map((user) => (
+                              {usersLoading && <SelectItem value="loading">Loading users...</SelectItem>}
+                              {/* Always show current user as option */}
+                              {user && (
                                 <SelectItem key={user.id} value={user.id}>
-                                  {user.fullName}
+                                  {user.employeeName || user.fullName || user.email} (Me)
+                                </SelectItem>
+                              )}
+                              {!usersLoading && users?.length === 0 && <SelectItem value="none">No other users found</SelectItem>}
+                              {users?.filter(u => u.id !== user?.id).map((userOption) => (
+                                <SelectItem key={userOption.id} value={userOption.id}>
+                                  {userOption.employeeName || userOption.fullName || userOption.email}
                                 </SelectItem>
                               ))}
                             </SelectContent>
