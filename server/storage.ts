@@ -101,7 +101,7 @@ export interface IStorage {
   }>>;
 }
 
-export class DatabaseStorage {
+export class DatabaseStorage implements IStorage {
   // User operations
   async getUser(id: string): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.id, id));
@@ -121,7 +121,8 @@ export class DatabaseStorage {
         id: userId,
         email: userData.email,
         password: userData.password,
-        fullName: userData.fullName,
+        employeeName: userData.fullName,
+        employeeCode: `EMP${Date.now()}`,
         role: userData.role || 'sales_agent',
         managerId: userData.managerId || null,
         teamName: userData.teamName || null,
