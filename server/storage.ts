@@ -29,7 +29,7 @@ export interface IStorage {
   // User operations
   getUser(id: string): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
-  createUser(user: { id?: string; email: string; password: string; fullName: string; role?: string; managerId?: string | null; teamName?: string | null; emailVerified?: boolean; verificationCode?: string | null; codeExpiresAt?: Date | null }): Promise<User>;
+  createUser(user: { id?: string; email: string; password: string; employeeName: string; employeeCode?: string; role?: string; managerId?: string | null; teamName?: string | null; emailVerified?: boolean; verificationCode?: string | null; codeExpiresAt?: Date | null }): Promise<User>;
   setVerificationCode(email: string, code: string): Promise<void>;
   verifyCode(email: string, code: string): Promise<User | null>;
   getAllUsers(): Promise<User[]>;
@@ -113,7 +113,7 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
 
-  async createUser(userData: { id?: string; email: string; password: string; fullName: string; role?: string; managerId?: string | null; teamName?: string | null; emailVerified?: boolean; verificationCode?: string | null; codeExpiresAt?: Date | null }): Promise<User> {
+  async createUser(userData: { id?: string; email: string; password: string; employeeName: string; employeeCode?: string; role?: string; managerId?: string | null; teamName?: string | null; emailVerified?: boolean; verificationCode?: string | null; codeExpiresAt?: Date | null }): Promise<User> {
     const userId = userData.id || crypto.randomUUID();
     const [user] = await db
       .insert(users)
@@ -121,8 +121,8 @@ export class DatabaseStorage implements IStorage {
         id: userId,
         email: userData.email,
         password: userData.password,
-        employeeName: userData.fullName,
-        employeeCode: `EMP${Date.now()}`,
+        employeeName: userData.employeeName,
+        employeeCode: userData.employeeCode || `EMP${Date.now()}`,
         role: userData.role || 'sales_agent',
         managerId: userData.managerId ?? null,
         teamName: userData.teamName ?? null,
@@ -600,7 +600,8 @@ storage.createUser({
   id: "admin",
   email: "admin@paperfly.com", 
   password: "$2b$10$M/qluBLTkmxuzQnnC.5zJOEJdy64PjZSiK7zUEu2GnZY5pbqYl..6", // admin123
-  fullName: "System Administrator",
+  employeeName: "System Administrator",
+  employeeCode: "ADM001",
   role: "super_admin",
   emailVerified: true
 }).catch(() => {
