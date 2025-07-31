@@ -171,7 +171,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get users for assignment dropdown (role-based filtering)
-  app.get('/api/users/assignment', requireAuth, requireVerifiedEmail, async (req: any, res) => {
+  app.get('/api/users/assignment', requireAuth, async (req: any, res) => {
     try {
       const currentUser = req.user;
       let users = await storage.getUsersForAssignment(currentUser.id, currentUser.role);
@@ -240,7 +240,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Lead management routes with RBAC
-  app.get('/api/leads', requireAuth, requireVerifiedEmail, requirePermission(PERMISSIONS.LEAD_VIEW), async (req: any, res) => {
+  app.get('/api/leads', requireAuth, requirePermission(PERMISSIONS.LEAD_VIEW), async (req: any, res) => {
     try {
       const currentUser = req.user;
       let leads;
@@ -279,7 +279,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/leads', requireAuth, requireVerifiedEmail, requirePermission(PERMISSIONS.LEAD_CREATE), async (req: any, res) => {
+  app.post('/api/leads', requireAuth, requirePermission(PERMISSIONS.LEAD_CREATE), async (req: any, res) => {
     try {
       const validation = insertLeadSchema.parse(req.body);
       

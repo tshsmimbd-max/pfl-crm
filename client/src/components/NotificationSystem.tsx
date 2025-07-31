@@ -52,7 +52,8 @@ export default function NotificationSystem() {
   // WebSocket connection for real-time notifications
   useEffect(() => {
     const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-    const wsUrl = `${protocol}//${window.location.host}/ws`;
+    const port = window.location.port || (protocol === "wss:" ? "443" : "80");
+    const wsUrl = `${protocol}//${window.location.hostname}:${port}/ws`;
     
     const socket = new WebSocket(wsUrl);
 

@@ -327,6 +327,7 @@ export default function LeadManagement() {
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
+                              <SelectItem value="myself">Assign to Myself</SelectItem>
                               {(users || []).map((user) => (
                                 <SelectItem key={user.id} value={user.id}>
                                   {user.employeeName || user.fullName || user.email}

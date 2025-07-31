@@ -1,0 +1,23 @@
+client:536 WebSocket connection to 'wss://c2da9947-eedc-4af8-86a1-98d7f745db9a-00-ga0x6nfp1uw9.spock.replit.dev/?token=SONBFO4KppVi' failed: Error during WebSocket handshake: Unexpected response code: 400
+setupWebSocket @ client:536Understand this error
+client:536 Uncaught (in promise) SyntaxError: Failed to construct 'WebSocket': The URL 'wss://localhost:undefined/?token=SONBFO4KppVi' is invalid.
+    at setupWebSocket (client:536:19)
+    at fallback (client:509:16)
+    at WebSocket.<anonymous> (client:555:7)Understand this error
+chunk-RPCDYKBN.js?v=7e481b72:21551 Download the React DevTools for a better development experience: https://reactjs.org/link/react-devtools
+/api/user:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)Understand this error
+/api/user:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)Understand this error
+/api/notifications/unread-count:1  Failed to load resource: the server responded with a status of 403 (Forbidden)Understand this error
+/api/analytics/metrics:1  Failed to load resource: the server responded with a status of 403 (Forbidden)Understand this error
+NotificationSystem.tsx:60 WebSocket connected for notifications
+/api/notifications:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)Understand this error
+/api/analytics/team-performance:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)Understand this error
+/api/leads:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)Understand this error
+/api/users/assignment:1  Failed to load resource: the server responded with a status of 403 (Forbidden)Understand this error
+2@radix-ui_react-dialog.js?v=7e481b72:342 Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
+(anonymous) @ @radix-ui_react-dialog.js?v=7e481b72:342Understand this warning
+/api/notifications/unread-count:1  Failed to load resource: the server responded with a status of 403 (Forbidden)Understand this error
+/api/notifications:1  Failed to load resource: the server responded with a status of 403 (Forbidden)Understand this error
+/api/notifications/unread-count:1  Failed to load resource: the server responded with a status of 403 (Forbidden)Understand this error
+/api/notifications:1  Failed to load resource: the server responded with a status of 403 (Forbidden)Understand this error
+/api/leads:1  Failed to load resource: the server responded with a status of 403 (Forbidden)
