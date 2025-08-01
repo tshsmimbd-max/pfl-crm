@@ -34,14 +34,21 @@ export default function BulkCustomerUpload() {
       }, 200);
 
       try {
-        const response = await apiRequest("POST", "/api/customers/bulk-upload", formData, {
-          'Content-Type': undefined, // Let browser set multipart boundary
+        const response = await fetch("/api/customers/bulk-upload", {
+          method: "POST",
+          body: formData,
+          credentials: "include",
         });
         
         clearInterval(progressInterval);
         setUploadProgress(100);
         
-        return response;
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`Upload failed: ${errorText}`);
+        }
+        
+        return await response.json();
       } catch (error) {
         clearInterval(progressInterval);
         throw error;
@@ -54,7 +61,7 @@ export default function BulkCustomerUpload() {
       setUploadProgress(0);
       toast({
         title: "Upload Complete",
-        description: `Successfully processed ${data.processed} customers. ${data.failed} failed.`,
+        description: `Successfully processed ${data.processed} customers. ${data.failed > 0 ? `${data.failed} failed.` : ''}`,
       });
     },
     onError: (error) => {
