@@ -1,0 +1,4 @@
+contactName,email,phone,company,totalValue,leadSource,packageSize,preferredPickTime,pickupAddress,website,facebookPageUrl,customerType,notes
+John Doe,john@techcorp.com,1234567890,TechCorp,50000,Social Media,Large,15/02/2024 10:00,123 Tech Street,https://techcorp.com,https://facebook.com/techcorp,new,Enterprise client with high potential
+Jane Smith,jane@business.com,1987654321,Business Solutions,35000,Referral,Medium,16/02/2024 14:30,456 Business Ave,https://business.com,,returning,Long-term customer relationship
+Mike Johnson,mike@startup.io,1555123456,StartupXYZ,75000,Ads,Large,17/02/2024 09:00,789 Innovation Blvd,https://startupxyz.io,https://facebook.com/startupxyz,new,High growth startup potential

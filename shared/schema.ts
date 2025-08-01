@@ -304,16 +304,13 @@ export const insertCustomerSchema = createInsertSchema(customers).omit({
   ]),
   // Enhanced customer fields
   leadSource: z.enum(["Social Media", "Referral", "Ads", "Others"]).default("Others"),
-  packageSize: z.string().optional(),
-  preferredPickTime: z.union([
-    z.date(),
-    z.string().transform(val => val ? new Date(val) : null)
-  ]).optional().nullable(),
-  pickupAddress: z.string().optional(),
-  website: z.string().url("Please enter a valid URL").optional().or(z.literal("")),
-  facebookPageUrl: z.string().url("Please enter a valid Facebook URL").optional().or(z.literal("")),
+  packageSize: z.string().optional().nullable(),
+  preferredPickTime: z.string().optional().nullable(),
+  pickupAddress: z.string().optional().nullable(),
+  website: z.string().optional().nullable(),
+  facebookPageUrl: z.string().optional().nullable(),
   customerType: z.enum(["new", "returning"]).default("new"),
-  notes: z.string().optional(),
+  notes: z.string().optional().nullable(),
 });
 
 export const insertDailyRevenueSchema = createInsertSchema(dailyRevenue).omit({

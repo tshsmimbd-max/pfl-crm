@@ -910,10 +910,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
             // Enhanced fields
             leadSource: row.leadSource?.trim() || "Others",
             packageSize: row.packageSize?.trim() || null,
-            preferredPickTime: row.preferredPickTime ? new Date(row.preferredPickTime) : null,
+            preferredPickTime: row.preferredPickTime && row.preferredPickTime.trim() ? row.preferredPickTime.trim() : null,
             pickupAddress: row.pickupAddress?.trim() || null,
             website: row.website?.trim() || null,
-            facebookPageUrl: row.facebookPageUrl?.trim() || null,
+            facebookPageUrl: row.facebookPageUrl?.trim() || "",
             customerType: row.customerType?.trim() || "new",
             notes: row.notes?.trim() || null,
           });
