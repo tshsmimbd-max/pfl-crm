@@ -89,7 +89,7 @@ export default function AgentPipelineAnalytics() {
   return (
     <div className="space-y-6">
       {/* Overview Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Pipeline Value</CardTitle>
@@ -197,7 +197,7 @@ export default function AgentPipelineAnalytics() {
                     {/* Pipeline Stage Distribution */}
                     <div className="space-y-3">
                       <h4 className="font-medium text-sm text-gray-700">Pipeline Distribution</h4>
-                      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+                      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
                         {PIPELINE_STAGES.map((stage) => {
                           const count = performance.stageDistribution[stage.id] || 0;
                           const percentage = performance.totalLeads > 0 

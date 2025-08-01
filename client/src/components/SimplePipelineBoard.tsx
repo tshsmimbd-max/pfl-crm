@@ -172,7 +172,7 @@ export default function SimplePipelineBoard() {
           </div>
         </div>
         
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 lg:gap-4">
           {STAGES.map((stage, index) => {
             const stats = getStageStats(stage.id);
             return (
@@ -196,7 +196,7 @@ export default function SimplePipelineBoard() {
 
       {/* Pipeline Board */}
       <DragDropContext onDragEnd={handleDragEnd}>
-        <div className="flex gap-6 overflow-x-auto pb-4 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+        <div className="flex gap-3 lg:gap-6 overflow-x-auto pb-4 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
           {STAGES.map((stage) => {
             const stageLeads = getLeadsForStage(stage.id);
             const stageValue = getStageValue(stageLeads);

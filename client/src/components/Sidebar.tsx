@@ -9,9 +9,11 @@ interface SidebarProps {
   user: User;
   currentView: string;
   setCurrentView: (view: string) => void;
+  isOpen?: boolean;
+  onClose?: () => void;
 }
 
-export default function Sidebar({ user, currentView, setCurrentView }: SidebarProps) {
+export default function Sidebar({ user, currentView, setCurrentView, isOpen = false, onClose }: SidebarProps) {
   const { data: unreadCount } = useQuery({
     queryKey: ["/api/notifications/unread-count"],
     refetchInterval: 30000, // Refresh every 30 seconds
@@ -35,7 +37,10 @@ export default function Sidebar({ user, currentView, setCurrentView }: SidebarPr
   ];
 
   return (
-    <aside className="w-64 bg-white shadow-lg border-r border-gray-200 flex flex-col">
+    <aside className={`
+      fixed lg:static inset-y-0 left-0 z-50 w-64 bg-white shadow-lg border-r border-gray-200 flex flex-col transform transition-transform duration-300 ease-in-out
+      ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+    `}>
       {/* Logo Section */}
       <div className="p-6 border-b border-gray-200">
         <div className="flex items-center space-x-3">
@@ -53,11 +58,11 @@ export default function Sidebar({ user, currentView, setCurrentView }: SidebarPr
       <div className="p-4 border-b border-gray-200">
         <div className="flex items-center space-x-3">
           <div className="w-10 h-10 bg-primary-100 rounded-full flex items-center justify-center">
-            <span className="text-primary-600 font-medium">{user.fullName?.split(' ').map(n => n[0]).join('').toUpperCase()}</span>
+            <span className="text-primary-600 font-medium">{(user.employeeName || user.email)?.split(' ').map(n => n[0]).join('').toUpperCase()}</span>
           </div>
           <div className="flex-1">
             <p className="text-sm font-medium text-gray-900">
-              {user.fullName}
+              {user.employeeName || user.email}
             </p>
             <p className="text-xs text-gray-500 capitalize">{user.role.replace('_', ' ')}</p>
           </div>

@@ -98,6 +98,58 @@
   }
 }
 
+/* Mobile Responsive Utilities */
+@media (max-width: 768px) {
+  .mobile-card {
+    @apply p-3 text-sm;
+  }
+  
+  .mobile-grid {
+    @apply grid-cols-1 gap-3;
+  }
+  
+  .mobile-text {
+    @apply text-sm;
+  }
+  
+  .mobile-padding {
+    @apply p-3;
+  }
+  
+  .mobile-button {
+    @apply text-xs px-3 py-1.5;
+  }
+  
+  .mobile-form {
+    @apply space-y-3;
+  }
+  
+  .mobile-modal {
+    @apply max-w-sm mx-4;
+  }
+  
+  .mobile-table {
+    @apply text-xs;
+  }
+  
+  .mobile-table th,
+  .mobile-table td {
+    @apply px-2 py-1 text-xs;
+  }
+  
+  .mobile-overflow {
+    @apply overflow-x-auto;
+  }
+  
+  .mobile-card-stack {
+    @apply space-y-2;
+  }
+  
+  .mobile-card-stack .mobile-card {
+    @apply border rounded-lg p-3 bg-white;
+  }
+}
+
 /* Custom utilities for the design */
 .bg-primary-50 { background-color: var(--primary-50); }
 .bg-primary-100 { background-color: var(--primary-100); }

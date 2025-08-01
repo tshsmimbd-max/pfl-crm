@@ -84,12 +84,47 @@ export default function Home() {
     }
   };
 
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
   return (
     <div className="min-h-screen flex bg-gray-50">
-      <Sidebar user={user} currentView={currentView} setCurrentView={setCurrentView} />
-      <main className="flex-1 flex flex-col overflow-hidden">
-        <div className="flex-1 p-6">
-          <div className="flex items-center justify-between mb-6">
+      <Sidebar 
+        user={user} 
+        currentView={currentView} 
+        setCurrentView={setCurrentView}
+        isOpen={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+      />
+      
+      {/* Mobile overlay */}
+      {sidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+      
+      <main className="flex-1 flex flex-col overflow-hidden lg:ml-0">
+        {/* Mobile header */}
+        <div className="lg:hidden bg-white border-b border-gray-200 p-4 flex items-center justify-between">
+          <button
+            onClick={() => setSidebarOpen(true)}
+            className="p-2 rounded-md hover:bg-gray-100"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          </button>
+          <h1 className="text-lg font-semibold">Paperfly CRM</h1>
+          <div className="w-10 h-10 bg-primary-100 rounded-full flex items-center justify-center">
+            <span className="text-primary-600 font-medium text-sm">
+              {user.employeeName?.split(' ').map(n => n[0]).join('').toUpperCase() || 'U'}
+            </span>
+          </div>
+        </div>
+        
+        <div className="flex-1 p-4 lg:p-6">
+          <div className="hidden lg:flex items-center justify-between mb-6">
             <h1 className="text-2xl font-semibold text-gray-900">
               {currentView.charAt(0).toUpperCase() + currentView.slice(1).replace('-', ' ')}
             </h1>

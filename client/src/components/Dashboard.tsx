@@ -144,7 +144,7 @@ export default function Dashboard({ setCurrentView }: DashboardProps) {
         )}
 
         {/* Key Metrics */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6 mb-6 lg:mb-8">
           <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => setCurrentView?.("analytics")}>
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
