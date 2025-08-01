@@ -387,7 +387,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   // Enhanced fields from CSV
                   leadSource: row.leadSource || row.lead_source || 'Others',
                   packageSize: row.packageSize || row.package_size || '',
-                  preferredPickTime: row.preferredPickTime || row.preferred_pick_time ? new Date(row.preferredPickTime || row.preferred_pick_time) : null,
+                  preferredPickTime: row.preferredPickTime || row.preferred_pick_time || null,
                   pickupAddress: row.pickupAddress || row.pickup_address || '',
                   website: row.website || '',
                   facebookPageUrl: row.facebookPageUrl || row.facebook_page_url || '',
@@ -913,7 +913,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             preferredPickTime: row.preferredPickTime && row.preferredPickTime.trim() ? row.preferredPickTime.trim() : null,
             pickupAddress: row.pickupAddress?.trim() || null,
             website: row.website?.trim() || null,
-            facebookPageUrl: row.facebookPageUrl?.trim() || "",
+            facebookPageUrl: row.facebookPageUrl?.trim() || null,
             customerType: row.customerType?.trim() || "new",
             notes: row.notes?.trim() || null,
           });
