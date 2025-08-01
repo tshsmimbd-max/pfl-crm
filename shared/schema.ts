@@ -48,7 +48,7 @@ export const leads = pgTable("leads", {
   // New enhanced fields
   leadSource: varchar("lead_source").notNull().default("Others"), // Social Media, Referral, Ads, Others
   packageSize: varchar("package_size"),
-  preferredPickTime: timestamp("preferred_pick_time"),
+  preferredPickTime: text("preferred_pick_time"),
   pickupAddress: text("pickup_address"),
   website: varchar("website"),
   facebookPageUrl: varchar("facebook_page_url"),
@@ -101,7 +101,7 @@ export const customers = pgTable("customers", {
   // Enhanced customer fields based on lead fields
   leadSource: varchar("lead_source"),
   packageSize: varchar("package_size"),
-  preferredPickTime: timestamp("preferred_pick_time"),
+  preferredPickTime: text("preferred_pick_time"),
   pickupAddress: text("pickup_address"),
   website: text("website"),
   facebookPageUrl: text("facebook_page_url"),
