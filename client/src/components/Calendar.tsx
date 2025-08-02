@@ -23,12 +23,12 @@ export default function Calendar() {
   const [viewMode, setViewMode] = useState<"month" | "week" | "day">("month");
   const { toast } = useToast();
 
-  const { data: leads } = useQuery({
+  const { data: leads = [] } = useQuery({
     queryKey: ["/api/leads"],
   });
 
-  const { data: interactions } = useQuery({
-    queryKey: ["/api/interactions"],
+  const { data: interactions = [] } = useQuery({
+    queryKey: ["/api/interactions/all"],
   });
 
   const form = useForm<InsertInteraction>({
@@ -47,7 +47,7 @@ export default function Calendar() {
       await apiRequest("POST", "/api/interactions", data);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/interactions"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/interactions/all"] });
       setIsCreateDialogOpen(false);
       form.reset();
       toast({
@@ -130,25 +130,16 @@ export default function Calendar() {
     }
   };
 
-  // Mock interactions for demo (in real app, filter actual interactions by date)
+  // Filter real interactions by date
   const getInteractionsForDate = (date: Date) => {
-    // This would filter actual interactions by date
-    return [
-      {
-        id: 1,
-        type: "meeting",
-        subject: "Product Demo with TechCorp",
-        scheduledAt: new Date(date.setHours(10, 0)),
-        leadId: 1,
-      },
-      {
-        id: 2,
-        type: "call",
-        subject: "Follow-up call with DataFlow",
-        scheduledAt: new Date(date.setHours(14, 30)),
-        leadId: 2,
-      },
-    ];
+    if (!interactions || !Array.isArray(interactions)) return [];
+    
+    const dateStr = date.toDateString();
+    return interactions.filter((interaction: any) => {
+      if (!interaction.scheduledAt) return false;
+      const interactionDate = new Date(interaction.scheduledAt);
+      return interactionDate.toDateString() === dateStr;
+    });
   };
 
   const navigateMonth = (direction: "prev" | "next") => {
@@ -170,7 +161,7 @@ export default function Calendar() {
 
     // Empty cells for days before the first day of the month
     for (let i = 0; i < firstDay; i++) {
-      days.push(<div key={`empty-${i}`} className="h-24 border border-gray-200"></div>);
+      days.push(<div key={`empty-${i}`} className="h-16 lg:h-24 border border-gray-200"></div>);
     }
 
     // Days of the month
@@ -183,29 +174,30 @@ export default function Calendar() {
       days.push(
         <div
           key={day}
-          className={`h-24 border border-gray-200 p-2 cursor-pointer hover:bg-gray-50 ${
+          className={`h-16 lg:h-24 border border-gray-200 p-1 lg:p-2 cursor-pointer hover:bg-gray-50 ${
             isToday ? "bg-primary-50" : ""
           } ${isSelected ? "bg-primary-100" : ""}`}
           onClick={() => setSelectedDate(date)}
         >
-          <div className={`text-sm font-medium ${isToday ? "text-primary-600" : "text-gray-900"}`}>
+          <div className={`text-xs lg:text-sm font-medium ${isToday ? "text-primary-600" : "text-gray-900"}`}>
             {day}
           </div>
           <div className="mt-1 space-y-1">
-            {dayInteractions.slice(0, 2).map((interaction, index) => {
+            {dayInteractions.slice(0, 1).map((interaction, index) => {
               const Icon = getInteractionIcon(interaction.type);
               return (
                 <div
                   key={index}
-                  className={`text-xs px-2 py-1 rounded truncate ${getInteractionColor(interaction.type)}`}
+                  className={`text-xs px-1 py-0.5 rounded truncate ${getInteractionColor(interaction.type)} lg:px-2 lg:py-1`}
                 >
-                  <Icon className="w-3 h-3 inline mr-1" />
-                  {interaction.subject}
+                  <Icon className="w-2 h-2 lg:w-3 lg:h-3 inline mr-1" />
+                  <span className="hidden lg:inline">{interaction.subject}</span>
+                  <span className="lg:hidden">•</span>
                 </div>
               );
             })}
-            {dayInteractions.length > 2 && (
-              <div className="text-xs text-gray-500">+{dayInteractions.length - 2} more</div>
+            {dayInteractions.length > 1 && (
+              <div className="text-xs text-gray-500">+{dayInteractions.length - 1}</div>
             )}
           </div>
         </div>
@@ -216,51 +208,55 @@ export default function Calendar() {
   };
 
   const todayInteractions = getInteractionsForDate(new Date());
-  const upcomingInteractions = [
-    ...todayInteractions,
-    ...getInteractionsForDate(new Date(Date.now() + 86400000)), // Tomorrow
-  ].sort((a, b) => a.scheduledAt.getTime() - b.scheduledAt.getTime());
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const tomorrowInteractions = getInteractionsForDate(tomorrow);
+  
+  const upcomingInteractions = [...todayInteractions, ...tomorrowInteractions]
+    .sort((a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime());
 
   return (
-    <>
+    <div className="space-y-4 lg:space-y-6">
       {/* Header */}
-      <header className="bg-white shadow-sm border-b border-gray-200 px-6 py-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Calendar</h1>
-            <p className="text-gray-600">Schedule and manage your meetings</p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-xl lg:text-2xl font-bold text-gray-900">Calendar</h1>
+          <p className="text-gray-600">Schedule and manage your meetings</p>
+        </div>
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+          <div className="flex items-center space-x-2">
+            <Button
+              variant={viewMode === "month" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setViewMode("month")}
+              className="flex-1 sm:flex-none"
+            >
+              Month
+            </Button>
+            <Button
+              variant={viewMode === "week" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setViewMode("week")}
+              className="flex-1 sm:flex-none"
+            >
+              Week
+            </Button>
+            <Button
+              variant={viewMode === "day" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setViewMode("day")}
+              className="flex-1 sm:flex-none"
+            >
+              Day
+            </Button>
           </div>
-          <div className="flex items-center space-x-4">
-            <div className="flex items-center space-x-2">
-              <Button
-                variant={viewMode === "month" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setViewMode("month")}
-              >
-                Month
+          <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+            <DialogTrigger asChild>
+              <Button className="bg-primary-600 hover:bg-primary-700 w-full sm:w-auto">
+                <Plus className="w-4 h-4 mr-2" />
+                Schedule Meeting
               </Button>
-              <Button
-                variant={viewMode === "week" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setViewMode("week")}
-              >
-                Week
-              </Button>
-              <Button
-                variant={viewMode === "day" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setViewMode("day")}
-              >
-                Day
-              </Button>
-            </div>
-            <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-              <DialogTrigger asChild>
-                <Button className="bg-primary-600 hover:bg-primary-700">
-                  <Plus className="w-4 h-4 mr-2" />
-                  Schedule Meeting
-                </Button>
-              </DialogTrigger>
+            </DialogTrigger>
               <DialogContent className="max-w-2xl">
                 <DialogHeader>
                   <DialogTitle>Schedule New Meeting</DialogTitle>
@@ -318,7 +314,7 @@ export default function Calendar() {
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              {leads?.map((lead) => (
+                              {Array.isArray(leads) && leads.map((lead: any) => (
                                 <SelectItem key={lead.id} value={lead.id.toString()}>
                                   {lead.contactName} - {lead.company}
                                 </SelectItem>
@@ -357,6 +353,7 @@ export default function Calendar() {
                             <Textarea
                               placeholder="Meeting description or agenda"
                               {...field}
+                              value={field.value || ""}
                             />
                           </FormControl>
                           <FormMessage />
@@ -379,54 +376,52 @@ export default function Calendar() {
                 </Form>
               </DialogContent>
             </Dialog>
-          </div>
         </div>
-      </header>
+      </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-auto">
-        <div className="grid grid-cols-1 lg:grid-cols-4 h-full">
-          {/* Calendar Grid */}
-          <div className="lg:col-span-3 bg-white">
-            {/* Calendar Header */}
-            <div className="flex items-center justify-between p-6 border-b border-gray-200">
-              <div className="flex items-center space-x-4">
-                <Button variant="outline" size="sm" onClick={() => navigateMonth("prev")}>
-                  <ChevronLeft className="w-4 h-4" />
-                </Button>
-                <h2 className="text-xl font-semibold text-gray-900">
-                  {currentDate.toLocaleDateString("en-US", { month: "long", year: "numeric" })}
-                </h2>
-                <Button variant="outline" size="sm" onClick={() => navigateMonth("next")}>
-                  <ChevronRight className="w-4 h-4" />
-                </Button>
-              </div>
-              <Button variant="outline" size="sm" onClick={() => setCurrentDate(new Date())}>
-                Today
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 lg:gap-6">
+        {/* Calendar Grid */}
+        <div className="lg:col-span-3 bg-white rounded-lg border border-gray-200">
+          {/* Calendar Header */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4 lg:p-6 border-b border-gray-200 gap-4">
+            <div className="flex items-center space-x-2 lg:space-x-4">
+              <Button variant="outline" size="sm" onClick={() => navigateMonth("prev")}>
+                <ChevronLeft className="w-4 h-4" />
+              </Button>
+              <h2 className="text-lg lg:text-xl font-semibold text-gray-900">
+                {currentDate.toLocaleDateString("en-US", { month: "long", year: "numeric" })}
+              </h2>
+              <Button variant="outline" size="sm" onClick={() => navigateMonth("next")}>
+                <ChevronRight className="w-4 h-4" />
               </Button>
             </div>
-
-            {/* Calendar Grid */}
-            <div className="p-6">
-              {/* Weekday Headers */}
-              <div className="grid grid-cols-7 gap-0 mb-4">
-                {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
-                  <div key={day} className="h-8 flex items-center justify-center text-sm font-medium text-gray-500">
-                    {day}
-                  </div>
-                ))}
-              </div>
-
-              {/* Calendar Days */}
-              <div className="grid grid-cols-7 gap-0">
-                {renderCalendarGrid()}
-              </div>
-            </div>
+            <Button variant="outline" size="sm" onClick={() => setCurrentDate(new Date())}>
+              Today
+            </Button>
           </div>
 
-          {/* Sidebar */}
-          <div className="lg:col-span-1 bg-gray-50 border-l border-gray-200">
-            <div className="p-6">
+          {/* Calendar Grid */}
+          <div className="p-3 lg:p-6">
+            {/* Weekday Headers */}
+            <div className="grid grid-cols-7 gap-0 mb-4">
+              {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
+                <div key={day} className="h-6 lg:h-8 flex items-center justify-center text-xs lg:text-sm font-medium text-gray-500">
+                  {day}
+                </div>
+              ))}
+            </div>
+
+            {/* Calendar Days */}
+            <div className="grid grid-cols-7 gap-0">
+              {renderCalendarGrid()}
+            </div>
+          </div>
+        </div>
+
+        {/* Sidebar */}
+        <div className="lg:col-span-1 bg-gray-50 rounded-lg border border-gray-200">
+          <div className="p-4 lg:p-6">
               {/* Today's Schedule */}
               <Card className="mb-6">
                 <CardHeader>
@@ -437,7 +432,7 @@ export default function Calendar() {
                     <div className="space-y-3">
                       {todayInteractions.map((interaction, index) => {
                         const Icon = getInteractionIcon(interaction.type);
-                        const lead = leads?.find(l => l.id === interaction.leadId);
+                        const lead = Array.isArray(leads) ? leads.find((l: any) => l.id === interaction.leadId) : null;
                         
                         return (
                           <div key={index} className="flex items-start space-x-3 p-3 bg-white rounded-lg border">
@@ -447,7 +442,7 @@ export default function Calendar() {
                             <div className="flex-1">
                               <p className="text-sm font-medium text-gray-900">{interaction.subject}</p>
                               <p className="text-xs text-gray-600">{lead?.company}</p>
-                              <p className="text-xs text-gray-500">{formatTime(interaction.scheduledAt)}</p>
+                              <p className="text-xs text-gray-500">{formatTime(new Date(interaction.scheduledAt))}</p>
                             </div>
                           </div>
                         );
@@ -469,8 +464,8 @@ export default function Calendar() {
                     <div className="space-y-3">
                       {upcomingInteractions.slice(0, 5).map((interaction, index) => {
                         const Icon = getInteractionIcon(interaction.type);
-                        const lead = leads?.find(l => l.id === interaction.leadId);
-                        const isToday = interaction.scheduledAt.toDateString() === new Date().toDateString();
+                        const lead = Array.isArray(leads) ? leads.find((l: any) => l.id === interaction.leadId) : null;
+                        const isToday = new Date(interaction.scheduledAt).toDateString() === new Date().toDateString();
                         
                         return (
                           <div key={index} className="flex items-start space-x-3">
@@ -481,7 +476,7 @@ export default function Calendar() {
                               <p className="text-sm font-medium text-gray-900">{interaction.subject}</p>
                               <p className="text-xs text-gray-600">{lead?.company}</p>
                               <p className="text-xs text-gray-500">
-                                {isToday ? "Today" : interaction.scheduledAt.toLocaleDateString()} at {formatTime(interaction.scheduledAt)}
+                                {isToday ? "Today" : new Date(interaction.scheduledAt).toLocaleDateString()} at {formatTime(new Date(interaction.scheduledAt))}
                               </p>
                             </div>
                           </div>
@@ -493,10 +488,9 @@ export default function Calendar() {
                   )}
                 </CardContent>
               </Card>
-            </div>
           </div>
         </div>
       </div>
-    </>
+    </div>
   );
 }
