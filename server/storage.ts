@@ -610,7 +610,7 @@ class SimpleMemoryStorage {
     this.users.set('admin@paperfly.com', {
       id: '1',
       email: 'admin@paperfly.com',
-      password: '$2b$10$CwTycUXWue0Thq9StjUM0uBIjYcN8BFLnfOdgAaD1RmcQfPuJsQ1S', // admin123
+      password: '$2b$10$C2n1evyk3.DN.oq.IJDF0O0oNHy.drq///IyD8yB7dSLh3YJGgDpy', // admin123
       fullName: 'Admin User',
       role: 'super_admin',
       emailVerified: true,
@@ -625,7 +625,9 @@ class SimpleMemoryStorage {
   }
 
   // Implement required interface methods with simple Map operations
-  async getUserByEmail(email) { return this.users.get(email); }
+  async getUserByEmail(email) { 
+    return this.users.get(email);
+  }
   async getUser(id) { return Array.from(this.users.values()).find(u => u.id === id); }
   async createUser(user) { 
     const newUser = { ...user, id: String(this.nextId++), createdAt: new Date(), updatedAt: new Date() };
