@@ -79,7 +79,13 @@ export default function Calendar() {
   });
 
   const onSubmit = (data: InsertInteraction) => {
-    createInteractionMutation.mutate(data);
+    // Convert Date objects to ISO strings for API submission
+    const formattedData: any = {
+      ...data,
+      scheduledAt: data.scheduledAt instanceof Date ? data.scheduledAt.toISOString() : data.scheduledAt,
+      completedAt: data.completedAt instanceof Date ? data.completedAt.toISOString() : data.completedAt,
+    };
+    createInteractionMutation.mutate(formattedData);
   };
 
   // Calendar utility functions

@@ -266,8 +266,16 @@ export const insertInteractionSchema = createInsertSchema(interactions).omit({
   id: true,
   createdAt: true,
 }).extend({
-  scheduledAt: z.string().transform(val => new Date(val)).optional(),
-  completedAt: z.string().transform(val => new Date(val)).optional(),
+  scheduledAt: z.union([
+    z.string().transform(val => val ? new Date(val) : undefined),
+    z.date(),
+    z.undefined()
+  ]).optional(),
+  completedAt: z.union([
+    z.string().transform(val => val ? new Date(val) : undefined),
+    z.date(),
+    z.undefined()
+  ]).optional(),
 });
 
 export const insertTargetSchema = createInsertSchema(targets).omit({
