@@ -178,7 +178,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Add current user as "Myself" option for all roles  
       users = [
-        { id: currentUser.id, employeeName: "Myself", role: currentUser.role, email: currentUser.email },
+        { 
+          id: currentUser.id, 
+          employeeName: "Myself", 
+          role: currentUser.role, 
+          email: currentUser.email,
+          password: "",
+          employeeCode: currentUser.employeeCode || "",
+          managerId: currentUser.managerId,
+          teamName: currentUser.teamName,
+          emailVerified: currentUser.emailVerified,
+          verificationCode: currentUser.verificationCode,
+          codeExpiresAt: currentUser.codeExpiresAt,
+          createdAt: currentUser.createdAt,
+          updatedAt: currentUser.updatedAt
+        },
         ...users.filter(u => u.id !== currentUser.id)
       ];
       
@@ -576,11 +590,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const leads = await storage.getLeadsByUser(userId);
       
       const progress = targets.map(target => {
-        const closedWonLeads = leads.filter(lead => 
-          lead.stage === 'closed_won' && 
-          new Date(lead.updatedAt || lead.createdAt).getTime() >= new Date(target.startDate).getTime() &&
-          new Date(lead.updatedAt || lead.createdAt).getTime() <= new Date(target.endDate).getTime()
-        );
+        const closedWonLeads = leads.filter(lead => {
+          if (lead.stage !== 'closed_won') return false;
+          
+          const leadDate = lead.updatedAt || lead.createdAt;
+          const startDate = target.startDate;
+          const endDate = target.endDate;
+          
+          if (!leadDate || !startDate || !endDate) return false;
+          
+          return new Date(leadDate).getTime() >= new Date(startDate).getTime() &&
+                 new Date(leadDate).getTime() <= new Date(endDate).getTime();
+        });
         
         const achieved = closedWonLeads.reduce((sum, lead) => sum + lead.value, 0);
         const percentage = (achieved / target.targetValue) * 100;
@@ -614,7 +635,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const userLeads = await storage.getLeadsByUser(currentUser.id);
         const userLeadIds = userLeads.map(lead => lead.id);
         interactions = interactions.filter(i => 
-          i.userId === currentUser.id || userLeadIds.includes(i.leadId)
+          (i.userId && i.userId === currentUser.id) || (i.leadId && userLeadIds.includes(i.leadId))
         );
       } else if (currentUser?.role === ROLES.SALES_MANAGER) {
         // Manager can see team interactions
@@ -628,10 +649,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const userLeadIds = userLeads.map(lead => lead.id);
         
         interactions = interactions.filter(i => 
-          teamMemberIds.includes(i.userId) || 
-          i.userId === currentUser.id ||
-          teamLeadIds.includes(i.leadId) ||
-          userLeadIds.includes(i.leadId)
+          (i.userId && teamMemberIds.includes(i.userId)) || 
+          (i.userId && i.userId === currentUser.id) ||
+          (i.leadId && teamLeadIds.includes(i.leadId)) ||
+          (i.leadId && userLeadIds.includes(i.leadId))
         );
       }
       // Super admin can see all interactions (no filtering)
@@ -672,11 +693,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const teamMembers = await storage.getTeamMembers(currentUser.id);
         const teamMemberIds = [currentUser.id, ...teamMembers.map(m => m.id)];
         
-        interactions = interactions.filter(i => teamMemberIds.includes(i.userId));
+        interactions = interactions.filter(i => i.userId && teamMemberIds.includes(i.userId));
         users = users.filter(u => teamMemberIds.includes(u.id));
         
         const teamLeads = leads.filter(lead => 
-          teamMemberIds.includes(lead.assignedTo) || teamMemberIds.includes(lead.createdBy)
+          (lead.assignedTo && teamMemberIds.includes(lead.assignedTo)) || 
+          (lead.createdBy && teamMemberIds.includes(lead.createdBy))
         );
         leads = teamLeads;
       }
@@ -689,7 +711,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return {
           user: {
             id: user.id,
-            name: user.fullName,
+            name: user.employeeName,
             email: user.email,
             role: user.role
           },
@@ -702,7 +724,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
               note: userInteractions.filter(i => i.type === 'note').length,
             },
             recentActivities: userInteractions
-              .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+              .filter(i => i.createdAt)
+              .sort((a, b) => new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime())
               .slice(0, 5)
               .map(activity => ({
                 ...activity,
@@ -735,14 +758,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const userLeads = await storage.getLeadsByUser(currentUser.id);
           const userLeadIds = userLeads.map(lead => lead.id);
           interactions = interactions.filter(i => 
-            i.userId === currentUser.id || userLeadIds.includes(i.leadId)
+            (i.userId && i.userId === currentUser.id) || (i.leadId && userLeadIds.includes(i.leadId))
           );
         } else if (currentUser?.role === ROLES.SALES_MANAGER) {
           // Manager can see team interactions
           const teamMembers = await storage.getTeamMembers(currentUser.id);
           const teamMemberIds = teamMembers.map(m => m.id);
           interactions = interactions.filter(i => 
-            teamMemberIds.includes(i.userId) || i.userId === currentUser.id
+            (i.userId && teamMemberIds.includes(i.userId)) || (i.userId && i.userId === currentUser.id)
           );
         }
         
@@ -764,7 +787,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Manager can access team leads
         const teamMembers = await storage.getTeamMembers(currentUser.id);
         const teamMemberIds = teamMembers.map(m => m.id);
-        canAccess = teamMemberIds.includes(lead.assignedTo) || lead.assignedTo === currentUser.id;
+        canAccess = (lead.assignedTo && teamMemberIds.includes(lead.assignedTo)) || lead.assignedTo === currentUser.id;
       } else if (currentUser?.role === ROLES.SALES_AGENT) {
         canAccess = lead.assignedTo === currentUser.id;
       }
@@ -965,7 +988,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(customer);
     } catch (error) {
       console.error("Error converting lead to customer:", error);
-      res.status(500).json({ message: error.message || "Failed to convert lead" });
+      res.status(500).json({ message: (error as Error).message || "Failed to convert lead" });
     }
   });
 
@@ -1038,7 +1061,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (currentUser?.role === ROLES.SUPER_ADMIN) {
         canEdit = true;
       } else if (currentUser?.role === ROLES.SALES_MANAGER) {
-        const canAccess = await canAccessUser(currentUser, targetRevenue.userId);
+        const canAccess = targetRevenue.userId ? await canAccessUser(currentUser, targetRevenue.userId) : false;
         canEdit = canAccess || targetRevenue.userId === currentUser.id;
       } else if (currentUser?.role === ROLES.SALES_AGENT) {
         canEdit = targetRevenue.userId === currentUser.id;
@@ -1073,7 +1096,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (currentUser?.role === ROLES.SUPER_ADMIN) {
         canDelete = true;
       } else if (currentUser?.role === ROLES.SALES_MANAGER) {
-        const canAccess = await canAccessUser(currentUser, targetRevenue.userId);
+        const canAccess = targetRevenue.userId ? await canAccessUser(currentUser, targetRevenue.userId) : false;
         canDelete = canAccess || targetRevenue.userId === currentUser.id;
       } else if (currentUser?.role === ROLES.SALES_AGENT) {
         canDelete = targetRevenue.userId === currentUser.id;

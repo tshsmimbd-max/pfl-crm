@@ -268,9 +268,15 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateLead(id: number, lead: Partial<InsertLead>): Promise<Lead> {
+    // Handle preferredPickTime conversion for update
+    const updateData = { ...lead, updatedAt: new Date() };
+    if (updateData.preferredPickTime instanceof Date) {
+      (updateData as any).preferredPickTime = updateData.preferredPickTime.toISOString();
+    }
+    
     const [updatedLead] = await db
       .update(leads)
-      .set({ ...lead, updatedAt: new Date() })
+      .set(updateData)
       .where(eq(leads.id, id))
       .returning();
     return updatedLead;
