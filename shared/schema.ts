@@ -252,9 +252,8 @@ export const insertLeadSchema = createInsertSchema(leads).omit({
   leadSource: z.enum(["Social Media", "Referral", "Ads", "Others"]).default("Others"),
   packageSize: z.string().optional(),
   preferredPickTime: z.union([
-    z.date().transform(val => val.toISOString()),
-    z.string(),
-    z.null()
+    z.date(),
+    z.string().transform(val => val ? new Date(val) : null)
   ]).optional().nullable(),
   pickupAddress: z.string().optional(),
   website: z.string().url("Please enter a valid URL").optional().or(z.literal("")),
@@ -267,14 +266,8 @@ export const insertInteractionSchema = createInsertSchema(interactions).omit({
   id: true,
   createdAt: true,
 }).extend({
-  scheduledAt: z.union([
-    z.date(),
-    z.string().transform(val => val ? new Date(val) : undefined)
-  ]).optional(),
-  completedAt: z.union([
-    z.date(),
-    z.string().transform(val => val ? new Date(val) : undefined)
-  ]).optional(),
+  scheduledAt: z.string().transform(val => new Date(val)).optional(),
+  completedAt: z.string().transform(val => new Date(val)).optional(),
 });
 
 export const insertTargetSchema = createInsertSchema(targets).omit({
