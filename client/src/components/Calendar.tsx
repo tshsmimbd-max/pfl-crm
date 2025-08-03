@@ -29,8 +29,16 @@ export default function Calendar() {
     queryKey: ["/api/leads"],
   });
 
-  const { data: interactions = [] } = useQuery({
+  const { data: interactions = [], isLoading: interactionsLoading, error: interactionsError } = useQuery({
     queryKey: ["/api/interactions/all"],
+  });
+
+  // Debug logging
+  console.log("Calendar Debug:", {
+    interactions,
+    interactionsCount: interactions?.length,
+    interactionsLoading,
+    interactionsError
   });
 
   const form = useForm<InsertInteraction>({
@@ -50,6 +58,7 @@ export default function Calendar() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/interactions/all"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/interactions"] });
       setIsCreateDialogOpen(false);
       form.reset();
       toast({
@@ -134,15 +143,20 @@ export default function Calendar() {
 
   // Filter real interactions by date and applied filters
   const getFilteredInteractions = () => {
-    if (!interactions || !Array.isArray(interactions)) return [];
+    if (!interactions || !Array.isArray(interactions)) {
+      console.log("No interactions data:", interactions);
+      return [];
+    }
     
     let filtered = [...interactions];
+    console.log("All interactions before filtering:", filtered.length);
     
     // Filter by lead if selected
     if (selectedLead) {
       filtered = filtered.filter((interaction: any) => 
         interaction.leadId === parseInt(selectedLead)
       );
+      console.log("After lead filter:", filtered.length);
     }
     
     // Filter by type if selected
@@ -150,6 +164,7 @@ export default function Calendar() {
       filtered = filtered.filter((interaction: any) => 
         interaction.type === selectedType
       );
+      console.log("After type filter:", filtered.length);
     }
     
     return filtered;
