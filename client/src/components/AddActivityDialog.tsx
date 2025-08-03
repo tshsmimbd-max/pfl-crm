@@ -109,7 +109,7 @@ export default function AddActivityDialog({ open, onOpenChange, leadId }: AddAct
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          {leads.map((lead: any) => (
+                          {(leads as any[]).map((lead: any) => (
                             <SelectItem key={lead.id} value={lead.id.toString()}>
                               {lead.contactName} - {lead.company}
                             </SelectItem>
@@ -176,6 +176,7 @@ export default function AddActivityDialog({ open, onOpenChange, leadId }: AddAct
                       placeholder="Enter activity details..."
                       className="min-h-[100px]"
                       {...field}
+                      value={field.value || ""}
                     />
                   </FormControl>
                   <FormMessage />
@@ -196,7 +197,7 @@ export default function AddActivityDialog({ open, onOpenChange, leadId }: AddAct
                           type="datetime-local"
                           {...field}
                           value={field.value ? new Date(field.value).toISOString().slice(0, 16) : ""}
-                          onChange={(e) => field.onChange(e.target.value)}
+                          onChange={(e) => field.onChange(e.target.value ? new Date(e.target.value) : undefined)}
                         />
                       </FormControl>
                       <FormMessage />
@@ -215,7 +216,7 @@ export default function AddActivityDialog({ open, onOpenChange, leadId }: AddAct
                           type="datetime-local"
                           {...field}
                           value={field.value ? new Date(field.value).toISOString().slice(0, 16) : ""}
-                          onChange={(e) => field.onChange(e.target.value)}
+                          onChange={(e) => field.onChange(e.target.value ? new Date(e.target.value) : undefined)}
                         />
                       </FormControl>
                       <FormMessage />
