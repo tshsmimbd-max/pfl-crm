@@ -428,12 +428,12 @@ export default function Calendar() {
           </div>
           
           <div className="flex flex-col sm:flex-row gap-2 flex-1">
-            <Select value={selectedLead || ""} onValueChange={(value) => setSelectedLead(value || null)}>
+            <Select value={selectedLead || "all"} onValueChange={(value) => setSelectedLead(value === "all" ? null : value)}>
               <SelectTrigger className="w-full sm:w-48">
                 <SelectValue placeholder="Filter by Lead" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Leads</SelectItem>
+                <SelectItem value="all">All Leads</SelectItem>
                 {Array.isArray(leads) && leads.map((lead: any) => (
                   <SelectItem key={lead.id} value={lead.id.toString()}>
                     {lead.contactName} - {lead.company}
@@ -442,12 +442,12 @@ export default function Calendar() {
               </SelectContent>
             </Select>
 
-            <Select value={selectedType || ""} onValueChange={(value) => setSelectedType(value || null)}>
+            <Select value={selectedType || "all"} onValueChange={(value) => setSelectedType(value === "all" ? null : value)}>
               <SelectTrigger className="w-full sm:w-48">
                 <SelectValue placeholder="Filter by Type" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Types</SelectItem>
+                <SelectItem value="all">All Types</SelectItem>
                 <SelectItem value="meeting">Meeting</SelectItem>
                 <SelectItem value="call">Call</SelectItem>
                 <SelectItem value="email">Email</SelectItem>

@@ -1,0 +1,83 @@
+/api/user:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)Understand this error
+client:536 WebSocket connection to 'wss://c2da9947-eedc-4af8-86a1-98d7f745db9a-00-ga0x6nfp1uw9.spock.replit.dev/?token=zrSvn-BDm-VZ' failed: 
+setupWebSocket @ client:536Understand this error
+client:536 Uncaught (in promise) SyntaxError: Failed to construct 'WebSocket': The URL 'wss://localhost:undefined/?token=zrSvn-BDm-VZ' is invalid.
+    at setupWebSocket (client:536:19)
+    at fallback (client:509:16)
+    at WebSocket.<anonymous> (client:555:7)Understand this error
+/api/user:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)Understand this error
+/api/login:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)Understand this error
+NotificationSystem.tsx:61 WebSocket connected for notifications
+/api/notifications:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)Understand this error
+4@radix-ui_react-select.js?v=7e481b72:884 Uncaught Error: A <Select.Item /> must have a value prop that is not an empty string. This is because the Select value can be set to an empty string to clear the selection and show the placeholder.
+    at @radix-ui_react-select.js?v=7e481b72:884:13
+    at renderWithHooks (chunk-RPCDYKBN.js?v=7e481b72:11548:26)
+    at updateForwardRef (chunk-RPCDYKBN.js?v=7e481b72:14325:28)
+    at beginWork (chunk-RPCDYKBN.js?v=7e481b72:15946:22)
+    at HTMLUnknownElement.callCallback2 (chunk-RPCDYKBN.js?v=7e481b72:3674:22)
+    at Object.invokeGuardedCallbackDev (chunk-RPCDYKBN.js?v=7e481b72:3699:24)
+    at invokeGuardedCallback (chunk-RPCDYKBN.js?v=7e481b72:3733:39)
+    at beginWork$1 (chunk-RPCDYKBN.js?v=7e481b72:19765:15)
+    at performUnitOfWork (chunk-RPCDYKBN.js?v=7e481b72:19198:20)
+    at workLoopSync (chunk-RPCDYKBN.js?v=7e481b72:19137:13)Understand this error
+2chunk-RPCDYKBN.js?v=7e481b72:14032 The above error occurred in the <SelectItem> component:
+
+    at https://c2da9947-eedc-4af8-86a1-98d7f745db9a-00-ga0x6nfp1uw9.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-select.js?v=7e481b72:857:7
+    at _c11 (https://c2da9947-eedc-4af8-86a1-98d7f745db9a-00-ga0x6nfp1uw9.spock.replit.dev/src/components/ui/select.tsx:208:13)
+    at div
+    at https://c2da9947-eedc-4af8-86a1-98d7f745db9a-00-ga0x6nfp1uw9.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-BOL2CCOG.js?v=7e481b72:42:13
+    at https://c2da9947-eedc-4af8-86a1-98d7f745db9a-00-ga0x6nfp1uw9.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-EVLBUYTV.js?v=7e481b72:79:13
+    at https://c2da9947-eedc-4af8-86a1-98d7f745db9a-00-ga0x6nfp1uw9.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-EVLBUYTV.js?v=7e481b72:56:13
+    at https://c2da9947-eedc-4af8-86a1-98d7f745db9a-00-ga0x6nfp1uw9.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-DKA7LSZL.js?v=7e481b72:39:15
+    at https://c2da9947-eedc-4af8-86a1-98d7f745db9a-00-ga0x6nfp1uw9.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-select.js?v=7e481b72:768:13
+    at div
+    at https://c2da9947-eedc-4af8-86a1-98d7f745db9a-00-ga0x6nfp1uw9.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-EVLBUYTV.js?v=7e481b72:79:13
+    at https://c2da9947-eedc-4af8-86a1-98d7f745db9a-00-ga0x6nfp1uw9.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-EVLBUYTV.js?v=7e481b72:56:13
+    at https://c2da9947-eedc-4af8-86a1-98d7f745db9a-00-ga0x6nfp1uw9.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-DKA7LSZL.js?v=7e481b72:39:15
+    at Provider (https://c2da9947-eedc-4af8-86a1-98d7f745db9a-00-ga0x6nfp1uw9.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-OXZDJRWN.js?v=7e481b72:38:15)
+    at https://c2da9947-eedc-4af8-86a1-98d7f745db9a-00-ga0x6nfp1uw9.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-select.js?v=7e481b72:311:58
+    at https://c2da9947-eedc-4af8-86a1-98d7f745db9a-00-ga0x6nfp1uw9.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-EVLBUYTV.js?v=7e481b72:79:13
+    at https://c2da9947-eedc-4af8-86a1-98d7f745db9a-00-ga0x6nfp1uw9.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-EVLBUYTV.js?v=7e481b72:56:13
+    at https://c2da9947-eedc-4af8-86a1-98d7f745db9a-00-ga0x6nfp1uw9.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-BOL2CCOG.js?v=7e481b72:42:13
+    at https://c2da9947-eedc-4af8-86a1-98d7f745db9a-00-ga0x6nfp1uw9.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-LLGJSUGW.js?v=7e481b72:260:22
+    at SelectPortal
+    at _c7 (https://c2da9947-eedc-4af8-86a1-98d7f745db9a-00-ga0x6nfp1uw9.spock.replit.dev/src/components/ui/select.tsx:123:12)
+    at Provider (https://c2da9947-eedc-4af8-86a1-98d7f745db9a-00-ga0x6nfp1uw9.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-OXZDJRWN.js?v=7e481b72:38:15)
+    at Provider (https://c2da9947-eedc-4af8-86a1-98d7f745db9a-00-ga0x6nfp1uw9.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-OXZDJRWN.js?v=7e481b72:38:15)
+    at CollectionProvider (https://c2da9947-eedc-4af8-86a1-98d7f745db9a-00-ga0x6nfp1uw9.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-DKA7LSZL.js?v=7e481b72:29:13)
+    at Provider (https://c2da9947-eedc-4af8-86a1-98d7f745db9a-00-ga0x6nfp1uw9.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-OXZDJRWN.js?v=7e481b72:38:15)
+    at Provider (https://c2da9947-eedc-4af8-86a1-98d7f745db9a-00-ga0x6nfp1uw9.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-OXZDJRWN.js?v=7e481b72:38:15)
+    at Popper (https://c2da9947-eedc-4af8-86a1-98d7f745db9a-00-ga0x6nfp1uw9.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-7N45GXJI.js?v=7e481b72:1955:11)
+    at Select (https://c2da9947-eedc-4af8-86a1-98d7f745db9a-00-ga0x6nfp1uw9.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-select.js?v=7e481b72:99:5)
+    at div
+    at div
+    at div
+    at div
+    at Calendar (https://c2da9947-eedc-4af8-86a1-98d7f745db9a-00-ga0x6nfp1uw9.spock.replit.dev/src/components/Calendar.tsx:37:41)
+    at div
+    at main
+    at div
+    at Home (https://c2da9947-eedc-4af8-86a1-98d7f745db9a-00-ga0x6nfp1uw9.spock.replit.dev/src/pages/Home.tsx:35:31)
+    at Route (https://c2da9947-eedc-4af8-86a1-98d7f745db9a-00-ga0x6nfp1uw9.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=7e481b72:323:16)
+    at Switch (https://c2da9947-eedc-4af8-86a1-98d7f745db9a-00-ga0x6nfp1uw9.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=7e481b72:379:17)
+    at Router (https://c2da9947-eedc-4af8-86a1-98d7f745db9a-00-ga0x6nfp1uw9.spock.replit.dev/src/App.tsx?v=K0OAvhUC28Ig3jWabep7Y:30:42)
+    at Provider (https://c2da9947-eedc-4af8-86a1-98d7f745db9a-00-ga0x6nfp1uw9.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-OXZDJRWN.js?v=7e481b72:38:15)
+    at TooltipProvider (https://c2da9947-eedc-4af8-86a1-98d7f745db9a-00-ga0x6nfp1uw9.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-tooltip.js?v=7e481b72:63:5)
+    at QueryClientProvider (https://c2da9947-eedc-4af8-86a1-98d7f745db9a-00-ga0x6nfp1uw9.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@tanstack_react-query.js?v=7e481b72:2805:3)
+    at App
+
+Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://reactjs.org/link/error-boundaries to learn more about error boundaries.
+logCapturedError @ chunk-RPCDYKBN.js?v=7e481b72:14032Understand this error
+chunk-RPCDYKBN.js?v=7e481b72:9129 Uncaught Error: A <Select.Item /> must have a value prop that is not an empty string. This is because the Select value can be set to an empty string to clear the selection and show the placeholder.
+    at @radix-ui_react-select.js?v=7e481b72:884:13
+    at renderWithHooks (chunk-RPCDYKBN.js?v=7e481b72:11548:26)
+    at updateForwardRef (chunk-RPCDYKBN.js?v=7e481b72:14325:28)
+    at beginWork (chunk-RPCDYKBN.js?v=7e481b72:15946:22)
+    at beginWork$1 (chunk-RPCDYKBN.js?v=7e481b72:19753:22)
+    at performUnitOfWork (chunk-RPCDYKBN.js?v=7e481b72:19198:20)
+    at workLoopSync (chunk-RPCDYKBN.js?v=7e481b72:19137:13)
+    at renderRootSync (chunk-RPCDYKBN.js?v=7e481b72:19116:15)
+    at recoverFromConcurrentError (chunk-RPCDYKBN.js?v=7e481b72:18736:28)
+    at performSyncWorkOnRoot (chunk-RPCDYKBN.js?v=7e481b72:18879:28)Understand this error
+NotificationSystem.tsx:84 WebSocket disconnected
