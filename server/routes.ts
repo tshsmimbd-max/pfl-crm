@@ -601,17 +601,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Interaction/Activity routes
-  app.get('/api/interactions/:leadId', requireAuth, async (req: any, res) => {
-    try {
-      const leadId = parseInt(req.params.leadId);
-      const interactions = await storage.getInteractions(leadId);
-      res.json(interactions);
-    } catch (error) {
-      console.error("Error fetching interactions:", error);
-      res.status(500).json({ message: "Failed to fetch interactions" });
-    }
-  });
-
+  // Put /all route BEFORE the :leadId route to avoid conflicts
   app.get('/api/interactions/all', requireAuth, async (req: any, res) => {
     try {
       const currentUser = await storage.getUser(req.user.id);
@@ -649,6 +639,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(interactions);
     } catch (error) {
       console.error("Error fetching all interactions:", error);
+      res.status(500).json({ message: "Failed to fetch interactions" });
+    }
+  });
+
+  app.get('/api/interactions/:leadId', requireAuth, async (req: any, res) => {
+    try {
+      const leadId = parseInt(req.params.leadId);
+      const interactions = await storage.getInteractions(leadId);
+      res.json(interactions);
+    } catch (error) {
+      console.error("Error fetching interactions:", error);
       res.status(500).json({ message: "Failed to fetch interactions" });
     }
   });

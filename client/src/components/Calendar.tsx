@@ -33,14 +33,6 @@ export default function Calendar() {
     queryKey: ["/api/interactions/all"],
   });
 
-  // Debug logging
-  console.log("Calendar Debug:", {
-    interactions,
-    interactionsCount: interactions?.length,
-    interactionsLoading,
-    interactionsError
-  });
-
   const form = useForm<InsertInteraction>({
     resolver: zodResolver(insertInteractionSchema),
     defaultValues: {
@@ -144,19 +136,16 @@ export default function Calendar() {
   // Filter real interactions by date and applied filters
   const getFilteredInteractions = () => {
     if (!interactions || !Array.isArray(interactions)) {
-      console.log("No interactions data:", interactions);
       return [];
     }
     
     let filtered = [...interactions];
-    console.log("All interactions before filtering:", filtered.length);
     
     // Filter by lead if selected
     if (selectedLead) {
       filtered = filtered.filter((interaction: any) => 
         interaction.leadId === parseInt(selectedLead)
       );
-      console.log("After lead filter:", filtered.length);
     }
     
     // Filter by type if selected
@@ -164,7 +153,6 @@ export default function Calendar() {
       filtered = filtered.filter((interaction: any) => 
         interaction.type === selectedType
       );
-      console.log("After type filter:", filtered.length);
     }
     
     return filtered;
@@ -486,6 +474,8 @@ export default function Calendar() {
 
           <div className="flex items-center gap-2 text-sm text-gray-600">
             <span>Total Activities: {getFilteredInteractions().length}</span>
+            {interactionsLoading && <span className="text-blue-600">Loading...</span>}
+            {interactionsError && <span className="text-red-600">Error loading activities</span>}
           </div>
         </div>
       </div>
