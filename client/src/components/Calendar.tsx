@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Calendar as CalendarIcon, Plus, Clock, Users, Video, Phone, MapPin, ChevronLeft, ChevronRight } from "lucide-react";
+import { Calendar as CalendarIcon, Plus, Clock, Users, Video, Phone, MapPin, ChevronLeft, ChevronRight, Filter, X, Mail } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertInteractionSchema, type InsertInteraction } from "@shared/schema";
@@ -21,6 +21,8 @@ export default function Calendar() {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [viewMode, setViewMode] = useState<"month" | "week" | "day">("month");
+  const [selectedLead, setSelectedLead] = useState<string | null>(null);
+  const [selectedType, setSelectedType] = useState<string | null>(null);
   const { toast } = useToast();
 
   const { data: leads = [] } = useQuery({
@@ -130,12 +132,34 @@ export default function Calendar() {
     }
   };
 
-  // Filter real interactions by date
-  const getInteractionsForDate = (date: Date) => {
+  // Filter real interactions by date and applied filters
+  const getFilteredInteractions = () => {
     if (!interactions || !Array.isArray(interactions)) return [];
     
+    let filtered = [...interactions];
+    
+    // Filter by lead if selected
+    if (selectedLead) {
+      filtered = filtered.filter((interaction: any) => 
+        interaction.leadId === parseInt(selectedLead)
+      );
+    }
+    
+    // Filter by type if selected
+    if (selectedType) {
+      filtered = filtered.filter((interaction: any) => 
+        interaction.type === selectedType
+      );
+    }
+    
+    return filtered;
+  };
+
+  const getInteractionsForDate = (date: Date) => {
+    const filteredInteractions = getFilteredInteractions();
     const dateStr = date.toDateString();
-    return interactions.filter((interaction: any) => {
+    
+    return filteredInteractions.filter((interaction: any) => {
       if (!interaction.scheduledAt) return false;
       const interactionDate = new Date(interaction.scheduledAt);
       return interactionDate.toDateString() === dateStr;
@@ -212,18 +236,32 @@ export default function Calendar() {
   tomorrow.setDate(tomorrow.getDate() + 1);
   const tomorrowInteractions = getInteractionsForDate(tomorrow);
   
-  const upcomingInteractions = [...todayInteractions, ...tomorrowInteractions]
-    .sort((a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime());
+  // Get upcoming interactions for the next 7 days
+  const getUpcomingInteractions = () => {
+    const filteredInteractions = getFilteredInteractions();
+    const now = new Date();
+    const nextWeek = new Date();
+    nextWeek.setDate(nextWeek.getDate() + 7);
+    
+    return filteredInteractions.filter((interaction: any) => {
+      if (!interaction.scheduledAt) return false;
+      const interactionDate = new Date(interaction.scheduledAt);
+      return interactionDate >= now && interactionDate <= nextWeek;
+    }).sort((a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime());
+  };
+  
+  const upcomingInteractions = getUpcomingInteractions();
 
   return (
     <div className="space-y-4 lg:space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-xl lg:text-2xl font-bold text-gray-900">Calendar</h1>
-          <p className="text-gray-600">Schedule and manage your meetings</p>
-        </div>
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+      <div className="flex flex-col gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-xl lg:text-2xl font-bold text-gray-900">Calendar</h1>
+            <p className="text-gray-600">Schedule and manage your meetings</p>
+          </div>
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
           <div className="flex items-center space-x-2">
             <Button
               variant={viewMode === "month" ? "default" : "outline"}
@@ -376,6 +414,64 @@ export default function Calendar() {
                 </Form>
               </DialogContent>
             </Dialog>
+          </div>
+        </div>
+
+        {/* Filters */}
+        <div className="flex flex-col sm:flex-row gap-3 p-4 bg-gray-50 rounded-lg border">
+          <div className="flex items-center gap-2">
+            <Filter className="w-4 h-4 text-gray-500" />
+            <span className="text-sm font-medium text-gray-700">Filters:</span>
+          </div>
+          
+          <div className="flex flex-col sm:flex-row gap-2 flex-1">
+            <Select value={selectedLead || ""} onValueChange={(value) => setSelectedLead(value || null)}>
+              <SelectTrigger className="w-full sm:w-48">
+                <SelectValue placeholder="Filter by Lead" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">All Leads</SelectItem>
+                {Array.isArray(leads) && leads.map((lead: any) => (
+                  <SelectItem key={lead.id} value={lead.id.toString()}>
+                    {lead.contactName} - {lead.company}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select value={selectedType || ""} onValueChange={(value) => setSelectedType(value || null)}>
+              <SelectTrigger className="w-full sm:w-48">
+                <SelectValue placeholder="Filter by Type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">All Types</SelectItem>
+                <SelectItem value="meeting">Meeting</SelectItem>
+                <SelectItem value="call">Call</SelectItem>
+                <SelectItem value="email">Email</SelectItem>
+                <SelectItem value="demo">Demo</SelectItem>
+                <SelectItem value="follow_up">Follow Up</SelectItem>
+              </SelectContent>
+            </Select>
+
+            {(selectedLead || selectedType) && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setSelectedLead(null);
+                  setSelectedType(null);
+                }}
+                className="flex items-center gap-1"
+              >
+                <X className="w-3 h-3" />
+                Clear
+              </Button>
+            )}
+          </div>
+
+          <div className="flex items-center gap-2 text-sm text-gray-600">
+            <span>Total Activities: {getFilteredInteractions().length}</span>
+          </div>
         </div>
       </div>
 
@@ -435,21 +531,36 @@ export default function Calendar() {
                         const lead = Array.isArray(leads) ? leads.find((l: any) => l.id === interaction.leadId) : null;
                         
                         return (
-                          <div key={index} className="flex items-start space-x-3 p-3 bg-white rounded-lg border">
+                          <div key={index} className="flex items-start space-x-3 p-3 bg-white rounded-lg border hover:shadow-sm transition-shadow">
                             <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${getInteractionColor(interaction.type)}`}>
                               <Icon className="w-4 h-4" />
                             </div>
                             <div className="flex-1">
                               <p className="text-sm font-medium text-gray-900">{interaction.subject}</p>
-                              <p className="text-xs text-gray-600">{lead?.company}</p>
-                              <p className="text-xs text-gray-500">{formatTime(new Date(interaction.scheduledAt))}</p>
+                              <div className="flex items-center gap-2 mt-1">
+                                <Badge variant="outline" className="text-xs">
+                                  {lead?.contactName || 'Unknown Lead'}
+                                </Badge>
+                                <span className="text-xs text-gray-500">•</span>
+                                <span className="text-xs text-gray-600">{lead?.company || 'No Company'}</span>
+                              </div>
+                              <p className="text-xs text-gray-500 mt-1">{formatTime(new Date(interaction.scheduledAt))}</p>
+                              {interaction.description && (
+                                <p className="text-xs text-gray-600 mt-1 line-clamp-2">{interaction.description}</p>
+                              )}
                             </div>
                           </div>
                         );
                       })}
                     </div>
                   ) : (
-                    <p className="text-sm text-gray-500 text-center py-4">No meetings scheduled for today</p>
+                    <div className="text-center py-6">
+                      <CalendarIcon className="w-8 h-8 text-gray-300 mx-auto mb-2" />
+                      <p className="text-sm text-gray-500">No activities scheduled for today</p>
+                      {selectedLead && (
+                        <p className="text-xs text-gray-400 mt-1">No activities for selected lead</p>
+                      )}
+                    </div>
                   )}
                 </CardContent>
               </Card>
@@ -462,29 +573,54 @@ export default function Calendar() {
                 <CardContent>
                   {upcomingInteractions.length > 0 ? (
                     <div className="space-y-3">
-                      {upcomingInteractions.slice(0, 5).map((interaction, index) => {
+                      {upcomingInteractions.slice(0, 8).map((interaction, index) => {
                         const Icon = getInteractionIcon(interaction.type);
                         const lead = Array.isArray(leads) ? leads.find((l: any) => l.id === interaction.leadId) : null;
                         const isToday = new Date(interaction.scheduledAt).toDateString() === new Date().toDateString();
+                        const interactionDate = new Date(interaction.scheduledAt);
                         
                         return (
-                          <div key={index} className="flex items-start space-x-3">
+                          <div key={index} className="flex items-start space-x-3 p-2 hover:bg-gray-50 rounded-lg transition-colors">
                             <div className={`w-6 h-6 rounded-full flex items-center justify-center ${getInteractionColor(interaction.type)}`}>
                               <Icon className="w-3 h-3" />
                             </div>
                             <div className="flex-1">
                               <p className="text-sm font-medium text-gray-900">{interaction.subject}</p>
-                              <p className="text-xs text-gray-600">{lead?.company}</p>
-                              <p className="text-xs text-gray-500">
-                                {isToday ? "Today" : new Date(interaction.scheduledAt).toLocaleDateString()} at {formatTime(new Date(interaction.scheduledAt))}
+                              <div className="flex items-center gap-2 mt-1">
+                                <Badge variant="secondary" className="text-xs">
+                                  {lead?.contactName || 'Unknown Lead'}
+                                </Badge>
+                                {lead?.company && (
+                                  <>
+                                    <span className="text-xs text-gray-400">•</span>
+                                    <span className="text-xs text-gray-600">{lead.company}</span>
+                                  </>
+                                )}
+                              </div>
+                              <p className="text-xs text-gray-500 mt-1">
+                                {isToday ? "Today" : interactionDate.toLocaleDateString()} at {formatTime(interactionDate)}
                               </p>
+                              {interaction.description && (
+                                <p className="text-xs text-gray-600 mt-1 line-clamp-1">{interaction.description}</p>
+                              )}
                             </div>
                           </div>
                         );
                       })}
+                      {upcomingInteractions.length > 8 && (
+                        <div className="text-center pt-2">
+                          <p className="text-xs text-gray-500">+{upcomingInteractions.length - 8} more activities</p>
+                        </div>
+                      )}
                     </div>
                   ) : (
-                    <p className="text-sm text-gray-500 text-center py-4">No upcoming events</p>
+                    <div className="text-center py-6">
+                      <Clock className="w-8 h-8 text-gray-300 mx-auto mb-2" />
+                      <p className="text-sm text-gray-500">No upcoming activities</p>
+                      {selectedLead && (
+                        <p className="text-xs text-gray-400 mt-1">No upcoming activities for selected lead</p>
+                      )}
+                    </div>
                   )}
                 </CardContent>
               </Card>
