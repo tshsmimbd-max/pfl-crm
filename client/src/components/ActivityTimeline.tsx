@@ -22,6 +22,9 @@ import type { Interaction } from "@shared/schema";
 interface ActivityTimelineProps {
   leadId?: number;
   userId?: string;
+  activities?: any[];
+  leads?: any[];
+  showLeadInfo?: boolean;
   onAddActivity?: () => void;
 }
 
@@ -39,16 +42,26 @@ const ACTIVITY_COLORS = {
   note: "bg-orange-100 text-orange-600 border-orange-200",
 };
 
-export default function ActivityTimeline({ leadId, userId, onAddActivity }: ActivityTimelineProps) {
-  const { data: activities = [], isLoading } = useQuery({
+export default function ActivityTimeline({ 
+  leadId, 
+  userId, 
+  activities: propActivities, 
+  leads: propLeads = [], 
+  showLeadInfo = true, 
+  onAddActivity 
+}: ActivityTimelineProps) {
+  const { data: fetchedActivities = [], isLoading } = useQuery({
     queryKey: leadId ? ["/api/interactions", leadId] : ["/api/interactions/user", userId],
-    enabled: !!(leadId || userId),
+    enabled: !propActivities && !!(leadId || userId),
   });
 
-  const { data: leads = [] } = useQuery({
+  const { data: fetchedLeads = [] } = useQuery({
     queryKey: ["/api/leads"],
-    enabled: !!userId && !leadId, // Only fetch leads when showing user activities
+    enabled: !propLeads.length && !!userId && !leadId, // Only fetch leads when showing user activities
   });
+
+  const activities = propActivities || fetchedActivities;
+  const leads = propLeads.length > 0 ? propLeads : fetchedLeads;
 
   const getLeadInfo = (leadId: number) => {
     return leads.find((lead: any) => lead.id === leadId);
@@ -101,7 +114,7 @@ export default function ActivityTimeline({ leadId, userId, onAddActivity }: Acti
               {activities.map((activity: Interaction, index: number) => {
                 const IconComponent = ACTIVITY_ICONS[activity.type as keyof typeof ACTIVITY_ICONS] || FileText;
                 const colorClass = ACTIVITY_COLORS[activity.type as keyof typeof ACTIVITY_COLORS] || ACTIVITY_COLORS.note;
-                const leadInfo = !leadId ? getLeadInfo(activity.leadId) : null;
+                const leadInfo = !leadId && activity.leadId ? getLeadInfo(activity.leadId) : null;
 
                 return (
                   <div key={activity.id} className="relative">
@@ -141,7 +154,7 @@ export default function ActivityTimeline({ leadId, userId, onAddActivity }: Acti
                         </div>
 
                         {/* Lead info for user timeline */}
-                        {leadInfo && (
+                        {showLeadInfo && leadInfo && (
                           <div className="flex items-center space-x-2 mb-2 text-sm text-gray-600">
                             <User className="w-3 h-3" />
                             <span>{leadInfo.contactName}</span>
@@ -171,9 +184,11 @@ export default function ActivityTimeline({ leadId, userId, onAddActivity }: Acti
                             )}
                           </div>
                           
-                          <span>
-                            {format(new Date(activity.createdAt), "MMM d, yyyy")}
-                          </span>
+                          {activity.createdAt && (
+                            <span>
+                              {format(new Date(activity.createdAt), "MMM d, yyyy")}
+                            </span>
+                          )}
                         </div>
                       </div>
                     </div>

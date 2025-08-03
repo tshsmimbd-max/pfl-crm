@@ -269,9 +269,9 @@ export class DatabaseStorage implements IStorage {
 
   async updateLead(id: number, lead: Partial<InsertLead>): Promise<Lead> {
     // Handle preferredPickTime conversion for update
-    const updateData = { ...lead, updatedAt: new Date() };
+    const updateData: any = { ...lead, updatedAt: new Date() };
     if (updateData.preferredPickTime instanceof Date) {
-      (updateData as any).preferredPickTime = updateData.preferredPickTime.toISOString();
+      updateData.preferredPickTime = updateData.preferredPickTime.toISOString();
     }
     
     const [updatedLead] = await db
@@ -295,11 +295,27 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Interaction operations
-  async getInteractions(leadId: number): Promise<Interaction[]> {
-    return await db
-      .select()
-      .from(interactions)
-      .where(eq(interactions.leadId, leadId))
+  async getInteractions(leadId?: number): Promise<Interaction[]> {
+    if (leadId) {
+      return await db
+        .select()
+        .from(interactions)
+        .where(eq(interactions.leadId, leadId))
+        .orderBy(desc(interactions.createdAt));
+    }
+    return await db.select().from(interactions).orderBy(desc(interactions.createdAt));
+  }
+
+  async getInteractionsByUser(userId: string): Promise<Interaction[]> {
+    return await db.select().from(interactions)
+      .where(eq(interactions.userId, userId))
+      .orderBy(desc(interactions.createdAt));
+  }
+
+  async getInteractionsByUsers(userIds: string[]): Promise<Interaction[]> {
+    if (userIds.length === 0) return [];
+    return await db.select().from(interactions)
+      .where(inArray(interactions.userId, userIds))
       .orderBy(desc(interactions.createdAt));
   }
 
