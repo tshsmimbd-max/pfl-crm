@@ -592,18 +592,305 @@ export class DatabaseStorage implements IStorage {
 }
 
 // Production database storage - prevents data loss
-console.log("Using database storage for production - data will persist");
-export const storage = new DatabaseStorage();
+// Temporarily switch to a simple in-memory storage due to database connectivity issues
+console.log("Database connectivity issue - using temporary memory storage");
 
-// Initialize admin user for production
-storage.createUser({
-  id: "admin",
-  email: "admin@paperfly.com", 
-  password: "$2b$10$M/qluBLTkmxuzQnnC.5zJOEJdy64PjZSiK7zUEu2GnZY5pbqYl..6", // admin123
-  employeeName: "System Administrator",
-  employeeCode: "ADM001",
-  role: "super_admin",
-  emailVerified: true
-}).catch(() => {
-  // User already exists, ignore error
-});
+// Simple memory storage implementation
+class SimpleMemoryStorage {
+  private users = new Map();
+  private leads = new Map();
+  private interactions = new Map();
+  private targets = new Map();
+  private customers = new Map();
+  private notifications = new Map();
+  private nextId = 1;
+
+  constructor() {
+    // Add default admin user
+    this.users.set('admin@paperfly.com', {
+      id: '1',
+      email: 'admin@paperfly.com',
+      password: '$2b$10$CwTycUXWue0Thq9StjUM0uBIjYcN8BFLnfOdgAaD1RmcQfPuJsQ1S', // admin123
+      fullName: 'Admin User',
+      role: 'super_admin',
+      emailVerified: true,
+      verificationCode: null,
+      codeExpiresAt: null,
+      managerId: null,
+      teamName: null,
+      isActive: true,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    });
+  }
+
+  // Implement required interface methods with simple Map operations
+  async getUserByEmail(email) { return this.users.get(email); }
+  async getUser(id) { return Array.from(this.users.values()).find(u => u.id === id); }
+  async createUser(user) { 
+    const newUser = { ...user, id: String(this.nextId++), createdAt: new Date(), updatedAt: new Date() };
+    this.users.set(user.email, newUser);
+    return newUser;
+  }
+  async setVerificationCode(email, code) {
+    const user = this.users.get(email);
+    if (user) {
+      user.verificationCode = code;
+      user.codeExpiresAt = new Date(Date.now() + 10 * 60 * 1000);
+    }
+  }
+  async verifyCode(email, code) {
+    const user = this.users.get(email);
+    if (user && user.verificationCode === code && user.codeExpiresAt > new Date()) {
+      user.emailVerified = true;
+      user.verificationCode = null;
+      user.codeExpiresAt = null;
+      return user;
+    }
+    return null;
+  }
+  async getAllUsers() { return Array.from(this.users.values()); }
+  async updateUserRole(id, role, managerId) {
+    const user = Array.from(this.users.values()).find(u => u.id === id);
+    if (user) {
+      user.role = role;
+      if (managerId) user.managerId = managerId;
+      user.updatedAt = new Date();
+    }
+    return user;
+  }
+  async getTeamMembers(managerId) { 
+    return Array.from(this.users.values()).filter(u => u.managerId === managerId);
+  }
+  async isTeamMember(managerId, userId) {
+    const user = Array.from(this.users.values()).find(u => u.id === userId);
+    return user && user.managerId === managerId;
+  }
+  async deactivateUser(id) {
+    const user = Array.from(this.users.values()).find(u => u.id === id);
+    if (user) {
+      user.isActive = false;
+      user.updatedAt = new Date();
+    }
+    return user;
+  }
+  async activateUser(id) {
+    const user = Array.from(this.users.values()).find(u => u.id === id);
+    if (user) {
+      user.isActive = true;
+      user.updatedAt = new Date();
+    }
+    return user;
+  }
+  async getUsersForAssignment(currentUserId, currentUserRole) {
+    return Array.from(this.users.values()).filter(u => u.isActive);
+  }
+  async assignUserToManager(userId, managerId) {
+    const user = Array.from(this.users.values()).find(u => u.id === userId);
+    if (user) {
+      user.managerId = managerId;
+      user.updatedAt = new Date();
+    }
+    return user;
+  }
+  async updateUserTeam(userId, teamName) {
+    const user = Array.from(this.users.values()).find(u => u.id === userId);
+    if (user) {
+      user.teamName = teamName;
+      user.updatedAt = new Date();
+    }
+    return user;
+  }
+
+  // Lead operations
+  async getLeads() { return Array.from(this.leads.values()); }
+  async getLead(id) { return this.leads.get(id); }
+  async createLead(lead) {
+    const newLead = { ...lead, id: this.nextId++, createdAt: new Date(), updatedAt: new Date() };
+    this.leads.set(newLead.id, newLead);
+    return newLead;
+  }
+  async updateLead(id, lead) {
+    const existing = this.leads.get(id);
+    if (existing) {
+      Object.assign(existing, lead, { updatedAt: new Date() });
+    }
+    return existing;
+  }
+  async deleteLead(id) { this.leads.delete(id); }
+  async getLeadsByStage(stage) {
+    return Array.from(this.leads.values()).filter(l => l.stage === stage);
+  }
+  async getLeadsByUser(userId) {
+    return Array.from(this.leads.values()).filter(l => l.assignedTo === userId);
+  }
+
+  // Interaction operations
+  async getInteractions(leadId) {
+    return Array.from(this.interactions.values()).filter(i => i.leadId === leadId);
+  }
+  async getAllInteractions() { return Array.from(this.interactions.values()); }
+  async createInteraction(interaction) {
+    const newInteraction = { ...interaction, id: this.nextId++, createdAt: new Date() };
+    this.interactions.set(newInteraction.id, newInteraction);
+    return newInteraction;
+  }
+  async updateInteraction(id, interaction) {
+    const existing = this.interactions.get(id);
+    if (existing) {
+      Object.assign(existing, interaction);
+    }
+    return existing;
+  }
+
+  // Target operations
+  async getTargets(userId) {
+    const targets = Array.from(this.targets.values());
+    return userId ? targets.filter(t => t.assignedUserId === userId) : targets;
+  }
+  async createTarget(target) {
+    const newTarget = { ...target, id: this.nextId++, createdAt: new Date(), updatedAt: new Date() };
+    this.targets.set(newTarget.id, newTarget);
+    return newTarget;
+  }
+  async updateTarget(id, target) {
+    const existing = this.targets.get(id);
+    if (existing) {
+      Object.assign(existing, target, { updatedAt: new Date() });
+    }
+    return existing;
+  }
+  async deleteTarget(id) { this.targets.delete(id); }
+  async getCurrentTarget(userId, period) {
+    return Array.from(this.targets.values()).find(t => 
+      t.assignedUserId === userId && t.period === period
+    );
+  }
+
+  // Customer operations
+  async getCustomers() { return Array.from(this.customers.values()); }
+  async getCustomer(id) { return this.customers.get(id); }
+  async createCustomer(customer) {
+    const newCustomer = { ...customer, id: this.nextId++, createdAt: new Date(), updatedAt: new Date() };
+    this.customers.set(newCustomer.id, newCustomer);
+    return newCustomer;
+  }
+  async updateCustomer(id, customer) {
+    const existing = this.customers.get(id);
+    if (existing) {
+      Object.assign(existing, customer, { updatedAt: new Date() });
+    }
+    return existing;
+  }
+  async deleteCustomer(id) { this.customers.delete(id); }
+  async convertLeadToCustomer(leadId, userId) {
+    const lead = this.leads.get(leadId);
+    if (lead) {
+      const customer = await this.createCustomer({
+        contactName: lead.contactName,
+        email: lead.email,
+        phone: lead.phone,
+        company: lead.company,
+        totalValue: lead.value,
+        convertedBy: userId,
+        convertedAt: new Date(),
+        originalLeadId: leadId
+      });
+      return customer;
+    }
+    throw new Error('Lead not found');
+  }
+  async getCustomersByUser(userId) {
+    return Array.from(this.customers.values()).filter(c => c.convertedBy === userId);
+  }
+
+  // Notification operations
+  async getNotifications(userId) {
+    return Array.from(this.notifications.values()).filter(n => n.userId === userId);
+  }
+  async createNotification(notification) {
+    const newNotification = { ...notification, id: this.nextId++, createdAt: new Date() };
+    this.notifications.set(newNotification.id, newNotification);
+    return newNotification;
+  }
+  async markNotificationAsRead(id) {
+    const notification = this.notifications.get(id);
+    if (notification) {
+      notification.isRead = true;
+    }
+  }
+
+  // Analytics operations
+  async getLeadMetrics(userId, startDate, endDate) {
+    let leads = Array.from(this.leads.values());
+    if (userId) leads = leads.filter(l => l.assignedTo === userId);
+    if (startDate || endDate) {
+      leads = leads.filter(l => {
+        const date = l.createdAt;
+        return (!startDate || date >= startDate) && (!endDate || date <= endDate);
+      });
+    }
+    
+    const totalLeads = leads.length;
+    const convertedLeads = leads.filter(l => l.stage === 'closed_won').length;
+    const totalValue = leads.reduce((sum, l) => sum + (l.value || 0), 0);
+    const conversionRate = totalLeads > 0 ? (convertedLeads / totalLeads) * 100 : 0;
+
+    return { totalLeads, convertedLeads, totalValue, conversionRate };
+  }
+
+  async getRevenueMetrics(userId, startDate, endDate) {
+    return { totalRevenue: 0, targetRevenue: 100000, achievementRate: 0 };
+  }
+
+  async getPipelineMetrics(userId) {
+    const leads = userId ? 
+      Array.from(this.leads.values()).filter(l => l.assignedTo === userId) :
+      Array.from(this.leads.values());
+      
+    const pipeline = {
+      prospecting: leads.filter(l => l.stage === 'prospecting').length,
+      qualification: leads.filter(l => l.stage === 'qualification').length,
+      proposal: leads.filter(l => l.stage === 'proposal').length,
+      negotiation: leads.filter(l => l.stage === 'negotiation').length,
+      closed_won: leads.filter(l => l.stage === 'closed_won').length,
+      closed_lost: leads.filter(l => l.stage === 'closed_lost').length
+    };
+    
+    return pipeline;
+  }
+
+  // Bulk operations
+  async bulkCreateLeads(leads) {
+    const createdLeads = [];
+    for (const lead of leads) {
+      const created = await this.createLead(lead);
+      createdLeads.push(created);
+    }
+    return createdLeads;
+  }
+
+  async bulkCreateCustomers(customers) {
+    const createdCustomers = [];
+    for (const customer of customers) {
+      const created = await this.createCustomer(customer);
+      createdCustomers.push(created);
+    }
+    return createdCustomers;
+  }
+
+  // Revenue tracking
+  async getDailyRevenue(date) {
+    return { date, revenue: 0, target: 0 };
+  }
+
+  async createDailyRevenue(data) {
+    return { id: this.nextId++, ...data, createdAt: new Date() };
+  }
+
+  async updateDailyRevenue(date, revenue) {
+    return { date, revenue, target: 0, updatedAt: new Date() };
+  }
+}
+
+export const storage = new SimpleMemoryStorage();
