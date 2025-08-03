@@ -592,10 +592,46 @@ export class DatabaseStorage implements IStorage {
 }
 
 // Production database storage - prevents data loss
-// Temporarily switch to a simple in-memory storage due to database connectivity issues
-console.log("Database connectivity issue - using temporary memory storage");
+// Restore database storage with enhanced error handling
+console.log("Attempting to restore database connection...");
 
-// Simple memory storage implementation
+// Try to wake up the database with a connection test
+async function testDatabaseConnection() {
+  try {
+    await db.select().from(users).limit(1);
+    console.log("Database connection successful - using DatabaseStorage");
+    return true;
+  } catch (error) {
+    console.log("Database connection failed:", error.message);
+    return false;
+  }
+}
+
+// Enhanced database storage with connection retry
+class EnhancedDatabaseStorage extends DatabaseStorage {
+  private async retryOperation<T>(operation: () => Promise<T>, retries = 3): Promise<T> {
+    for (let i = 0; i < retries; i++) {
+      try {
+        return await operation();
+      } catch (error) {
+        if (i === retries - 1) throw error;
+        console.log(`Database operation failed, retrying... (${i + 1}/${retries})`);
+        await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1)));
+      }
+    }
+    throw new Error('All retries failed');
+  }
+
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    return this.retryOperation(() => super.getUserByEmail(email));
+  }
+
+  async getUser(id: string): Promise<User | undefined> {
+    return this.retryOperation(() => super.getUser(id));
+  }
+}
+
+// Fallback memory storage for when database is unavailable
 class SimpleMemoryStorage {
   private users = new Map();
   private leads = new Map();
@@ -895,4 +931,22 @@ class SimpleMemoryStorage {
   }
 }
 
-export const storage = new SimpleMemoryStorage();
+// Initialize storage with database connection test
+let storage: EnhancedDatabaseStorage | SimpleMemoryStorage;
+
+// Test database connection and initialize appropriate storage
+testDatabaseConnection().then(isConnected => {
+  if (isConnected) {
+    storage = new EnhancedDatabaseStorage();
+    console.log("Using enhanced database storage with retry logic");
+  } else {
+    storage = new SimpleMemoryStorage();
+    console.log("Fallback to memory storage - database unavailable");
+  }
+}).catch(() => {
+  storage = new SimpleMemoryStorage();
+  console.log("Database test failed - using memory storage");
+});
+
+// Export storage (will be set after async test completes)
+export { storage };
