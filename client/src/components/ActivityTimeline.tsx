@@ -130,26 +130,15 @@ export default function ActivityTimeline({
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between mb-1">
                           <div className="flex items-center space-x-2">
-                            <h4 className="font-medium text-gray-900">
-                              {activity.subject}
-                            </h4>
-                            <Badge variant="outline" className="text-xs">
+                            <h4 className="font-medium text-gray-900 capitalize">
                               {activity.type}
-                            </Badge>
-                          </div>
-                          
-                          <div className="flex items-center space-x-2 text-sm text-gray-500">
-                            {activity.completedAt ? (
-                              <div className="flex items-center">
-                                <CheckCircle className="w-4 h-4 mr-1 text-green-500" />
+                            </h4>
+                            {activity.completedAt && (
+                              <Badge variant="outline" className="text-xs bg-green-50 text-green-600">
+                                <CheckCircle className="w-3 h-3 mr-1" />
                                 Completed
-                              </div>
-                            ) : activity.scheduledAt ? (
-                              <div className="flex items-center">
-                                <Clock className="w-4 h-4 mr-1 text-orange-500" />
-                                Scheduled
-                              </div>
-                            ) : null}
+                              </Badge>
+                            )}
                           </div>
                         </div>
 
@@ -171,19 +160,6 @@ export default function ActivityTimeline({
                         )}
                         
                         <div className="flex items-center justify-between text-xs text-gray-500">
-                          <div className="flex items-center space-x-4">
-                            {activity.scheduledAt && (
-                              <span>
-                                Scheduled: {format(new Date(activity.scheduledAt), "MMM d, h:mm a")}
-                              </span>
-                            )}
-                            {activity.completedAt && (
-                              <span>
-                                Completed: {format(new Date(activity.completedAt), "MMM d, h:mm a")}
-                              </span>
-                            )}
-                          </div>
-                          
                           {activity.createdAt && (
                             <span>
                               {format(new Date(activity.createdAt), "MMM d, yyyy")}

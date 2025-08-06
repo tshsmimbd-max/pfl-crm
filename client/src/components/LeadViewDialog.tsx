@@ -107,6 +107,60 @@ export default function LeadViewDialog({ lead, open, onOpenChange, onEdit }: Lea
     ).join(' ');
   };
 
+  // Calculate Lead Score based on multiple factors
+  const calculateLeadScore = (lead: Lead, interactions: any[]) => {
+    let score = 0;
+    
+    // Base score for lead value (0-30 points)
+    const value = typeof lead.value === 'string' ? parseFloat(lead.value) : lead.value;
+    if (value > 100000) score += 30;
+    else if (value > 50000) score += 20;
+    else if (value > 10000) score += 10;
+    else score += 5;
+    
+    // Stage progression score (0-25 points)
+    const stageScores = {
+      'prospecting': 5,
+      'qualification': 10,
+      'proposal': 15,
+      'negotiation': 20,
+      'closed_won': 25,
+      'closed_lost': 0
+    };
+    score += stageScores[lead.stage as keyof typeof stageScores] || 0;
+    
+    // Interaction activity score (0-20 points)
+    const recentInteractions = interactions.filter(i => {
+      const interactionDate = new Date(i.createdAt);
+      const daysSince = (Date.now() - interactionDate.getTime()) / (1000 * 60 * 60 * 24);
+      return daysSince <= 30; // Last 30 days
+    });
+    
+    if (recentInteractions.length >= 5) score += 20;
+    else if (recentInteractions.length >= 3) score += 15;
+    else if (recentInteractions.length >= 1) score += 10;
+    
+    // Contact information completeness (0-15 points)
+    let completeness = 0;
+    if (lead.phone) completeness += 3;
+    if (lead.email) completeness += 3;
+    if (lead.company) completeness += 3;
+    if (lead.website) completeness += 3;
+    if (lead.notes) completeness += 3;
+    score += completeness;
+    
+    // Lead source quality (0-10 points)
+    const sourceScores = {
+      'Referral': 10,
+      'Social Media': 7,
+      'Ads': 5,
+      'Others': 3
+    };
+    score += sourceScores[lead.leadSource as keyof typeof sourceScores] || 3;
+    
+    return Math.min(100, Math.max(0, score));
+  };
+
   if (!lead) return null;
 
   return (
@@ -271,7 +325,7 @@ export default function LeadViewDialog({ lead, open, onOpenChange, onEdit }: Lea
               <CardContent>
                 <div className="text-center">
                   <div className="text-3xl font-bold text-blue-600 mb-2">
-                    {Math.floor(Math.random() * 100)}
+                    {calculateLeadScore(lead, interactions)}
                   </div>
                   <div className="text-sm text-gray-600">
                     Based on engagement and profile

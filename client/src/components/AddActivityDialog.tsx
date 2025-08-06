@@ -44,9 +44,7 @@ export default function AddActivityDialog({ open, onOpenChange, leadId }: AddAct
     defaultValues: {
       leadId: leadId || undefined,
       type: "note",
-      subject: "",
       description: "",
-      scheduledAt: undefined,
       completedAt: undefined,
     },
   });
@@ -154,22 +152,7 @@ export default function AddActivityDialog({ open, onOpenChange, leadId }: AddAct
               />
             </div>
 
-            <FormField
-              control={form.control}
-              name="subject"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Subject</FormLabel>
-                  <FormControl>
-                    <Input 
-                      placeholder="Enter activity subject..." 
-                      {...field} 
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+
 
             <FormField
               control={form.control}
@@ -190,47 +173,7 @@ export default function AddActivityDialog({ open, onOpenChange, leadId }: AddAct
               )}
             />
 
-            {isSchedulable && (
-              <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="scheduledAt"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Scheduled Date & Time</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="datetime-local"
-                          {...field}
-                          value={field.value ? new Date(field.value).toISOString().slice(0, 16) : ""}
-                          onChange={(e) => field.onChange(e.target.value ? new Date(e.target.value) : undefined)}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
 
-                <FormField
-                  control={form.control}
-                  name="completedAt"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Completed Date & Time (Optional)</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="datetime-local"
-                          {...field}
-                          value={field.value ? new Date(field.value).toISOString().slice(0, 16) : ""}
-                          onChange={(e) => field.onChange(e.target.value ? new Date(e.target.value) : undefined)}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-            )}
 
             <div className="flex justify-end space-x-2 pt-4">
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
