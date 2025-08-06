@@ -50,12 +50,12 @@ export default function ActivityTimeline({
   showLeadInfo = true, 
   onAddActivity 
 }: ActivityTimelineProps) {
-  const { data: fetchedActivities = [], isLoading } = useQuery({
+  const { data: fetchedActivities = [], isLoading } = useQuery<any[]>({
     queryKey: leadId ? ["/api/interactions", leadId] : ["/api/interactions/user", userId],
     enabled: !propActivities && !!(leadId || userId),
   });
 
-  const { data: fetchedLeads = [] } = useQuery({
+  const { data: fetchedLeads = [] } = useQuery<any[]>({
     queryKey: ["/api/leads"],
     enabled: !propLeads.length && !!userId && !leadId, // Only fetch leads when showing user activities
   });

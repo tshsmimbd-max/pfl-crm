@@ -41,7 +41,7 @@ export default function LeadViewDialog({ lead, open, onOpenChange, onEdit }: Lea
   const [convertingToCustomer, setConvertingToCustomer] = useState(false);
   const [showAddActivityDialog, setShowAddActivityDialog] = useState(false);
 
-  const { data: interactions = [] } = useQuery({
+  const { data: interactions = [] } = useQuery<any[]>({
     queryKey: ["/api/interactions", lead?.id],
     enabled: open && !!lead,
   });
@@ -81,8 +81,10 @@ export default function LeadViewDialog({ lead, open, onOpenChange, onEdit }: Lea
     return `৳${(isNaN(numValue) ? 0 : numValue).toLocaleString()}`;
   };
 
-  const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleDateString('en-US', {
+  const formatDate = (dateStr: string | Date | null) => {
+    if (!dateStr) return 'N/A';
+    const date = typeof dateStr === 'string' ? new Date(dateStr) : dateStr;
+    return date.toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',
       day: 'numeric'

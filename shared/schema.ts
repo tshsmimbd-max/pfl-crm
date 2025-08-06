@@ -62,9 +62,7 @@ export const interactions = pgTable("interactions", {
   leadId: integer("lead_id").references(() => leads.id),
   userId: varchar("user_id").references(() => users.id),
   type: varchar("type").notNull(), // call, email, meeting, note
-  subject: varchar("subject").notNull(),
   description: text("description"),
-  scheduledAt: timestamp("scheduled_at"),
   completedAt: timestamp("completed_at"),
   createdAt: timestamp("created_at").defaultNow(),
 });
