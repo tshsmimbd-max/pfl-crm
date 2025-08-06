@@ -263,7 +263,13 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createLead(lead: InsertLead): Promise<Lead> {
-    const [newLead] = await db.insert(leads).values(lead).returning();
+    // Handle preferredPickTime conversion
+    const leadData: any = { ...lead };
+    if (leadData.preferredPickTime instanceof Date) {
+      leadData.preferredPickTime = leadData.preferredPickTime.toISOString();
+    }
+    
+    const [newLead] = await db.insert(leads).values(leadData).returning();
     return newLead;
   }
 

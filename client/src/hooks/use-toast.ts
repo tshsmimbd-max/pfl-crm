@@ -148,7 +148,7 @@ const setStoredToasts = (toasts: Toast[]) => {
   }
 };
 
-let memoryState: State = { toasts: getStoredToasts() }
+let memoryState: State = { toasts: getStoredToasts().map(toast => ({ ...toast, id: genId() })) }
 
 function dispatch(action: Action) {
   memoryState = reducer(memoryState, action)

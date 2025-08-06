@@ -1,5 +1,7 @@
 import { Express, Request, Response, NextFunction } from "express";
 import session from "express-session";
+import ConnectPgSimple from "connect-pg-simple";
+import { pool } from "./db";
 import { storage } from "./storage";
 import * as crypto from "crypto";
 
@@ -15,8 +17,16 @@ declare global {
 }
 
 export function setupSimpleAuth(app: Express) {
-  // Session configuration
+  // PostgreSQL session store
+  const PgSession = ConnectPgSimple(session);
+  
+  // Session configuration with PostgreSQL storage
   app.use(session({
+    store: new PgSession({
+      pool: pool,
+      tableName: 'session',
+      createTableIfMissing: true,
+    }),
     secret: process.env.SESSION_SECRET || 'your-secret-key-here',
     resave: false,
     saveUninitialized: false,
