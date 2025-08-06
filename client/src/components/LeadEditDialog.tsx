@@ -93,6 +93,12 @@ export default function LeadEditDialog({ lead, open, onOpenChange }: LeadEditDia
         value: lead.value,
         stage: lead.stage,
         assignedTo: lead.assignedTo || "",
+        leadSource: lead.leadSource || "Others",
+        packageSize: lead.packageSize || "",
+        website: lead.website || "",
+        facebookPageUrl: lead.facebookPageUrl || "",
+        orderVolume: lead.orderVolume || 0,
+        notes: lead.notes || "",
       });
     }
   }, [lead, open, form]);
@@ -237,7 +243,111 @@ export default function LeadEditDialog({ lead, open, onOpenChange }: LeadEditDia
               )}
             />
 
-            {/* Notes field removed as it's not in the schema */}
+            {/* Additional fields for enhanced lead data */}
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="leadSource"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Lead Source</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select lead source" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="Social Media">Social Media</SelectItem>
+                        <SelectItem value="Referral">Referral</SelectItem>
+                        <SelectItem value="Ads">Ads</SelectItem>
+                        <SelectItem value="Others">Others</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="packageSize"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Package Size</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Enter package size" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="website"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Website</FormLabel>
+                    <FormControl>
+                      <Input placeholder="https://example.com" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="facebookPageUrl"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Facebook Page URL</FormLabel>
+                    <FormControl>
+                      <Input placeholder="https://facebook.com/page" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="orderVolume"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Order Volume</FormLabel>
+                    <FormControl>
+                      <Input 
+                        type="number" 
+                        placeholder="Enter order volume"
+                        {...field}
+                        onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : 0)}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            <FormField
+              control={form.control}
+              name="notes"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Notes</FormLabel>
+                  <FormControl>
+                    <Textarea placeholder="Enter notes..." {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
             <div className="flex justify-end space-x-2 pt-4">
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>

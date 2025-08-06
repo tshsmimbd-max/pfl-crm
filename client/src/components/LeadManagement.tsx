@@ -572,7 +572,7 @@ export default function LeadManagement() {
                         size="sm"
                         onClick={() => {
                           setSelectedLead(lead);
-                          setIsViewDialogOpen(true);
+                          setShowViewDialog(true);
                         }}
                       >
                         <Eye className="w-4 h-4" />
@@ -583,7 +583,7 @@ export default function LeadManagement() {
                           size="sm"
                           onClick={() => {
                             setSelectedLead(lead);
-                            setIsEditDialogOpen(true);
+                            setShowEditDialog(true);
                           }}
                         >
                           <Edit2 className="w-4 h-4" />
@@ -611,6 +611,23 @@ export default function LeadManagement() {
         )}
       </CardContent>
     </Card>
+    
+    {/* Dialog components */}
+    <LeadEditDialog 
+      lead={selectedLead} 
+      open={showEditDialog} 
+      onOpenChange={setShowEditDialog} 
+    />
+    <LeadViewDialog 
+      lead={selectedLead} 
+      open={showViewDialog} 
+      onOpenChange={setShowViewDialog} 
+    />
+    <AddActivityDialog
+      leadId={selectedLeadIdForActivity}
+      open={showAddActivityDialog}
+      onOpenChange={setShowAddActivityDialog}
+    />
     </div>
   </div>
 );
