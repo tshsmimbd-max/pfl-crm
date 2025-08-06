@@ -149,7 +149,7 @@ export default function LeadViewDialog({ lead, open, onOpenChange, onEdit }: Lea
     if (lead.company) completeness += 3;
     if (lead.website) completeness += 3;
     if (lead.notes) completeness += 3;
-    score += completenesss;
+    score += completeness;
     
     // Lead source quality (0-10 points)
     const sourceScores = {
