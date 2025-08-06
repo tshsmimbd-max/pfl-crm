@@ -51,7 +51,7 @@ export default function ActivityTimeline({
   onAddActivity 
 }: ActivityTimelineProps) {
   const { data: fetchedActivities = [], isLoading } = useQuery<any[]>({
-    queryKey: leadId ? ["/api/interactions", leadId] : ["/api/interactions/user", userId],
+    queryKey: leadId ? ["/api/leads", leadId, "interactions"] : ["/api/interactions/user", userId],
     enabled: !propActivities && !!(leadId || userId),
   });
 
@@ -160,11 +160,18 @@ export default function ActivityTimeline({
                         )}
                         
                         <div className="flex items-center justify-between text-xs text-gray-500">
-                          {activity.createdAt && (
-                            <span>
-                              {format(new Date(activity.createdAt), "MMM d, yyyy")}
-                            </span>
-                          )}
+                          <div className="flex flex-col space-y-1">
+                            {activity.completedAt && (
+                              <span className="text-green-600 font-medium">
+                                Completed: {format(new Date(activity.completedAt), "MMM d, yyyy 'at' h:mm a")}
+                              </span>
+                            )}
+                            {activity.createdAt && (
+                              <span>
+                                Created: {format(new Date(activity.createdAt), "MMM d, yyyy")}
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </div>

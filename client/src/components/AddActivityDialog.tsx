@@ -57,6 +57,9 @@ export default function AddActivityDialog({ open, onOpenChange, leadId }: AddAct
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/interactions"] });
       queryClient.invalidateQueries({ queryKey: ["/api/interactions/user"] });
+      if (leadId) {
+        queryClient.invalidateQueries({ queryKey: ["/api/leads", leadId, "interactions"] });
+      }
       onOpenChange(false);
       form.reset();
       toast({
@@ -166,6 +169,28 @@ export default function AddActivityDialog({ open, onOpenChange, leadId }: AddAct
                       className="min-h-[100px]"
                       {...field}
                       value={field.value || ""}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="completedAt"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Completion Date & Time (Optional)</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="datetime-local"
+                      value={field.value ? new Date(field.value.getTime() - field.value.getTimezoneOffset() * 60000).toISOString().slice(0, -1) : ""}
+                      onChange={(e) => {
+                        const date = e.target.value ? new Date(e.target.value) : undefined;
+                        field.onChange(date);
+                      }}
+                      max={new Date(new Date().getTime() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, -1)}
                     />
                   </FormControl>
                   <FormMessage />

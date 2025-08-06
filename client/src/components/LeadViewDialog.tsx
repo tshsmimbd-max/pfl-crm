@@ -42,7 +42,7 @@ export default function LeadViewDialog({ lead, open, onOpenChange, onEdit }: Lea
   const [showAddActivityDialog, setShowAddActivityDialog] = useState(false);
 
   const { data: interactions = [] } = useQuery<any[]>({
-    queryKey: ["/api/interactions", lead?.id],
+    queryKey: ["/api/leads", lead?.id, "interactions"],
     enabled: open && !!lead,
   });
 
