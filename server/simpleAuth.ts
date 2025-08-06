@@ -20,16 +20,24 @@ export function setupSimpleAuth(app: Express) {
   // PostgreSQL session store
   const PgSession = ConnectPgSimple(session);
   
-  // Session configuration with PostgreSQL storage
+  // Session configuration with PostgreSQL storage - robust connection handling
   app.use(session({
     store: new PgSession({
       pool: pool,
       tableName: 'session',
-      createTableIfMissing: true,
+      schemaName: 'public',
+      createTableIfMissing: false, // We created the table manually
+      ttl: 24 * 60 * 60, // 1 day in seconds
+      errorLog: (error) => {
+        console.error('Session store error:', error);
+        // Don't crash on connection errors
+      },
+      disableTouch: false, // Keep sessions active
     }),
-    secret: process.env.SESSION_SECRET || 'your-secret-key-here',
+    secret: process.env.SESSION_SECRET || 'paperfly-crm-secret-2025-production',
     resave: false,
     saveUninitialized: false,
+    rolling: true, // Extend session on activity
     cookie: {
       secure: false, // Set to true in production with HTTPS
       httpOnly: true,
