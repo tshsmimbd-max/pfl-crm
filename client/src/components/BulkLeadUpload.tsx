@@ -111,9 +111,9 @@ export default function BulkLeadUpload() {
   };
 
   const downloadTemplate = () => {
-    const csvContent = `contactName,email,phone,company,value,stage,leadSource,packageSize,preferredPickTime,pickupAddress,website,facebookPageUrl,customerType,notes
-John Doe,john@example.com,+1234567890,Example Corp,50000,prospecting,Social Media,Medium,2024-01-15 10:00,123 Main St,https://example.com,https://facebook.com/example,new,Initial contact from social media
-Jane Smith,jane@example.com,+1987654321,Tech Solutions,75000,qualification,Referral,Large,2024-01-16 14:30,456 Oak Ave,https://techsolutions.com,https://facebook.com/techsolutions,returning,Referred by existing client`;
+    const csvContent = `contactName,email,phone,company,value,stage,leadSource,packageSize,website,facebookPageUrl,orderVolume,notes
+John Doe,john@example.com,+1234567890,Example Corp,50000,prospecting,Social Media,Medium,https://example.com,https://facebook.com/example,100,Initial contact from social media
+Jane Smith,jane@example.com,+1987654321,Tech Solutions,75000,qualification,Referral,Large,https://techsolutions.com,https://facebook.com/techsolutions,200,Referred by existing client`;
     
     const blob = new Blob([csvContent], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
@@ -199,7 +199,7 @@ Jane Smith,jane@example.com,+1987654321,Tech Solutions,75000,qualification,Refer
           <Alert>
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
-              <strong>Enhanced CSV Format:</strong> Your file should include columns: contactName, email, phone, company, value, stage, leadSource, packageSize, preferredPickTime, pickupAddress, website, facebookPageUrl, customerType, notes
+              <strong>Enhanced CSV Format:</strong> Your file should include columns: contactName, email, phone, company, value, stage, leadSource, packageSize, website, facebookPageUrl, orderVolume, notes
             </AlertDescription>
           </Alert>
 

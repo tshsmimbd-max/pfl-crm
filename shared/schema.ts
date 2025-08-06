@@ -48,11 +48,9 @@ export const leads = pgTable("leads", {
   // New enhanced fields
   leadSource: varchar("lead_source").notNull().default("Others"), // Social Media, Referral, Ads, Others
   packageSize: varchar("package_size"),
-  preferredPickTime: text("preferred_pick_time"),
-  pickupAddress: text("pickup_address"),
   website: varchar("website"),
   facebookPageUrl: varchar("facebook_page_url"),
-  customerType: varchar("customer_type").notNull().default("new"), // new, returning
+  orderVolume: integer("order_volume"), // New field to replace removed ones
   notes: text("notes"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
@@ -101,11 +99,9 @@ export const customers = pgTable("customers", {
   // Enhanced customer fields based on lead fields
   leadSource: varchar("lead_source"),
   packageSize: varchar("package_size"),
-  preferredPickTime: text("preferred_pick_time"),
-  pickupAddress: text("pickup_address"),
   website: text("website"),
   facebookPageUrl: text("facebook_page_url"),
-  customerType: varchar("customer_type").default("new"), // new, returning
+  orderVolume: integer("order_volume"),
   notes: text("notes"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
@@ -251,14 +247,16 @@ export const insertLeadSchema = createInsertSchema(leads).omit({
   // New enhanced fields
   leadSource: z.enum(["Social Media", "Referral", "Ads", "Others"]).default("Others"),
   packageSize: z.string().optional(),
-  preferredPickTime: z.union([
-    z.date(),
-    z.string().transform(val => val ? new Date(val) : null)
-  ]).optional().nullable(),
-  pickupAddress: z.string().optional(),
   website: z.string().url("Please enter a valid URL").optional().or(z.literal("")),
   facebookPageUrl: z.string().url("Please enter a valid Facebook URL").optional().or(z.literal("")),
-  customerType: z.enum(["new", "returning"]).default("new"),
+  orderVolume: z.union([
+    z.string().min(1, "Order volume is required").transform(val => {
+      const num = parseInt(val);
+      if (isNaN(num) || num < 0) throw new Error("Order volume must be a positive number");
+      return num;
+    }),
+    z.number().min(0, "Order volume must be a positive number")
+  ]).optional(),
   notes: z.string().optional(),
 });
 
@@ -313,11 +311,16 @@ export const insertCustomerSchema = createInsertSchema(customers).omit({
   // Enhanced customer fields
   leadSource: z.enum(["Social Media", "Referral", "Ads", "Others"]).default("Others"),
   packageSize: z.string().optional().nullable(),
-  preferredPickTime: z.string().optional().nullable(),
-  pickupAddress: z.string().optional().nullable(),
   website: z.string().optional().nullable(),
   facebookPageUrl: z.string().optional().nullable(),
-  customerType: z.enum(["new", "returning"]).default("new"),
+  orderVolume: z.union([
+    z.string().min(1, "Order volume is required").transform(val => {
+      const num = parseInt(val);
+      if (isNaN(num) || num < 0) throw new Error("Order volume must be a positive number");
+      return num;
+    }),
+    z.number().min(0, "Order volume must be a positive number")
+  ]).optional(),
   notes: z.string().optional().nullable(),
 });
 

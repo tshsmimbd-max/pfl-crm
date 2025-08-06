@@ -327,12 +327,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         phone: validation.phone,
         assignedTo: finalAssignedTo,
         leadSource: validation.leadSource || "Others",
-        customerType: validation.customerType || "new",
         packageSize: validation.packageSize,
-        preferredPickTime: validation.preferredPickTime,
-        pickupAddress: validation.pickupAddress,
         website: validation.website,
         facebookPageUrl: validation.facebookPageUrl,
+        orderVolume: validation.orderVolume,
         notes: validation.notes
       });
       res.status(201).json(lead);
@@ -401,11 +399,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   // Enhanced fields from CSV
                   leadSource: row.leadSource || row.lead_source || 'Others',
                   packageSize: row.packageSize || row.package_size || '',
-                  preferredPickTime: row.preferredPickTime || row.preferred_pick_time || null,
-                  pickupAddress: row.pickupAddress || row.pickup_address || '',
                   website: row.website || '',
                   facebookPageUrl: row.facebookPageUrl || row.facebook_page_url || '',
-                  customerType: row.customerType || row.customer_type || 'new',
+                  orderVolume: parseInt(row.orderVolume || row.order_volume || '0') || 0,
                   notes: row.notes || '',
                 };
 
@@ -934,11 +930,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
             // Enhanced fields
             leadSource: row.leadSource?.trim() || "Others",
             packageSize: row.packageSize?.trim() || null,
-            preferredPickTime: row.preferredPickTime && row.preferredPickTime.trim() ? row.preferredPickTime.trim() : null,
-            pickupAddress: row.pickupAddress?.trim() || null,
             website: row.website?.trim() || null,
             facebookPageUrl: row.facebookPageUrl?.trim() || null,
-            customerType: row.customerType?.trim() || "new",
+            orderVolume: parseInt(row.orderVolume || '0') || 0,
             notes: row.notes?.trim() || null,
           });
 

@@ -54,11 +54,9 @@ export default function LeadManagement() {
       // New enhanced fields
       leadSource: "Others",
       packageSize: "",
-      preferredPickTime: null,
-      pickupAddress: "",
       website: "",
       facebookPageUrl: "",
-      customerType: "new",
+      orderVolume: 0,
       notes: "",
     },
   });
@@ -384,39 +382,18 @@ export default function LeadManagement() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <FormField
                       control={form.control}
-                      name="preferredPickTime"
+                      name="orderVolume"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Preferred Pick Time</FormLabel>
+                          <FormLabel>Order Volume</FormLabel>
                           <FormControl>
                             <Input 
-                              type="datetime-local" 
+                              type="number" 
+                              placeholder="Enter order volume"
                               {...field}
-                              value={field.value ? new Date(field.value).toISOString().slice(0, 16) : ""}
-                              onChange={(e) => field.onChange(e.target.value ? new Date(e.target.value) : null)}
+                              onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : 0)}
                             />
                           </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="customerType"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Customer Type</FormLabel>
-                          <Select onValueChange={field.onChange} defaultValue={field.value}>
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select customer type" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value="new">New Customer</SelectItem>
-                              <SelectItem value="returning">Returning Customer</SelectItem>
-                            </SelectContent>
-                          </Select>
                           <FormMessage />
                         </FormItem>
                       )}
@@ -424,20 +401,6 @@ export default function LeadManagement() {
                   </div>
 
                   <div className="space-y-4">
-                    <FormField
-                      control={form.control}
-                      name="pickupAddress"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Pickup Address</FormLabel>
-                          <FormControl>
-                            <Input placeholder="Enter pickup address" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <FormField
                         control={form.control}

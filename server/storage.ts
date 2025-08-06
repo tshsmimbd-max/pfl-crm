@@ -263,11 +263,8 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createLead(lead: InsertLead): Promise<Lead> {
-    // Handle preferredPickTime conversion
+    // No special date conversion needed after removing preferredPickTime
     const leadData: any = { ...lead };
-    if (leadData.preferredPickTime instanceof Date) {
-      leadData.preferredPickTime = leadData.preferredPickTime.toISOString();
-    }
     
     const [newLead] = await db.insert(leads).values(leadData).returning();
     return newLead;
@@ -396,11 +393,9 @@ export class DatabaseStorage implements IStorage {
       convertedBy: userId,
       leadSource: lead.leadSource,
       packageSize: lead.packageSize,
-      preferredPickTime: lead.preferredPickTime,
-      pickupAddress: lead.pickupAddress,
       website: lead.website,
       facebookPageUrl: lead.facebookPageUrl,
-      customerType: lead.customerType,
+      orderVolume: lead.orderVolume,
       notes: lead.notes,
     };
 

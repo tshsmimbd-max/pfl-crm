@@ -47,6 +47,12 @@ export default function LeadEditDialog({ lead, open, onOpenChange }: LeadEditDia
       value: lead?.value || 0,
       stage: lead?.stage || "prospecting",
       assignedTo: lead?.assignedTo || "",
+      leadSource: lead?.leadSource || "Others",
+      packageSize: lead?.packageSize || "",
+      website: lead?.website || "",
+      facebookPageUrl: lead?.facebookPageUrl || "",
+      orderVolume: lead?.orderVolume || 0,
+      notes: lead?.notes || "",
     },
   });
 

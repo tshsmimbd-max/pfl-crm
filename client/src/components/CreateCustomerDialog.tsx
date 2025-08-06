@@ -25,11 +25,9 @@ type CustomerFormData = {
   totalValue: number;
   leadSource?: string;
   packageSize?: string;
-  preferredPickTime?: string;
-  pickupAddress?: string;
   website?: string;
   facebookPageUrl?: string;
-  customerType?: string;
+  orderVolume?: number;
   notes?: string;
 };
 
@@ -49,11 +47,9 @@ export default function CreateCustomerDialog({
       totalValue: 0,
       leadSource: "Others",
       packageSize: "",
-      preferredPickTime: "",
-      pickupAddress: "",
       website: "",
       facebookPageUrl: "",
-      customerType: "new",
+      orderVolume: 0,
       notes: "",
     },
   });
@@ -213,52 +209,19 @@ export default function CreateCustomerDialog({
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="customerType"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Customer Type</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select customer type" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="new">New Customer</SelectItem>
-                        <SelectItem value="returning">Returning Customer</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="preferredPickTime"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Preferred Pick Time</FormLabel>
-                    <FormControl>
-                      <Input type="datetime-local" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
             <FormField
               control={form.control}
-              name="pickupAddress"
+              name="orderVolume"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Pickup Address</FormLabel>
+                  <FormLabel>Order Volume</FormLabel>
                   <FormControl>
-                    <Textarea placeholder="Enter pickup address..." {...field} />
+                    <Input 
+                      type="number" 
+                      placeholder="Enter order volume"
+                      {...field}
+                      onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : 0)}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

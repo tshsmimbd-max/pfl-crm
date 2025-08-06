@@ -116,6 +116,10 @@ Paperfly is a modern Customer Relationship Management (CRM) system designed for 
 - OAuth provider configurations through environment variables
 
 ## Recent Changes
+- August 6, 2025: **FIELD UPDATES COMPLETE** - Removed preferredPickTime, pickupAddress, customerType fields from all forms and database
+- August 6, 2025: Added orderVolume field to leads and customers tables with proper validation
+- August 6, 2025: Updated all frontend forms (LeadManagement, LeadEditDialog, CreateCustomerDialog) to use new field structure
+- August 6, 2025: Updated bulk upload CSV templates and server processing for new field structure
 - August 6, 2025: **REPLIT MIGRATION COMPLETE** - Successfully migrated from Replit Agent to standard Replit environment
 - August 6, 2025: Upgraded session management to use PostgreSQL storage with connect-pg-simple
 - August 6, 2025: Removed memorystore dependency and replaced with database-backed sessions
