@@ -448,9 +448,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       await storage.deleteLead(parseInt(req.params.id));
       res.json({ message: "Lead deleted successfully" });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error deleting lead:", error);
-      res.status(500).json({ message: "Failed to delete lead" });
+      if (error.message && error.message.includes("converted to a customer")) {
+        res.status(400).json({ message: error.message });
+      } else {
+        res.status(500).json({ message: "Failed to delete lead" });
+      }
     }
   });
 
