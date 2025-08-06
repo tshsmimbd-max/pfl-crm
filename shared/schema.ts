@@ -56,7 +56,7 @@ export const leads = pgTable("leads", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
-// Customer interactions table
+// Lead activities table (for completed/past activities)
 export const interactions = pgTable("interactions", {
   id: serial("id").primaryKey(),
   leadId: integer("lead_id").references(() => leads.id),
@@ -65,6 +65,24 @@ export const interactions = pgTable("interactions", {
   description: text("description"),
   completedAt: timestamp("completed_at"),
   createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Calendar events table (for upcoming/scheduled plans)
+export const calendarEvents = pgTable("calendar_events", {
+  id: serial("id").primaryKey(),
+  title: varchar("title").notNull(),
+  description: text("description"),
+  startDate: timestamp("start_date").notNull(),
+  endDate: timestamp("end_date").notNull(),
+  type: varchar("type").notNull().default("meeting"), // meeting, call, task, reminder
+  leadId: integer("lead_id").references(() => leads.id), // Optional - can be general events
+  userId: varchar("user_id").references(() => users.id).notNull(),
+  location: varchar("location"),
+  isAllDay: boolean("is_all_day").default(false),
+  reminderMinutes: integer("reminder_minutes").default(15), // Reminder before event
+  status: varchar("status").notNull().default("scheduled"), // scheduled, completed, cancelled
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 // Targets table
@@ -366,3 +384,16 @@ export type Customer = typeof customers.$inferSelect;
 export type InsertCustomer = typeof customers.$inferInsert;
 export type DailyRevenue = typeof dailyRevenue.$inferSelect;
 export type InsertDailyRevenue = typeof dailyRevenue.$inferInsert;
+
+// Calendar Events
+export const insertCalendarEventSchema = createInsertSchema(calendarEvents).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+}).extend({
+  startDate: z.union([z.string(), z.date()]),
+  endDate: z.union([z.string(), z.date()]),
+});
+
+export type CalendarEvent = typeof calendarEvents.$inferSelect;
+export type InsertCalendarEvent = z.infer<typeof insertCalendarEventSchema>;

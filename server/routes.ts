@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { WebSocketServer, WebSocket } from "ws";
 import { storage } from "./storage";
 import { setupSimpleAuth, requireAuth, requireVerifiedEmail } from "./simpleAuth";
-import { insertLeadSchema, insertInteractionSchema, insertTargetSchema, insertCustomerSchema, insertDailyRevenueSchema, insertNotificationSchema, loginSchema, registerSchema, verifyCodeSchema } from "@shared/schema";
+import { insertLeadSchema, insertInteractionSchema, insertTargetSchema, insertCustomerSchema, insertDailyRevenueSchema, insertNotificationSchema, insertCalendarEventSchema, loginSchema, registerSchema, verifyCodeSchema } from "@shared/schema";
 import { requirePermission, requireRole, hasPermission, canAccessResource, canAccessUser, PERMISSIONS, ROLES, Role } from "./rbac";
 import { z } from "zod";
 import { sendVerificationCode } from "./emailService";
@@ -480,6 +480,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error creating interaction:", error);
       res.status(500).json({ message: "Failed to create interaction" });
+    }
+  });
+
+  // Calendar Event routes (upcoming/scheduled plans)
+  app.get('/api/calendar-events', requireAuth, async (req: any, res) => {
+    try {
+      const events = await storage.getCalendarEvents(req.user.id);
+      res.json(events);
+    } catch (error) {
+      console.error("Error fetching calendar events:", error);
+      res.status(500).json({ message: "Failed to fetch calendar events" });
+    }
+  });
+
+  app.post('/api/calendar-events', requireAuth, async (req: any, res) => {
+    try {
+      const eventData = insertCalendarEventSchema.parse({
+        ...req.body,
+        userId: req.user.id,
+      });
+      const event = await storage.createCalendarEvent(eventData);
+      res.json(event);
+    } catch (error) {
+      console.error("Error creating calendar event:", error);
+      res.status(500).json({ message: "Failed to create calendar event" });
+    }
+  });
+
+  app.put('/api/calendar-events/:id', requireAuth, async (req: any, res) => {
+    try {
+      const eventData = insertCalendarEventSchema.partial().parse(req.body);
+      const event = await storage.updateCalendarEvent(parseInt(req.params.id), eventData);
+      res.json(event);
+    } catch (error) {
+      console.error("Error updating calendar event:", error);
+      res.status(500).json({ message: "Failed to update calendar event" });
+    }
+  });
+
+  app.delete('/api/calendar-events/:id', requireAuth, async (req: any, res) => {
+    try {
+      await storage.deleteCalendarEvent(parseInt(req.params.id));
+      res.json({ message: "Calendar event deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting calendar event:", error);
+      res.status(500).json({ message: "Failed to delete calendar event" });
     }
   });
 

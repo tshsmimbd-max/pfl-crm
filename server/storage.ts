@@ -20,6 +20,9 @@ import {
   type InsertDailyRevenue,
   type Notification,
   type InsertNotification,
+  calendarEvents,
+  CalendarEvent,
+  InsertCalendarEvent,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, gte, lte, sum, count, inArray } from "drizzle-orm";
@@ -340,6 +343,54 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(interactions)
       .orderBy(desc(interactions.createdAt));
+  }
+
+  // Calendar Event operations (upcoming/scheduled plans)
+  async createCalendarEvent(event: InsertCalendarEvent): Promise<CalendarEvent> {
+    const eventData: any = { 
+      ...event,
+      startDate: event.startDate instanceof Date ? event.startDate : new Date(event.startDate),
+      endDate: event.endDate instanceof Date ? event.endDate : new Date(event.endDate),
+      updatedAt: new Date() 
+    };
+    
+    const [newEvent] = await db.insert(calendarEvents).values(eventData).returning();
+    return newEvent;
+  }
+
+  async getCalendarEvents(userId?: string): Promise<CalendarEvent[]> {
+    if (userId) {
+      return await db.select().from(calendarEvents)
+        .where(eq(calendarEvents.userId, userId))
+        .orderBy(calendarEvents.startDate);
+    }
+    return await db.select().from(calendarEvents).orderBy(calendarEvents.startDate);
+  }
+
+  async getCalendarEvent(id: number): Promise<CalendarEvent | undefined> {
+    const [event] = await db.select().from(calendarEvents).where(eq(calendarEvents.id, id));
+    return event;
+  }
+
+  async updateCalendarEvent(id: number, event: Partial<InsertCalendarEvent>): Promise<CalendarEvent> {
+    const updateData: any = { ...event, updatedAt: new Date() };
+    if (updateData.startDate instanceof Date) {
+      updateData.startDate = updateData.startDate;
+    }
+    if (updateData.endDate instanceof Date) {
+      updateData.endDate = updateData.endDate;
+    }
+    
+    const [updatedEvent] = await db
+      .update(calendarEvents)
+      .set(updateData)
+      .where(eq(calendarEvents.id, id))
+      .returning();
+    return updatedEvent;
+  }
+
+  async deleteCalendarEvent(id: number): Promise<void> {
+    await db.delete(calendarEvents).where(eq(calendarEvents.id, id));
   }
 
   async createInteraction(interaction: InsertInteraction): Promise<Interaction> {

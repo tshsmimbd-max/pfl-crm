@@ -45,7 +45,7 @@ export default function AddActivityDialog({ open, onOpenChange, leadId }: AddAct
       leadId: leadId || undefined,
       type: "note",
       description: "",
-      completedAt: undefined,
+      completedAt: new Date(), // Default to current time for completed activity
     },
   });
 
@@ -93,10 +93,10 @@ export default function AddActivityDialog({ open, onOpenChange, leadId }: AddAct
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl" aria-describedby="activity-dialog-description">
         <DialogHeader>
-          <DialogTitle>Add Activity</DialogTitle>
+          <DialogTitle>Add Completed Activity</DialogTitle>
         </DialogHeader>
         <div id="activity-dialog-description" className="sr-only">
-          Create and schedule activities such as calls, emails, meetings, or notes to track lead interactions
+          Record a completed interaction or action for this lead (call made, email sent, meeting held, etc.)
         </div>
 
         <Form {...form}>
