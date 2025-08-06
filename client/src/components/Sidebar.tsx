@@ -1,4 +1,4 @@
-import { Layers, BarChart3, Users, Target, Calendar, Settings, LogOut, Filter, Handshake, UserCog, Bell, Activity, UserCheck } from "lucide-react";
+import { Layers, BarChart3, Users, Target, Calendar, Settings, LogOut, Filter, Handshake, UserCog, Bell, UserCheck } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
@@ -28,7 +28,7 @@ export default function Sidebar({ user, currentView, setCurrentView, isOpen = fa
     { id: "dashboard", label: "Dashboard", icon: BarChart3, badge: null },
     ...(hasPermission(PERMISSIONS.LEAD_VIEW) ? [{ id: "leads", label: "Leads", icon: Users, badge: null }] : []),
     ...(hasPermission(PERMISSIONS.PIPELINE_VIEW) ? [{ id: "pipeline", label: "Pipeline", icon: Filter, badge: null }] : []),
-    { id: "activities", label: "Activities", icon: Activity, badge: null },
+
     ...(hasPermission(PERMISSIONS.LEAD_VIEW) ? [{ id: "customers", label: "Customers", icon: UserCheck, badge: null }] : []),
     ...(canViewAnalytics() ? [{ id: "analytics", label: "Analytics", icon: BarChart3, badge: null }] : []),
     ...(hasPermission(PERMISSIONS.TARGET_VIEW) ? [{ id: "targets", label: "Targets", icon: Target, badge: null }] : []),

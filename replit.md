@@ -116,6 +116,10 @@ Paperfly is a modern Customer Relationship Management (CRM) system designed for 
 - OAuth provider configurations through environment variables
 
 ## Recent Changes
+- August 6, 2025: **MODULE SEPARATION COMPLETE** - Successfully separated Calendar (upcoming events) and Activity (completed actions) modules
+- August 6, 2025: Removed Activities menu from navigation - activities are now managed within individual leads
+- August 6, 2025: Created dedicated Calendar module for scheduling future events with full calendar view
+- August 6, 2025: Activities are now lead-specific completed actions accessible from lead management interface
 - August 6, 2025: **FIELD UPDATES COMPLETE** - Removed preferredPickTime, pickupAddress, customerType fields from all forms and database
 - August 6, 2025: Added orderVolume field to leads and customers tables with proper validation
 - August 6, 2025: Updated all frontend forms (LeadManagement, LeadEditDialog, CreateCustomerDialog) to use new field structure

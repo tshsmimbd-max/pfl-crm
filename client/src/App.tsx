@@ -7,7 +7,7 @@ import { useAuth } from "@/hooks/useAuth";
 import NotFound from "@/pages/not-found";
 import Home from "@/pages/Home";
 import AuthPage from "@/pages/AuthPage";
-import Activities from "@/pages/Activities";
+
 
 function Router() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -30,7 +30,7 @@ function Router() {
       <Route path="/leads" component={Home} />
       <Route path="/pipeline" component={Home} />
       <Route path="/customers" component={Home} />
-      <Route path="/activities" component={Activities} />
+
       <Route path="/analytics" component={Home} />
       <Route path="/targets" component={Home} />
       <Route path="/user-management" component={Home} />
