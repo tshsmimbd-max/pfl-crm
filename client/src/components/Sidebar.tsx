@@ -60,7 +60,7 @@ export default function Sidebar({ user, currentView, setCurrentView, isOpen = fa
       <div className="p-4 border-b border-gray-200">
         <div className="flex items-center space-x-3">
           <div className="w-10 h-10 bg-primary-100 rounded-full flex items-center justify-center">
-            <span className="text-primary-600 font-medium">{(user.employeeName || user.email)?.split(' ').map(n => n[0]).join('').toUpperCase()}</span>
+            <span className="text-primary-600 font-medium">{(user.employeeName || user.email)?.split(' ').map((n: string) => n[0]).join('').toUpperCase()}</span>
           </div>
           <div className="flex-1">
             <p className="text-sm font-medium text-gray-900">
@@ -98,9 +98,9 @@ export default function Sidebar({ user, currentView, setCurrentView, isOpen = fa
                   {item.badge}
                 </Badge>
               )}
-              {item.id === "dashboard" && unreadCount && typeof unreadCount === 'object' && 'count' in unreadCount && (unreadCount as any).count > 0 && (
+              {item.id === "dashboard" && unreadCount && typeof unreadCount === 'object' && 'count' in unreadCount && (unreadCount as {count: number}).count > 0 && (
                 <Badge variant="destructive" className="ml-auto text-xs">
-                  {(unreadCount as any).count}
+                  {(unreadCount as {count: number}).count}
                 </Badge>
               )}
             </button>

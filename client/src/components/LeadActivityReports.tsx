@@ -176,7 +176,7 @@ export default function LeadActivityReports() {
           </p>
         </div>
         <div className="flex items-center space-x-2">
-          <Select value={viewMode} onValueChange={setViewMode}>
+          <Select value={viewMode} onValueChange={(value) => setViewMode(value as "summary" | "detailed")}>
             <SelectTrigger className="w-32">
               <SelectValue />
             </SelectTrigger>

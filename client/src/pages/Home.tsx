@@ -126,7 +126,7 @@ export default function Home() {
           <h1 className="text-lg font-semibold">Paperfly CRM</h1>
           <div className="w-10 h-10 bg-primary-100 rounded-full flex items-center justify-center">
             <span className="text-primary-600 font-medium text-sm">
-              {user.employeeName?.split(' ').map(n => n[0]).join('').toUpperCase() || 'U'}
+              {user.employeeName?.split(' ').map((n: string) => n[0]).join('').toUpperCase() || 'U'}
             </span>
           </div>
         </div>
