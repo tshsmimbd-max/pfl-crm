@@ -57,8 +57,15 @@ export interface IStorage {
   // Interaction operations
   getInteractions(leadId: number): Promise<Interaction[]>;
   getAllInteractions(): Promise<Interaction[]>;
+  getUserInteractions(userId: string): Promise<Interaction[]>;
   createInteraction(interaction: InsertInteraction): Promise<Interaction>;
   updateInteraction(id: number, interaction: Partial<InsertInteraction>): Promise<Interaction>;
+
+  // Calendar Event operations
+  getCalendarEvents(userId: string): Promise<CalendarEvent[]>;
+  createCalendarEvent(event: InsertCalendarEvent): Promise<CalendarEvent>;
+  updateCalendarEvent(id: number, event: Partial<InsertCalendarEvent>): Promise<CalendarEvent>;
+  deleteCalendarEvent(id: number): Promise<void>;
 
   // Target operations
   getTargets(userId?: string): Promise<Target[]>;
@@ -405,6 +412,14 @@ export class DatabaseStorage implements IStorage {
       .where(eq(interactions.id, id))
       .returning();
     return updatedInteraction;
+  }
+
+  async getUserInteractions(userId: string): Promise<Interaction[]> {
+    return await db
+      .select()
+      .from(interactions)
+      .where(eq(interactions.userId, userId))
+      .orderBy(desc(interactions.createdAt));
   }
 
   // Customer operations
