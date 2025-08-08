@@ -11,6 +11,7 @@ import CustomerManagement from "@/components/CustomerManagement";
 import Analytics from "@/components/Analytics";
 import Calendar from "@/components/Calendar";
 import AgentActivityManagement from "@/components/AgentActivityManagement";
+import LeadActivityReports from "@/components/LeadActivityReports";
 import NotificationSystem from "@/components/NotificationSystem";
 import { useToast } from "@/hooks/use-toast";
 import { isUnauthorizedError } from "@/lib/authUtils";
@@ -49,6 +50,7 @@ export default function Home() {
     else if (location === "/user-management") setCurrentView("user-management");
     else if (location === "/calendar") setCurrentView("calendar");
     else if (location === "/agent-activities") setCurrentView("agent-activities");
+    else if (location === "/lead-activities") setCurrentView("lead-activities");
     else setCurrentView("dashboard");
   }, [location]);
 
@@ -81,6 +83,8 @@ export default function Home() {
         return hasPermission(PERMISSIONS.CALENDAR_VIEW) ? <Calendar /> : <Dashboard setCurrentView={setCurrentView} />;
       case "agent-activities":
         return (user.role === 'super_admin' || user.role === 'sales_manager') ? <AgentActivityManagement /> : <Dashboard setCurrentView={setCurrentView} />;
+      case "lead-activities":
+        return <LeadActivityReports />;
       case "notifications":
         return <NotificationSystem />;
       default:

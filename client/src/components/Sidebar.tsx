@@ -33,7 +33,8 @@ export default function Sidebar({ user, currentView, setCurrentView, isOpen = fa
     ...(canViewAnalytics() ? [{ id: "analytics", label: "Analytics", icon: BarChart3, badge: null }] : []),
     ...(hasPermission(PERMISSIONS.TARGET_VIEW) ? [{ id: "targets", label: "Targets", icon: Target, badge: null }] : []),
     ...(hasPermission(PERMISSIONS.CALENDAR_VIEW) ? [{ id: "calendar", label: "Calendar", icon: Calendar, badge: null }] : []),
-    ...((user.role === 'super_admin' || user.role === 'sales_manager') ? [{ id: "agent-activities", label: "Agent Activities", icon: Activity, badge: null }] : []),
+    { id: "lead-activities", label: "Lead Activities", icon: Activity, badge: null },
+    ...((user.role === 'super_admin' || user.role === 'sales_manager') ? [{ id: "agent-activities", label: "Agent Activities", icon: UserCog, badge: null }] : []),
     ...(canManageUsers() ? [{ id: "user-management", label: "User Management", icon: UserCog, badge: null }] : []),
   ];
 

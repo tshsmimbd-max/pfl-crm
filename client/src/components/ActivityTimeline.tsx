@@ -154,22 +154,30 @@ export default function ActivityTimeline({
                         )}
                         
                         {activity.description && (
-                          <p className="text-gray-600 text-sm mb-2 line-clamp-2">
-                            {activity.description}
-                          </p>
+                          <div className="bg-gray-50 p-3 rounded-md mb-2">
+                            <p className="text-gray-700 text-sm whitespace-pre-wrap">
+                              {activity.description}
+                            </p>
+                          </div>
                         )}
                         
-                        <div className="flex items-center justify-between text-xs text-gray-500">
-                          <div className="flex flex-col space-y-1">
-                            {activity.completedAt && (
-                              <span className="text-green-600 font-medium">
-                                Completed: {format(new Date(activity.completedAt), "MMM d, yyyy 'at' h:mm a")}
-                              </span>
-                            )}
+                        <div className="flex items-center justify-between text-xs text-gray-500 mt-2">
+                          <div className="flex items-center space-x-4">
                             {activity.createdAt && (
-                              <span>
-                                Created: {format(new Date(activity.createdAt), "MMM d, yyyy")}
-                              </span>
+                              <div className="flex items-center space-x-1">
+                                <Clock className="w-3 h-3" />
+                                <span>
+                                  Created {format(new Date(activity.createdAt), "MMM d, yyyy 'at' h:mm a")}
+                                </span>
+                              </div>
+                            )}
+                            {activity.completedAt && (
+                              <div className="flex items-center space-x-1 text-green-600 bg-green-50 px-2 py-1 rounded">
+                                <CheckCircle className="w-3 h-3" />
+                                <span className="font-medium">
+                                  Completed {format(new Date(activity.completedAt), "MMM d, h:mm a")}
+                                </span>
+                              </div>
                             )}
                           </div>
                         </div>
