@@ -64,17 +64,6 @@ export default function ActivityTimeline({
   const activities = propActivities || fetchedActivities;
   const leads = propLeads.length > 0 ? propLeads : fetchedLeads;
 
-  // Debug logging
-  console.log('ActivityTimeline Debug:', { 
-    leadId, 
-    propActivities: propActivities?.length, 
-    fetchedActivities: fetchedActivities?.length, 
-    activities: activities?.length,
-    isLoading,
-    activitiesData: activities,
-    firstActivity: activities[0]
-  });
-
   // Filter out any non-interaction data that might have been passed incorrectly
   const validActivities = activities.filter((item: any) => 
     item && typeof item === 'object' && 'type' in item && 'description' in item

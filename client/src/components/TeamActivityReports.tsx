@@ -100,9 +100,13 @@ export default function TeamActivityReports({ userId }: TeamActivityReportsProps
       return acc;
     }, {} as Record<string, number>),
     byUser: filteredActivities.reduce((acc, activity) => {
-      const user = allUsers.find(u => u.id === activity.userId);
-      const userName = user ? user.employeeName || user.email : activity.userId;
-      acc[userName] = (acc[userName] || 0) + 1;
+      if (activity.userId) {
+        const user = allUsers.find(u => u.id === activity.userId);
+        const userName = user ? user.employeeName || user.email : activity.userId;
+        if (userName) {
+          acc[userName] = (acc[userName] || 0) + 1;
+        }
+      }
       return acc;
     }, {} as Record<string, number>),
   };
