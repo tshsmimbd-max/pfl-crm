@@ -290,6 +290,13 @@ export default function Analytics() {
 
       {/* Content */}
       <div className="flex-1 overflow-auto p-6">
+        <Tabs defaultValue="dashboard" className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="dashboard">Sales Dashboard</TabsTrigger>
+            <TabsTrigger value="team-analytics">Team Analytics</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="dashboard" className="mt-6">
         {/* Target vs Achieved Section */}
         <div className="mb-8">
           <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
@@ -610,6 +617,59 @@ export default function Analytics() {
             </div>
           </CardContent>
         </Card>
+          </TabsContent>
+          
+          <TabsContent value="team-analytics" className="mt-6">
+            <div className="space-y-6">
+              <div>
+                <h2 className="text-xl font-semibold text-gray-900 mb-2">Team Analytics</h2>
+                <p className="text-gray-600">View comprehensive activity reports and team performance analytics</p>
+              </div>
+              
+              <Tabs defaultValue="overview" className="w-full">
+                <TabsList>
+                  <TabsTrigger value="overview">Activity Overview</TabsTrigger>
+                  <TabsTrigger value="performance">Team Performance</TabsTrigger>
+                </TabsList>
+                
+                <TabsContent value="overview" className="mt-4">
+                  <TeamActivityReports userId={user?.id} />
+                </TabsContent>
+                
+                <TabsContent value="performance" className="mt-4">
+                  {/* Team Performance Charts */}
+                  {teamPerformance && teamPerformance.length > 0 && (
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>Team Performance Comparison</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <ResponsiveContainer width="100%" height={350}>
+                          <BarChart data={teamPerformance}>
+                            <CartesianGrid strokeDasharray="3 3" />
+                            <XAxis 
+                              dataKey="user.firstName" 
+                              tick={{ fontSize: 12 }}
+                            />
+                            <YAxis />
+                            <Tooltip 
+                              formatter={(value, name) => [
+                                name === 'revenue' ? formatCurrency(Number(value)) : value,
+                                name === 'revenue' ? 'Revenue' : name === 'dealsCount' ? 'Deals' : 'Target %'
+                              ]}
+                            />
+                            <Bar dataKey="revenue" fill="#2563eb" name="revenue" />
+                            <Bar dataKey="dealsCount" fill="#10b981" name="dealsCount" />
+                          </BarChart>
+                        </ResponsiveContainer>
+                      </CardContent>
+                    </Card>
+                  )}
+                </TabsContent>
+              </Tabs>
+            </div>
+          </TabsContent>
+        </Tabs>
       </div>
     </>
   );

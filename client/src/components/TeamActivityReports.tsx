@@ -29,10 +29,10 @@ interface TeamActivityReportsProps {
 }
 
 export default function TeamActivityReports({ userId }: TeamActivityReportsProps) {
-  const [selectedLead, setSelectedLead] = useState<string>("");
-  const [selectedUser, setSelectedUser] = useState<string>("");
-  const [dateRange, setDateRange] = useState<string>("week");
-  const [activityType, setActivityType] = useState<string>("");
+  const [selectedLead, setSelectedLead] = useState<string>("all");
+  const [selectedUser, setSelectedUser] = useState<string>("all");
+  const [dateRange, setDateRange] = useState<string>("all");
+  const [activityType, setActivityType] = useState<string>("all");
 
   const { data: allUsers = [] } = useQuery<UserType[]>({
     queryKey: ["/api/users"],
@@ -63,9 +63,9 @@ export default function TeamActivityReports({ userId }: TeamActivityReportsProps
 
   // Filter activities based on selected filters
   const filteredActivities = teamActivities.filter(activity => {
-    if (selectedLead && activity.leadId !== parseInt(selectedLead)) return false;
-    if (selectedUser && activity.userId !== selectedUser) return false;
-    if (activityType && activity.type !== activityType) return false;
+    if (selectedLead !== "all" && activity.leadId !== parseInt(selectedLead)) return false;
+    if (selectedUser !== "all" && activity.userId !== selectedUser) return false;
+    if (activityType !== "all" && activity.type !== activityType) return false;
     
     // Date range filtering
     if (dateRange !== "all" && activity.createdAt) {
@@ -74,6 +74,9 @@ export default function TeamActivityReports({ userId }: TeamActivityReportsProps
       const daysDiff = (now.getTime() - activityDate.getTime()) / (1000 * 60 * 60 * 24);
       
       switch (dateRange) {
+        case "today":
+          if (daysDiff > 1) return false;
+          break;
         case "week":
           if (daysDiff > 7) return false;
           break;
@@ -138,7 +141,7 @@ export default function TeamActivityReports({ userId }: TeamActivityReportsProps
                   <SelectValue placeholder="All leads" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All leads</SelectItem>
+                  <SelectItem value="all">All leads</SelectItem>
                   {allLeads.map(lead => (
                     <SelectItem key={lead.id} value={lead.id.toString()}>
                       {lead.contactName} - {lead.company}
@@ -155,7 +158,7 @@ export default function TeamActivityReports({ userId }: TeamActivityReportsProps
                   <SelectValue placeholder="All members" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All members</SelectItem>
+                  <SelectItem value="all">All members</SelectItem>
                   {allUsers.map(user => (
                     <SelectItem key={user.id} value={user.id}>
                       {user.employeeName || user.email}
@@ -172,10 +175,11 @@ export default function TeamActivityReports({ userId }: TeamActivityReportsProps
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="all">All time</SelectItem>
+                  <SelectItem value="today">Today</SelectItem>
                   <SelectItem value="week">Last 7 days</SelectItem>
                   <SelectItem value="month">Last 30 days</SelectItem>
                   <SelectItem value="quarter">Last 90 days</SelectItem>
-                  <SelectItem value="all">All time</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -187,7 +191,7 @@ export default function TeamActivityReports({ userId }: TeamActivityReportsProps
                   <SelectValue placeholder="All types" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All types</SelectItem>
+                  <SelectItem value="all">All types</SelectItem>
                   <SelectItem value="call">Calls</SelectItem>
                   <SelectItem value="email">Emails</SelectItem>
                   <SelectItem value="meeting">Meetings</SelectItem>
