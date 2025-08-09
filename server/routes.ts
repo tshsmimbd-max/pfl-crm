@@ -574,6 +574,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get team calendar events (for managers and admins)
+  app.get('/api/calendar-events/team', requireAuth, async (req: any, res) => {
+    try {
+      // Check if user has permission to view team events
+      if (req.user.role !== 'super_admin' && req.user.role !== 'sales_manager') {
+        return res.status(403).json({ message: "Insufficient permissions" });
+      }
+      
+      const events = await storage.getAllCalendarEvents();
+      res.json(events);
+    } catch (error) {
+      console.error("Error fetching team calendar events:", error);
+      res.status(500).json({ message: "Failed to fetch team calendar events" });
+    }
+  });
+
   app.post('/api/calendar-events', requireAuth, async (req: any, res) => {
     try {
       const eventData = insertCalendarEventSchema.parse({

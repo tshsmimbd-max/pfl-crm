@@ -1,35 +1,60 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Calendar as CalendarIcon, Plus, Clock, MapPin, ChevronLeft, ChevronRight } from "lucide-react";
+import { Calendar as CalendarIcon, Plus, Clock, MapPin, ChevronLeft, ChevronRight, Users, User } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { insertCalendarEventSchema, type InsertCalendarEvent, type CalendarEvent } from "@shared/schema";
+import { insertCalendarEventSchema, type InsertCalendarEvent, type CalendarEvent, type User as UserType } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { isUnauthorizedError } from "@/lib/authUtils";
-import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, eachDayOfInterval, isSameMonth, isSameDay, isToday } from "date-fns";
+import { useAuth } from "@/hooks/useAuth";
+import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, eachDayOfInterval, isSameMonth, isSameDay, isToday, addMonths, subMonths } from "date-fns";
 
 export default function Calendar() {
+  const { user } = useAuth();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [viewMode, setViewMode] = useState<'my' | 'team'>('my');
   const { toast } = useToast();
+
+  // Role-based access
+  const isManagerOrAdmin = user?.role === 'super_admin' || user?.role === 'sales_manager';
 
   // Get leads for event association
   const { data: leads = [] } = useQuery({
     queryKey: ["/api/leads"],
   });
 
-  // Get calendar events
-  const { data: calendarEvents = [], isLoading: eventsLoading } = useQuery<CalendarEvent[]>({
-    queryKey: ["/api/calendar-events"],
+  // Get users for team view (managers and admins only)
+  const { data: users = [] } = useQuery<UserType[]>({
+    queryKey: ["/api/users"],
+    enabled: isManagerOrAdmin,
+  });
+
+  // Get calendar events based on view mode
+  const { data: calendarEvents = [], isLoading: eventsLoading, refetch: refetchEvents } = useQuery<CalendarEvent[]>({
+    queryKey: ["/api/calendar-events", viewMode],
+    queryFn: async () => {
+      if (viewMode === 'team' && isManagerOrAdmin) {
+        // For managers/admins in team view, get all team events
+        const response = await fetch('/api/calendar-events/team');
+        if (!response.ok) throw new Error('Failed to fetch team events');
+        return response.json();
+      } else {
+        // For personal view or agents, get only user's events
+        const response = await fetch('/api/calendar-events');
+        if (!response.ok) throw new Error('Failed to fetch events');
+        return response.json();
+      }
+    },
   });
 
   // Form for creating new events
@@ -52,10 +77,15 @@ export default function Calendar() {
   // Create event mutation
   const createEventMutation = useMutation({
     mutationFn: async (data: InsertCalendarEvent) => {
-      await apiRequest("POST", "/api/calendar-events", data);
+      const response = await apiRequest("POST", "/api/calendar-events", {
+        ...data,
+        userId: user?.id,
+      });
+      return response;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/calendar-events"] });
+      refetchEvents();
       setIsCreateDialogOpen(false);
       form.reset();
       toast({
@@ -63,21 +93,11 @@ export default function Calendar() {
         description: "Event scheduled successfully",
       });
     },
-    onError: (error) => {
-      if (isUnauthorizedError(error)) {
-        toast({
-          title: "Unauthorized",
-          description: "You are logged out. Logging in again...",
-          variant: "destructive",
-        });
-        setTimeout(() => {
-          window.location.href = "/api/login";
-        }, 500);
-        return;
-      }
+    onError: (error: any) => {
+      console.error("Failed to create event:", error);
       toast({
         title: "Error",
-        description: "Failed to schedule event",
+        description: "Failed to schedule event. Please try again.",
         variant: "destructive",
       });
     },
@@ -126,7 +146,23 @@ export default function Calendar() {
           <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Calendar</h1>
           <p className="text-gray-600 dark:text-gray-400">Schedule and manage your upcoming events</p>
         </div>
-        <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+        <div className="flex items-center space-x-4">
+          {/* View Mode Selector for Managers/Admins */}
+          {isManagerOrAdmin && (
+            <Tabs value={viewMode} onValueChange={(value) => setViewMode(value as 'my' | 'team')} className="w-auto">
+              <TabsList>
+                <TabsTrigger value="my" className="flex items-center space-x-2">
+                  <User className="w-4 h-4" />
+                  <span>My Calendar</span>
+                </TabsTrigger>
+                <TabsTrigger value="team" className="flex items-center space-x-2">
+                  <Users className="w-4 h-4" />
+                  <span>Team Calendar</span>
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
+          )}
+          <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
           <DialogTrigger asChild>
             <Button>
               <Plus className="w-4 h-4 mr-2" />
@@ -283,6 +319,7 @@ export default function Calendar() {
             </Form>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
 
       {/* Calendar */}
@@ -340,15 +377,20 @@ export default function Calendar() {
                     
                     {/* Events for this day */}
                     <div className="space-y-1">
-                      {dayEvents.slice(0, 3).map(event => (
-                        <div
-                          key={event.id}
-                          className={`text-xs p-1 rounded text-white truncate ${getEventTypeColor(event.type)}`}
-                          title={`${event.title} - ${format(new Date(event.startDate), 'HH:mm')}`}
-                        >
-                          {event.title}
-                        </div>
-                      ))}
+                      {dayEvents.slice(0, 3).map(event => {
+                        const eventUser = viewMode === 'team' && isManagerOrAdmin 
+                          ? users.find(u => u.id === event.userId) 
+                          : null;
+                        return (
+                          <div
+                            key={event.id}
+                            className={`text-xs p-1 rounded text-white truncate ${getEventTypeColor(event.type)}`}
+                            title={`${event.title} - ${format(new Date(event.startDate), 'HH:mm')}${eventUser ? ` (${eventUser.employeeName || eventUser.email})` : ''}`}
+                          >
+                            {viewMode === 'team' && eventUser ? `${eventUser.employeeName?.split(' ')[0] || 'User'}: ` : ''}{event.title}
+                          </div>
+                        );
+                      })}
                       {dayEvents.length > 3 && (
                         <div className="text-xs text-gray-500 dark:text-gray-400">
                           +{dayEvents.length - 3} more
@@ -381,29 +423,41 @@ export default function Calendar() {
                 .filter((event: CalendarEvent) => new Date(event.startDate) >= new Date())
                 .sort((a: CalendarEvent, b: CalendarEvent) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime())
                 .slice(0, 5)
-                .map((event: CalendarEvent) => (
-                  <div key={event.id} className="flex items-center justify-between p-3 border border-gray-200 dark:border-gray-700 rounded-lg">
-                    <div className="flex items-center space-x-3">
-                      <Badge variant="outline" className={`${getEventTypeColor(event.type)} text-white border-0`}>
-                        {event.type}
-                      </Badge>
-                      <div>
-                        <div className="font-medium text-gray-900 dark:text-gray-100">{event.title}</div>
-                        <div className="flex items-center space-x-2 text-sm text-gray-500 dark:text-gray-400">
-                          <Clock className="w-4 h-4" />
-                          <span>{format(new Date(event.startDate), 'MMM d, yyyy h:mm a')}</span>
-                          {event.location && (
-                            <>
-                              <MapPin className="w-4 h-4" />
-                              <span>{event.location}</span>
-                            </>
-                          )}
+                .map((event: CalendarEvent) => {
+                  const eventUser = viewMode === 'team' && isManagerOrAdmin 
+                    ? users.find(u => u.id === event.userId) 
+                    : null;
+                  return (
+                    <div key={event.id} className="flex items-center justify-between p-3 border border-gray-200 dark:border-gray-700 rounded-lg">
+                      <div className="flex items-center space-x-3">
+                        <Badge variant="outline" className={`${getEventTypeColor(event.type)} text-white border-0`}>
+                          {event.type}
+                        </Badge>
+                        <div>
+                          <div className="font-medium text-gray-900 dark:text-gray-100">
+                            {event.title}
+                            {viewMode === 'team' && eventUser && (
+                              <span className="text-sm text-gray-500 ml-2">
+                                ({eventUser.employeeName || eventUser.email})
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex items-center space-x-2 text-sm text-gray-500 dark:text-gray-400">
+                            <Clock className="w-4 h-4" />
+                            <span>{format(new Date(event.startDate), 'MMM d, yyyy h:mm a')}</span>
+                            {event.location && (
+                              <>
+                                <MapPin className="w-4 h-4" />
+                                <span>{event.location}</span>
+                              </>
+                            )}
+                          </div>
                         </div>
                       </div>
+                      <Badge variant="secondary">{event.status}</Badge>
                     </div>
-                    <Badge variant="secondary">{event.status}</Badge>
-                  </div>
-                ))}
+                  );
+                })}
             </div>
           )}
         </CardContent>
