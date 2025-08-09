@@ -55,9 +55,9 @@ export default function ActivityTimeline({
   onAddActivity,
   showFilters = false
 }: ActivityTimelineProps) {
-  const [selectedLead, setSelectedLead] = useState<string>("");
+  const [selectedLead, setSelectedLead] = useState<string>("all");
   const [dateRange, setDateRange] = useState<string>("all");
-  const [activityType, setActivityType] = useState<string>("");
+  const [activityType, setActivityType] = useState<string>("all");
   const { data: fetchedActivities = [], isLoading } = useQuery<any[]>({
     queryKey: leadId ? [`/api/leads/${leadId}/interactions`] : [`/api/interactions/user/${userId}`],
     enabled: !propActivities && !!(leadId || userId),
@@ -83,12 +83,12 @@ export default function ActivityTimeline({
 
     return baseActivities.filter(activity => {
       // Lead filter
-      if (selectedLead && activity.leadId !== parseInt(selectedLead)) {
+      if (selectedLead !== "all" && activity.leadId !== parseInt(selectedLead)) {
         return false;
       }
 
       // Activity type filter
-      if (activityType && activity.type !== activityType) {
+      if (activityType !== "all" && activity.type !== activityType) {
         return false;
       }
 
@@ -154,7 +154,7 @@ export default function ActivityTimeline({
                     <SelectValue placeholder="All leads" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All leads</SelectItem>
+                    <SelectItem value="all">All leads</SelectItem>
                     {leads.map((lead: any) => (
                       <SelectItem key={lead.id} value={lead.id.toString()}>
                         {lead.contactName} - {lead.company}
@@ -187,7 +187,7 @@ export default function ActivityTimeline({
                     <SelectValue placeholder="All types" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All types</SelectItem>
+                    <SelectItem value="all">All types</SelectItem>
                     <SelectItem value="call">Calls</SelectItem>
                     <SelectItem value="email">Emails</SelectItem>
                     <SelectItem value="meeting">Meetings</SelectItem>
@@ -210,7 +210,7 @@ export default function ActivityTimeline({
             </CardTitle>
             <p className="text-sm text-gray-600 mt-1">
               {validActivities.length} activities found
-              {showFilters && (selectedLead || dateRange !== "all" || activityType) && 
+              {showFilters && (selectedLead !== "all" || dateRange !== "all" || activityType !== "all") && 
                 " (filtered)"
               }
             </p>
