@@ -28,7 +28,7 @@ export default function Calendar() {
   });
 
   // Get calendar events
-  const { data: calendarEvents = [], isLoading: eventsLoading } = useQuery({
+  const { data: calendarEvents = [], isLoading: eventsLoading } = useQuery<CalendarEvent[]>({
     queryKey: ["/api/calendar-events"],
   });
 
@@ -101,7 +101,7 @@ export default function Calendar() {
 
   // Get events for a specific day
   const getEventsForDay = (day: Date): CalendarEvent[] => {
-    return calendarEvents.filter(event => {
+    return calendarEvents.filter((event: CalendarEvent) => {
       const eventDate = new Date(event.startDate);
       return isSameDay(eventDate, day);
     });
@@ -236,7 +236,7 @@ export default function Calendar() {
                         </FormControl>
                         <SelectContent>
                           <SelectItem value="">No lead</SelectItem>
-                          {leads.map((lead: any) => (
+                          {(leads as any[]).map((lead: any) => (
                             <SelectItem key={lead.id} value={lead.id.toString()}>
                               {lead.contactName} - {lead.company}
                             </SelectItem>
@@ -375,10 +375,10 @@ export default function Calendar() {
           ) : (
             <div className="space-y-3">
               {calendarEvents
-                .filter(event => new Date(event.startDate) >= new Date())
-                .sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime())
+                .filter((event: CalendarEvent) => new Date(event.startDate) >= new Date())
+                .sort((a: CalendarEvent, b: CalendarEvent) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime())
                 .slice(0, 5)
-                .map(event => (
+                .map((event: CalendarEvent) => (
                   <div key={event.id} className="flex items-center justify-between p-3 border border-gray-200 dark:border-gray-700 rounded-lg">
                     <div className="flex items-center space-x-3">
                       <Badge variant="outline" className={`${getEventTypeColor(event.type)} text-white border-0`}>
