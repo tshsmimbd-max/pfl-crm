@@ -32,7 +32,7 @@ export default function PipelineManagement() {
         </TabsContent>
 
         <TabsContent value="timeline">
-          <ActivityTimeline />
+          <ActivityTimeline userId={user?.id} showLeadInfo={true} />
         </TabsContent>
 
         {isManagerOrAdmin && (
