@@ -41,9 +41,10 @@ export default function LeadViewDialog({ lead, open, onOpenChange, onEdit }: Lea
   const [convertingToCustomer, setConvertingToCustomer] = useState(false);
   const [showAddActivityDialog, setShowAddActivityDialog] = useState(false);
 
-  const { data: interactions = [] } = useQuery<any[]>({
+  const { data: interactions = [], isLoading: interactionsLoading, error: interactionsError } = useQuery<any[]>({
     queryKey: ["/api/leads", lead?.id, "interactions"],
     enabled: open && !!lead,
+    retry: 1,
   });
 
   const convertToCustomerMutation = useMutation({
@@ -267,10 +268,29 @@ export default function LeadViewDialog({ lead, open, onOpenChange, onEdit }: Lea
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <ActivityTimeline 
-                  leadId={lead.id} 
-                  onAddActivity={() => setShowAddActivityDialog(true)}
-                />
+                {interactionsLoading ? (
+                  <div className="flex items-center justify-center py-8">
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+                  </div>
+                ) : interactionsError ? (
+                  <div className="text-center py-8 text-red-500">
+                    <p>Failed to load activities</p>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="mt-2"
+                      onClick={() => window.location.reload()}
+                    >
+                      Retry
+                    </Button>
+                  </div>
+                ) : (
+                  <ActivityTimeline 
+                    leadId={lead.id} 
+                    activities={interactions}
+                    onAddActivity={() => setShowAddActivityDialog(true)}
+                  />
+                )}
               </CardContent>
             </Card>
           </div>

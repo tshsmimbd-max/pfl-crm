@@ -53,6 +53,7 @@ export default function ActivityTimeline({
   const { data: fetchedActivities = [], isLoading } = useQuery<any[]>({
     queryKey: leadId ? ["/api/leads", leadId, "interactions"] : ["/api/interactions/user", userId],
     enabled: !propActivities && !!(leadId || userId),
+    retry: 1,
   });
 
   const { data: fetchedLeads = [] } = useQuery<any[]>({
@@ -62,6 +63,15 @@ export default function ActivityTimeline({
 
   const activities = propActivities || fetchedActivities;
   const leads = propLeads.length > 0 ? propLeads : fetchedLeads;
+
+  // Debug logging
+  console.log('ActivityTimeline Debug:', { 
+    leadId, 
+    propActivities: propActivities?.length, 
+    fetchedActivities: fetchedActivities?.length, 
+    activities: activities?.length,
+    isLoading 
+  });
 
   const getLeadInfo = (leadId: number) => {
     return leads.find((lead: any) => lead.id === leadId);
