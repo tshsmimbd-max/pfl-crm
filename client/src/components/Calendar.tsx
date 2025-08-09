@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
@@ -136,6 +136,9 @@ export default function Calendar() {
           <DialogContent className="max-w-md">
             <DialogHeader>
               <DialogTitle>Schedule New Event</DialogTitle>
+              <DialogDescription>
+                Create a new event in your calendar. You can optionally associate it with a lead.
+              </DialogDescription>
             </DialogHeader>
             <Form {...form}>
               <form onSubmit={form.handleSubmit((data) => createEventMutation.mutate(data))} className="space-y-4">
@@ -226,8 +229,8 @@ export default function Calendar() {
                     <FormItem>
                       <FormLabel>Related Lead (Optional)</FormLabel>
                       <Select
-                        onValueChange={(value) => field.onChange(value ? parseInt(value) : undefined)}
-                        value={field.value ? field.value.toString() : ""}
+                        onValueChange={(value) => field.onChange(value === "none" ? undefined : parseInt(value))}
+                        value={field.value ? field.value.toString() : "none"}
                       >
                         <FormControl>
                           <SelectTrigger>
@@ -235,7 +238,7 @@ export default function Calendar() {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="">No lead</SelectItem>
+                          <SelectItem value="none">No lead</SelectItem>
                           {(leads as any[]).map((lead: any) => (
                             <SelectItem key={lead.id} value={lead.id.toString()}>
                               {lead.contactName} - {lead.company}
