@@ -83,7 +83,6 @@ export default function Calendar() {
         ...data,
         userId: user?.id,
       };
-      console.log("Creating event with data:", eventData);
       const response = await apiRequest("POST", "/api/calendar-events", eventData);
       return response;
     },
@@ -204,17 +203,7 @@ export default function Calendar() {
               </DialogDescription>
             </DialogHeader>
             <Form {...form}>
-              <form onSubmit={form.handleSubmit((data) => {
-                console.log("Form submitted with data:", data);
-                console.log("Form validation errors:", form.formState.errors);
-                console.log("Form valid?", form.formState.isValid);
-                console.log("User ID:", user?.id);
-                if (Object.keys(form.formState.errors).length > 0) {
-                  console.error("Form has validation errors, not submitting");
-                  return;
-                }
-                createEventMutation.mutate(data);
-              })} className="space-y-4">
+              <form onSubmit={form.handleSubmit((data) => createEventMutation.mutate(data))} className="space-y-4">
                 <FormField
                   control={form.control}
                   name="title"
