@@ -149,7 +149,6 @@ export default function AgentPipelineAnalytics() {
         <TabsList>
           <TabsTrigger value="performance">Agent Performance</TabsTrigger>
           <TabsTrigger value="pipeline">Pipeline Distribution</TabsTrigger>
-          <TabsTrigger value="activity">Activity Overview</TabsTrigger>
         </TabsList>
 
         <TabsContent value="performance" className="space-y-4">
@@ -262,19 +261,7 @@ export default function AgentPipelineAnalytics() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="activity" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Team Activity Summary</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-center py-8 text-gray-500">
-                <Activity className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>Activity tracking and detailed analytics coming soon</p>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
+
       </Tabs>
     </div>
   );
