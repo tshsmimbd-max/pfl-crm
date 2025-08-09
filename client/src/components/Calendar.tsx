@@ -23,6 +23,7 @@ export default function Calendar() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [viewMode, setViewMode] = useState<'my' | 'team'>('my');
+  const [calendarView, setCalendarView] = useState<'month' | 'week'>('month');
   const { toast } = useToast();
 
   // Role-based access
@@ -77,10 +78,12 @@ export default function Calendar() {
   // Create event mutation
   const createEventMutation = useMutation({
     mutationFn: async (data: InsertCalendarEvent) => {
-      const response = await apiRequest("POST", "/api/calendar-events", {
+      const eventData = {
         ...data,
         userId: user?.id,
-      });
+      };
+      console.log("Creating event with data:", eventData);
+      const response = await apiRequest("POST", "/api/calendar-events", eventData);
       return response;
     },
     onSuccess: () => {
@@ -95,29 +98,44 @@ export default function Calendar() {
     },
     onError: (error: any) => {
       console.error("Failed to create event:", error);
+      const errorMessage = error?.message || error?.error?.message || "Failed to schedule event. Please try again.";
       toast({
         title: "Error",
-        description: "Failed to schedule event. Please try again.",
+        description: errorMessage,
         variant: "destructive",
       });
     },
   });
 
   // Calendar navigation
-  const navigateMonth = (direction: 'prev' | 'next') => {
+  const navigateCalendar = (direction: 'prev' | 'next') => {
     setCurrentDate(prev => {
       const newDate = new Date(prev);
-      newDate.setMonth(prev.getMonth() + (direction === 'prev' ? -1 : 1));
+      if (calendarView === 'month') {
+        newDate.setMonth(prev.getMonth() + (direction === 'prev' ? -1 : 1));
+      } else {
+        newDate.setDate(prev.getDate() + (direction === 'prev' ? -7 : 7));
+      }
       return newDate;
     });
   };
 
-  // Generate calendar days
-  const monthStart = startOfMonth(currentDate);
-  const monthEnd = endOfMonth(currentDate);
-  const calendarStart = startOfWeek(monthStart);
-  const calendarEnd = endOfWeek(monthEnd);
-  const calendarDays = eachDayOfInterval({ start: calendarStart, end: calendarEnd });
+  // Generate calendar days based on view
+  const generateCalendarDays = () => {
+    if (calendarView === 'week') {
+      const weekStart = startOfWeek(currentDate);
+      const weekEnd = endOfWeek(currentDate);
+      return eachDayOfInterval({ start: weekStart, end: weekEnd });
+    } else {
+      const monthStart = startOfMonth(currentDate);
+      const monthEnd = endOfMonth(currentDate);
+      const calendarStart = startOfWeek(monthStart);
+      const calendarEnd = endOfWeek(monthEnd);
+      return eachDayOfInterval({ start: calendarStart, end: calendarEnd });
+    }
+  };
+  
+  const calendarDays = generateCalendarDays();
 
   // Get events for a specific day
   const getEventsForDay = (day: Date): CalendarEvent[] => {
@@ -147,6 +165,14 @@ export default function Calendar() {
           <p className="text-gray-600 dark:text-gray-400">Schedule and manage your upcoming events</p>
         </div>
         <div className="flex items-center space-x-4">
+          {/* Calendar View Selector */}
+          <Tabs value={calendarView} onValueChange={(value) => setCalendarView(value as 'month' | 'week')} className="w-auto">
+            <TabsList>
+              <TabsTrigger value="month">Month</TabsTrigger>
+              <TabsTrigger value="week">Week</TabsTrigger>
+            </TabsList>
+          </Tabs>
+
           {/* View Mode Selector for Managers/Admins */}
           {isManagerOrAdmin && (
             <Tabs value={viewMode} onValueChange={(value) => setViewMode(value as 'my' | 'team')} className="w-auto">
@@ -328,16 +354,21 @@ export default function Calendar() {
           <div className="flex items-center justify-between">
             <CardTitle className="flex items-center space-x-2">
               <CalendarIcon className="w-5 h-5" />
-              <span>{format(currentDate, 'MMMM yyyy')}</span>
+              <span>
+                {calendarView === 'week' 
+                  ? `Week of ${format(startOfWeek(currentDate), 'MMM d, yyyy')}`
+                  : format(currentDate, 'MMMM yyyy')
+                }
+              </span>
             </CardTitle>
             <div className="flex items-center space-x-2">
-              <Button variant="outline" size="sm" onClick={() => navigateMonth('prev')}>
+              <Button variant="outline" size="sm" onClick={() => navigateCalendar('prev')}>
                 <ChevronLeft className="w-4 h-4" />
               </Button>
               <Button variant="outline" size="sm" onClick={() => setCurrentDate(new Date())}>
                 Today
               </Button>
-              <Button variant="outline" size="sm" onClick={() => navigateMonth('next')}>
+              <Button variant="outline" size="sm" onClick={() => navigateCalendar('next')}>
                 <ChevronRight className="w-4 h-4" />
               </Button>
             </div>
@@ -347,7 +378,7 @@ export default function Calendar() {
           {eventsLoading ? (
             <div className="text-center py-8">Loading calendar...</div>
           ) : (
-            <div className="grid grid-cols-7 gap-1">
+            <div className={`grid gap-1 ${calendarView === 'week' ? 'grid-cols-7' : 'grid-cols-7'}`}>
               {/* Day headers */}
               {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
                 <div key={day} className="p-2 text-center text-sm font-medium text-gray-500 dark:text-gray-400">
@@ -358,13 +389,14 @@ export default function Calendar() {
               {/* Calendar days */}
               {calendarDays.map(day => {
                 const dayEvents = getEventsForDay(day);
-                const isCurrentMonth = isSameMonth(day, currentDate);
+                const isCurrentMonth = calendarView === 'week' || isSameMonth(day, currentDate);
                 const isDayToday = isToday(day);
+                const dayHeight = calendarView === 'week' ? 'min-h-[200px]' : 'min-h-[100px]';
                 
                 return (
                   <div
                     key={day.toISOString()}
-                    className={`min-h-[100px] p-1 border border-gray-200 dark:border-gray-700 ${
+                    className={`${dayHeight} p-1 border border-gray-200 dark:border-gray-700 ${
                       isCurrentMonth ? 'bg-white dark:bg-gray-900' : 'bg-gray-50 dark:bg-gray-800'
                     } ${isDayToday ? 'ring-2 ring-blue-500' : ''}`}
                   >
@@ -372,12 +404,12 @@ export default function Calendar() {
                       isDayToday ? 'text-blue-600 dark:text-blue-400' : 
                       isCurrentMonth ? 'text-gray-900 dark:text-gray-100' : 'text-gray-400 dark:text-gray-500'
                     }`}>
-                      {format(day, 'd')}
+                      {calendarView === 'week' ? format(day, 'EEE d') : format(day, 'd')}
                     </div>
                     
                     {/* Events for this day */}
                     <div className="space-y-1">
-                      {dayEvents.slice(0, 3).map(event => {
+                      {dayEvents.slice(0, calendarView === 'week' ? 8 : 3).map(event => {
                         const eventUser = viewMode === 'team' && isManagerOrAdmin 
                           ? users.find(u => u.id === event.userId) 
                           : null;
@@ -387,13 +419,16 @@ export default function Calendar() {
                             className={`text-xs p-1 rounded text-white truncate ${getEventTypeColor(event.type)}`}
                             title={`${event.title} - ${format(new Date(event.startDate), 'HH:mm')}${eventUser ? ` (${eventUser.employeeName || eventUser.email})` : ''}`}
                           >
+                            {calendarView === 'week' && (
+                              <div className="font-medium">{format(new Date(event.startDate), 'HH:mm')}</div>
+                            )}
                             {viewMode === 'team' && eventUser ? `${eventUser.employeeName?.split(' ')[0] || 'User'}: ` : ''}{event.title}
                           </div>
                         );
                       })}
-                      {dayEvents.length > 3 && (
+                      {dayEvents.length > (calendarView === 'week' ? 8 : 3) && (
                         <div className="text-xs text-gray-500 dark:text-gray-400">
-                          +{dayEvents.length - 3} more
+                          +{dayEvents.length - (calendarView === 'week' ? 8 : 3)} more
                         </div>
                       )}
                     </div>
