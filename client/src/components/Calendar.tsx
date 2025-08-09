@@ -72,6 +72,7 @@ export default function Calendar() {
       isAllDay: false,
       reminderMinutes: 15,
       status: "scheduled",
+      userId: user?.id,
     },
   });
 
@@ -203,7 +204,17 @@ export default function Calendar() {
               </DialogDescription>
             </DialogHeader>
             <Form {...form}>
-              <form onSubmit={form.handleSubmit((data) => createEventMutation.mutate(data))} className="space-y-4">
+              <form onSubmit={form.handleSubmit((data) => {
+                console.log("Form submitted with data:", data);
+                console.log("Form validation errors:", form.formState.errors);
+                console.log("Form valid?", form.formState.isValid);
+                console.log("User ID:", user?.id);
+                if (Object.keys(form.formState.errors).length > 0) {
+                  console.error("Form has validation errors, not submitting");
+                  return;
+                }
+                createEventMutation.mutate(data);
+              })} className="space-y-4">
                 <FormField
                   control={form.control}
                   name="title"
