@@ -71,8 +71,14 @@ export default function ActivityTimeline({
     fetchedActivities: fetchedActivities?.length, 
     activities: activities?.length,
     isLoading,
-    activitiesData: activities
+    activitiesData: activities,
+    firstActivity: activities[0]
   });
+
+  // Filter out any non-interaction data that might have been passed incorrectly
+  const validActivities = activities.filter((item: any) => 
+    item && typeof item === 'object' && 'type' in item && 'description' in item
+  );
 
   const getLeadInfo = (leadId: number) => {
     return leads.find((lead: any) => lead.id === leadId);
@@ -105,7 +111,7 @@ export default function ActivityTimeline({
       </CardHeader>
       <CardContent className="p-0">
         <ScrollArea className="h-[400px] px-6">
-          {activities.length === 0 ? (
+          {validActivities.length === 0 ? (
             <div className="text-center py-8 text-gray-500">
               <FileText className="w-12 h-12 mx-auto mb-3 opacity-50" />
               <p>No activities recorded yet</p>
@@ -122,14 +128,14 @@ export default function ActivityTimeline({
             </div>
           ) : (
             <div className="space-y-4 pb-4">
-              {activities.map((activity: Interaction, index: number) => {
+              {validActivities.map((activity: Interaction, index: number) => {
                 const IconComponent = ACTIVITY_ICONS[activity.type as keyof typeof ACTIVITY_ICONS] || FileText;
                 const colorClass = ACTIVITY_COLORS[activity.type as keyof typeof ACTIVITY_COLORS] || ACTIVITY_COLORS.note;
                 const leadInfo = !leadId && activity.leadId ? getLeadInfo(activity.leadId) : null;
 
                 return (
                   <div key={activity.id} className="relative">
-                    {index !== activities.length - 1 && (
+                    {index !== validActivities.length - 1 && (
                       <div className="absolute left-6 top-12 w-px h-8 bg-gray-200" />
                     )}
                     

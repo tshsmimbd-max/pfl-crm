@@ -487,6 +487,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const interactions = await storage.getInteractions(leadId);
+      console.log(`Fetching interactions for lead ${leadId}:`, interactions);
       res.json(interactions);
     } catch (error) {
       console.error("Error fetching lead interactions:", error);
