@@ -58,7 +58,7 @@ export default function AddActivityDialog({ open, onOpenChange, leadId }: AddAct
       queryClient.invalidateQueries({ queryKey: ["/api/interactions"] });
       queryClient.invalidateQueries({ queryKey: ["/api/interactions/user"] });
       if (leadId) {
-        queryClient.invalidateQueries({ queryKey: ["/api/leads", leadId, "interactions"] });
+        queryClient.invalidateQueries({ queryKey: [`/api/leads/${leadId}/interactions`] });
       }
       onOpenChange(false);
       form.reset();

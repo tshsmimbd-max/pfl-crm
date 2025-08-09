@@ -51,7 +51,7 @@ export default function ActivityTimeline({
   onAddActivity 
 }: ActivityTimelineProps) {
   const { data: fetchedActivities = [], isLoading } = useQuery<any[]>({
-    queryKey: leadId ? ["/api/leads", leadId, "interactions"] : ["/api/interactions/user", userId],
+    queryKey: leadId ? [`/api/leads/${leadId}/interactions`] : [`/api/interactions/user/${userId}`],
     enabled: !propActivities && !!(leadId || userId),
     retry: 1,
   });
