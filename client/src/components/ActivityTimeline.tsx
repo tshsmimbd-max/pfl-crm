@@ -1,10 +1,12 @@
-import React from "react";
+import React, { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
 import { 
   Phone, 
   Mail, 
@@ -14,7 +16,8 @@ import {
   CheckCircle,
   Plus,
   User,
-  Building2
+  Building2,
+  Filter
 } from "lucide-react";
 
 import type { Interaction } from "@shared/schema";
@@ -26,6 +29,7 @@ interface ActivityTimelineProps {
   leads?: any[];
   showLeadInfo?: boolean;
   onAddActivity?: () => void;
+  showFilters?: boolean;
 }
 
 const ACTIVITY_ICONS = {
@@ -48,8 +52,12 @@ export default function ActivityTimeline({
   activities: propActivities, 
   leads: propLeads = [], 
   showLeadInfo = true, 
-  onAddActivity 
+  onAddActivity,
+  showFilters = false
 }: ActivityTimelineProps) {
+  const [selectedLead, setSelectedLead] = useState<string>("");
+  const [dateRange, setDateRange] = useState<string>("all");
+  const [activityType, setActivityType] = useState<string>("");
   const { data: fetchedActivities = [], isLoading } = useQuery<any[]>({
     queryKey: leadId ? [`/api/leads/${leadId}/interactions`] : [`/api/interactions/user/${userId}`],
     enabled: !propActivities && !!(leadId || userId),
@@ -65,9 +73,50 @@ export default function ActivityTimeline({
   const leads = propLeads.length > 0 ? propLeads : fetchedLeads;
 
   // Filter out any non-interaction data that might have been passed incorrectly
-  const validActivities = activities.filter((item: any) => 
+  const baseActivities = activities.filter((item: any) => 
     item && typeof item === 'object' && 'type' in item && 'description' in item
   );
+
+  // Apply filters when showFilters is enabled
+  const validActivities = useMemo(() => {
+    if (!showFilters) return baseActivities;
+
+    return baseActivities.filter(activity => {
+      // Lead filter
+      if (selectedLead && activity.leadId !== parseInt(selectedLead)) {
+        return false;
+      }
+
+      // Activity type filter
+      if (activityType && activity.type !== activityType) {
+        return false;
+      }
+
+      // Date range filter
+      if (dateRange !== "all" && activity.createdAt) {
+        const activityDate = new Date(activity.createdAt);
+        const now = new Date();
+        const daysDiff = (now.getTime() - activityDate.getTime()) / (1000 * 60 * 60 * 24);
+        
+        switch (dateRange) {
+          case "today":
+            if (daysDiff > 1) return false;
+            break;
+          case "week":
+            if (daysDiff > 7) return false;
+            break;
+          case "month":
+            if (daysDiff > 30) return false;
+            break;
+          case "quarter":
+            if (daysDiff > 90) return false;
+            break;
+        }
+      }
+
+      return true;
+    });
+  }, [baseActivities, selectedLead, activityType, dateRange, showFilters]);
 
   const getLeadInfo = (leadId: number) => {
     return leads.find((lead: any) => lead.id === leadId);
@@ -86,18 +135,93 @@ export default function ActivityTimeline({
   }
 
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
-        <CardTitle className="text-lg font-semibold">
-          {leadId ? "Lead Activities" : "My Activities"}
-        </CardTitle>
-        {onAddActivity && (
-          <Button onClick={onAddActivity} size="sm">
-            <Plus className="w-4 h-4 mr-2" />
-            Add Activity
-          </Button>
-        )}
-      </CardHeader>
+    <div className="space-y-4">
+      {/* Filters Section */}
+      {showFilters && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center text-base">
+              <Filter className="w-4 h-4 mr-2" />
+              Activity Filters
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="lead-filter">Filter by Lead</Label>
+                <Select value={selectedLead} onValueChange={setSelectedLead}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="All leads" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">All leads</SelectItem>
+                    {leads.map((lead: any) => (
+                      <SelectItem key={lead.id} value={lead.id.toString()}>
+                        {lead.contactName} - {lead.company}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="date-filter">Date Range</Label>
+                <Select value={dateRange} onValueChange={setDateRange}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All time</SelectItem>
+                    <SelectItem value="today">Today</SelectItem>
+                    <SelectItem value="week">Last 7 days</SelectItem>
+                    <SelectItem value="month">Last 30 days</SelectItem>
+                    <SelectItem value="quarter">Last 90 days</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="type-filter">Activity Type</Label>
+                <Select value={activityType} onValueChange={setActivityType}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="All types" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">All types</SelectItem>
+                    <SelectItem value="call">Calls</SelectItem>
+                    <SelectItem value="email">Emails</SelectItem>
+                    <SelectItem value="meeting">Meetings</SelectItem>
+                    <SelectItem value="note">Notes</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Activities List */}
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
+          <div>
+            <CardTitle className="flex items-center text-lg">
+              <Clock className="w-5 h-5 mr-2" />
+              {leadId ? "Lead Activities" : "My Activities"}
+            </CardTitle>
+            <p className="text-sm text-gray-600 mt-1">
+              {validActivities.length} activities found
+              {showFilters && (selectedLead || dateRange !== "all" || activityType) && 
+                " (filtered)"
+              }
+            </p>
+          </div>
+          {onAddActivity && (
+            <Button onClick={onAddActivity} size="sm">
+              <Plus className="w-4 h-4 mr-2" />
+              Add Activity
+            </Button>
+          )}
+        </CardHeader>
       <CardContent className="p-0">
         <ScrollArea className="h-[400px] px-6">
           {validActivities.length === 0 ? (
@@ -207,6 +331,7 @@ export default function ActivityTimeline({
           )}
         </ScrollArea>
       </CardContent>
-    </Card>
+      </Card>
+    </div>
   );
 }
