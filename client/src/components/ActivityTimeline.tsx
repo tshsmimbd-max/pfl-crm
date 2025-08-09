@@ -16,7 +16,7 @@ import {
   User,
   Building2
 } from "lucide-react";
-import { format } from "date-fns";
+
 import type { Interaction } from "@shared/schema";
 
 interface ActivityTimelineProps {
@@ -184,7 +184,13 @@ export default function ActivityTimeline({
                               <div className="flex items-center space-x-1">
                                 <Clock className="w-3 h-3" />
                                 <span>
-                                  Created {format(new Date(activity.createdAt), "MMM d, yyyy 'at' h:mm a")}
+                                  Created {new Date(activity.createdAt).toLocaleDateString('en-US', {
+                                    year: 'numeric',
+                                    month: 'short',
+                                    day: 'numeric',
+                                    hour: '2-digit',
+                                    minute: '2-digit'
+                                  })}
                                 </span>
                               </div>
                             )}
@@ -192,7 +198,12 @@ export default function ActivityTimeline({
                               <div className="flex items-center space-x-1 text-green-600 bg-green-50 px-2 py-1 rounded">
                                 <CheckCircle className="w-3 h-3" />
                                 <span className="font-medium">
-                                  Completed {format(new Date(activity.completedAt), "MMM d, h:mm a")}
+                                  Completed {new Date(activity.completedAt).toLocaleDateString('en-US', {
+                                    month: 'short',
+                                    day: 'numeric',
+                                    hour: '2-digit',
+                                    minute: '2-digit'
+                                  })}
                                 </span>
                               </div>
                             )}

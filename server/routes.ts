@@ -536,6 +536,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Team interactions route for analytics
+  app.get('/api/interactions/team', requireAuth, async (req: any, res) => {
+    try {
+      const currentUser = await storage.getUser(req.user.id);
+      let interactions;
+
+      if (!currentUser) {
+        return res.status(401).json({ message: "User not found" });
+      }
+
+      if (currentUser.role === ROLES.SUPER_ADMIN) {
+        interactions = await storage.getAllInteractions();
+      } else if (currentUser.role === ROLES.SALES_MANAGER) {
+        const teamMembers = await storage.getTeamMembers(currentUser.id);
+        const teamMemberIds = [currentUser.id, ...teamMembers.map(m => m.id)];
+        interactions = await storage.getInteractionsByUsers(teamMemberIds);
+      } else {
+        interactions = await storage.getInteractionsByUser(currentUser.id);
+      }
+
+      res.json(interactions);
+    } catch (error) {
+      console.error("Error fetching team interactions:", error);
+      res.status(500).json({ message: "Failed to fetch team interactions" });
+    }
+  });
+
   // Calendar Event routes (upcoming/scheduled plans)
   app.get('/api/calendar-events', requireAuth, async (req: any, res) => {
     try {

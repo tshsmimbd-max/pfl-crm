@@ -33,6 +33,8 @@ import {
   Filter
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import TeamActivityReports from "./TeamActivityReports";
 
 const COLORS = ['#2563eb', '#f59e0b', '#8b5cf6', '#10b981', '#ef4444', '#6b7280'];
 
