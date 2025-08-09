@@ -70,7 +70,8 @@ export default function ActivityTimeline({
     propActivities: propActivities?.length, 
     fetchedActivities: fetchedActivities?.length, 
     activities: activities?.length,
-    isLoading 
+    isLoading,
+    activitiesData: activities
   });
 
   const getLeadInfo = (leadId: number) => {
