@@ -30,6 +30,9 @@ export const users = pgTable("users", {
   emailVerified: boolean("email_verified").default(false),
   verificationCode: varchar("verification_code"),
   codeExpiresAt: timestamp("code_expires_at"),
+  passwordResetCode: varchar("password_reset_code"),
+  passwordResetExpiresAt: timestamp("password_reset_expires_at"),
+
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

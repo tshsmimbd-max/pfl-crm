@@ -6,7 +6,7 @@ import { setupSimpleAuth, requireAuth, requireVerifiedEmail } from "./simpleAuth
 import { insertLeadSchema, insertInteractionSchema, insertTargetSchema, insertCustomerSchema, insertDailyRevenueSchema, insertNotificationSchema, insertCalendarEventSchema, loginSchema, registerSchema, verifyCodeSchema } from "@shared/schema";
 import { requirePermission, requireRole, hasPermission, canAccessResource, canAccessUser, PERMISSIONS, ROLES, Role } from "./rbac";
 import { z } from "zod";
-import { sendVerificationCode } from "./emailService";
+import { sendVerificationCode, sendPasswordResetCode } from "./emailService";
 import bcrypt from "bcrypt";
 import multer from "multer";
 import fs from "fs";
@@ -134,6 +134,102 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       res.json({ message: "Logged out successfully" });
     });
+  });
+
+  // Password reset routes
+  // Request password reset code
+  app.post('/api/request-password-reset', async (req: any, res) => {
+    try {
+      const { email } = req.body;
+      
+      if (!email) {
+        return res.status(400).json({ message: "Email is required" });
+      }
+
+      const user = await storage.getUserByEmail(email);
+      if (!user) {
+        // For security, don't reveal if email exists or not
+        return res.json({ message: "If the email exists in our system, a password reset code has been sent." });
+      }
+
+      const resetCode = await storage.generatePasswordResetCode(email);
+      if (!resetCode) {
+        return res.status(500).json({ message: "Failed to generate reset code" });
+      }
+
+      // Send reset code via email
+      await sendPasswordResetCode(email, resetCode, user.employeeName);
+
+      res.json({ message: "If the email exists in our system, a password reset code has been sent." });
+    } catch (error) {
+      console.error("Password reset request error:", error);
+      res.status(500).json({ message: "Failed to process password reset request" });
+    }
+  });
+
+  // Verify password reset code and reset password
+  app.post('/api/reset-password', async (req: any, res) => {
+    try {
+      const { email, code, newPassword } = req.body;
+      
+      if (!email || !code || !newPassword) {
+        return res.status(400).json({ message: "Email, code, and new password are required" });
+      }
+
+      if (newPassword.length < 6) {
+        return res.status(400).json({ message: "Password must be at least 6 characters long" });
+      }
+
+      const success = await storage.resetPassword(email, code, newPassword);
+      if (!success) {
+        return res.status(400).json({ message: "Invalid or expired reset code" });
+      }
+
+      res.json({ message: "Password reset successfully" });
+    } catch (error) {
+      console.error("Password reset error:", error);
+      res.status(500).json({ message: "Failed to reset password" });
+    }
+  });
+
+  // Admin password reset (no verification required)
+  app.post('/api/admin-reset-password', requireAuth, async (req: any, res) => {
+    try {
+      const currentUser = await storage.getUser(req.user.id);
+      
+      // Only super_admin and sales_manager can reset passwords
+      if (currentUser?.role !== 'super_admin' && currentUser?.role !== 'sales_manager') {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      const { userId, newPassword } = req.body;
+      
+      if (!userId || !newPassword) {
+        return res.status(400).json({ message: "User ID and new password are required" });
+      }
+
+      if (newPassword.length < 6) {
+        return res.status(400).json({ message: "Password must be at least 6 characters long" });
+      }
+
+      // Sales managers can only reset passwords for their team members
+      if (currentUser.role === 'sales_manager') {
+        const targetUser = await storage.getUser(userId);
+        if (!targetUser || targetUser.managerId !== currentUser.id) {
+          return res.status(403).json({ message: "Can only reset passwords for your team members" });
+        }
+      }
+
+      const success = await storage.adminResetPassword(userId, newPassword);
+      if (!success) {
+        return res.status(400).json({ message: "Failed to reset password" });
+      }
+
+      res.json({ message: "Password reset successfully" });
+    } catch (error) {
+      console.error("Admin password reset error:", error);
+      res.status(500).json({ message: "Failed to reset password" });
+    }
   });
 
 

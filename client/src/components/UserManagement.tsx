@@ -9,7 +9,8 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Plus, Search, Users, UserCog, Crown, Shield, Edit, Trash2, AlertCircle } from "lucide-react";
+import { Plus, Search, Users, UserCog, Crown, Shield, Edit, Trash2, AlertCircle, KeyRound } from "lucide-react";
+import { AdminPasswordResetDialog } from "@/components/AdminPasswordResetDialog";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -51,6 +52,8 @@ export default function UserManagement() {
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [isRoleDialogOpen, setIsRoleDialogOpen] = useState(false);
   const [isAddUserDialogOpen, setIsAddUserDialogOpen] = useState(false);
+  const [isPasswordResetDialogOpen, setIsPasswordResetDialogOpen] = useState(false);
+  const [passwordResetUser, setPasswordResetUser] = useState<User | null>(null);
   const { user: currentUser } = useAuth();
   const { toast } = useToast();
 
@@ -170,6 +173,11 @@ export default function UserManagement() {
     setSelectedUser(user);
     form.setValue("role", user.role as "super_admin" | "sales_manager" | "sales_agent");
     setIsRoleDialogOpen(true);
+  };
+
+  const handlePasswordReset = (user: User) => {
+    setPasswordResetUser(user);
+    setIsPasswordResetDialogOpen(true);
   };
 
   const filteredUsers = users?.filter((user: User) => {
@@ -685,6 +693,17 @@ export default function UserManagement() {
                           >
                             <Edit className="w-4 h-4" />
                           </Button>
+                          {(currentUser?.role === 'super_admin' || 
+                            (currentUser?.role === 'sales_manager' && user.managerId === currentUser.id)) && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handlePasswordReset(user)}
+                              className="text-orange-600 hover:text-orange-800"
+                            >
+                              <KeyRound className="w-4 h-4" />
+                            </Button>
+                          )}
                         </div>
                       </TableCell>
                     </TableRow>
@@ -773,6 +792,17 @@ export default function UserManagement() {
             )}
           </DialogContent>
         </Dialog>
+
+        {/* Password Reset Dialog */}
+        {passwordResetUser && (
+          <AdminPasswordResetDialog
+            open={isPasswordResetDialogOpen}
+            onOpenChange={setIsPasswordResetDialogOpen}
+            userId={passwordResetUser.id}
+            userEmail={passwordResetUser.email}
+            userName={passwordResetUser.employeeName}
+          />
+        )}
       </div>
     </>
   );

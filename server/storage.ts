@@ -27,6 +27,7 @@ import {
 import { db } from "./db";
 import { eq, desc, and, gte, lte, sum, count, inArray } from "drizzle-orm";
 import * as crypto from "crypto";
+import bcrypt from 'bcrypt';
 
 export interface IStorage {
   // User operations
@@ -186,6 +187,84 @@ export class DatabaseStorage implements IStorage {
     }
 
     return null;
+  }
+
+  // Password reset methods
+  async generatePasswordResetCode(email: string): Promise<string | null> {
+    const user = await this.getUserByEmail(email);
+    if (!user) {
+      return null;
+    }
+
+    // Generate 6-digit reset code
+    const resetCode = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes from now
+
+    await db
+      .update(users)
+      .set({
+        passwordResetCode: resetCode,
+        passwordResetExpiresAt: expiresAt,
+        updatedAt: new Date(),
+      })
+      .where(eq(users.email, email));
+
+    return resetCode;
+  }
+
+  async verifyPasswordResetCode(email: string, code: string): Promise<boolean> {
+    const user = await this.getUserByEmail(email);
+    if (!user || !user.passwordResetCode || !user.passwordResetExpiresAt) {
+      return false;
+    }
+
+    return user.passwordResetCode === code && new Date() < user.passwordResetExpiresAt;
+  }
+
+  async resetPassword(email: string, code: string, newPassword: string): Promise<boolean> {
+    // Verify the reset code first
+    const isValidCode = await this.verifyPasswordResetCode(email, code);
+    if (!isValidCode) {
+      return false;
+    }
+
+    // Hash the new password
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    // Update password and clear reset data
+    const result = await db
+      .update(users)
+      .set({
+        password: hashedPassword,
+        passwordResetCode: null,
+        passwordResetExpiresAt: null,
+        updatedAt: new Date(),
+      })
+      .where(eq(users.email, email))
+      .returning();
+
+    return result.length > 0;
+  }
+
+  // Admin password reset (no verification required)
+  async adminResetPassword(userId: string, newPassword: string): Promise<boolean> {
+    try {
+      const hashedPassword = await bcrypt.hash(newPassword, 10);
+      
+      const result = await db
+        .update(users)
+        .set({
+          password: hashedPassword,
+          updatedAt: new Date(),
+        })
+        .where(eq(users.id, userId))
+        .returning();
+
+      return result.length > 0;
+    } catch (error) {
+      console.error("Admin password reset error:", error);
+      return false;
+    }
   }
 
   async getAllUsers(): Promise<User[]> {

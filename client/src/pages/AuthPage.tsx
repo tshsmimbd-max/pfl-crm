@@ -18,6 +18,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Redirect } from "wouter";
 import { Mail, Lock, Shield } from "lucide-react";
+import { PasswordResetDialog } from "@/components/PasswordResetDialog";
 
 const loginSchema = z.object({
   email: z.string().email("Please enter a valid email"),
@@ -36,6 +37,7 @@ export default function AuthPage() {
   const { user, isLoading } = useAuth();
   const [showVerification, setShowVerification] = useState(false);
   const [verificationEmail, setVerificationEmail] = useState("");
+  const [showPasswordReset, setShowPasswordReset] = useState(false);
 
   const loginForm = useForm<LoginData>({
     resolver: zodResolver(loginSchema),
@@ -257,6 +259,17 @@ export default function AuthPage() {
                     <Button type="submit" className="w-full" disabled={loginForm.formState.isSubmitting}>
                       {loginForm.formState.isSubmitting ? "Signing in..." : "Sign in"}
                     </Button>
+                    
+                    <div className="text-center">
+                      <Button
+                        type="button"
+                        variant="link"
+                        className="text-sm text-blue-600 hover:text-blue-800"
+                        onClick={() => setShowPasswordReset(true)}
+                      >
+                        Forgot your password?
+                      </Button>
+                    </div>
                   </form>
                 </Form>
               </CardContent>
@@ -282,6 +295,11 @@ export default function AuthPage() {
             </div>
           </div>
         </div>
+        
+        <PasswordResetDialog 
+          open={showPasswordReset} 
+          onOpenChange={setShowPasswordReset} 
+        />
       </div>
     </div>
   );
