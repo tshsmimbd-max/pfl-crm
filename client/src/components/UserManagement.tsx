@@ -29,7 +29,7 @@ const addUserSchema = z.object({
   employeeName: z.string().min(2, "Employee name must be at least 2 characters"),
   employeeCode: z.string().min(2, "Employee code is required"),
   role: z.enum(["super_admin", "sales_manager", "sales_agent"]),
-  managerId: z.string().min(1, "Manager assignment is required for sales agents"),
+  managerId: z.string().optional(),
   teamName: z.enum(["Sales Titans", "Revenue Rangers"]),
   password: z.string().min(6, "Password must be at least 6 characters"),
 }).refine((data) => {
@@ -166,6 +166,8 @@ export default function UserManagement() {
   };
 
   const onAddUserSubmit = (data: AddUserData) => {
+    console.log("Form submission data:", data);
+    console.log("Form errors:", addUserForm.formState.errors);
     addUserMutation.mutate(data);
   };
 
@@ -255,7 +257,7 @@ export default function UserManagement() {
   };
 
   // Get manager name for display
-  const getManagerName = (managerId?: string) => {
+  const getManagerName = (managerId?: string | null) => {
     if (!managerId) return "No Manager";
     const manager = users?.find((u: User) => u.id === managerId);
     return manager?.employeeName || "Unknown Manager";
