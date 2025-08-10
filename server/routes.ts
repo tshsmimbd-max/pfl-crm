@@ -143,11 +143,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // User management routes (Admin only)
   app.get('/api/users', requireAuth, async (req: any, res) => {
     try {
-      const user = await storage.getUser(req.user.id);
-      if (user?.role !== 'super_admin') {
-        return res.status(403).json({ message: "Access denied" });
+      const currentUser = await storage.getUser(req.user.id);
+      let users;
+      
+      if (currentUser?.role === 'super_admin') {
+        // Super admin sees all users
+        users = await storage.getAllUsers();
+      } else if (currentUser?.role === 'sales_manager') {
+        // Sales manager sees only their team members and themselves
+        const teamMembers = await storage.getTeamMembers(currentUser.id);
+        users = [currentUser, ...teamMembers];
+      } else {
+        // Sales agent sees only themselves  
+        users = [currentUser];
       }
-      const users = await storage.getAllUsers();
+      
       res.json(users);
     } catch (error) {
       console.error("Error fetching users:", error);
@@ -219,9 +229,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Missing required fields: email, employeeName, employeeCode, password, role" });
       }
 
-      // Sales managers can only create sales_agent users
-      if (currentUser.role === 'sales_manager' && role !== 'sales_agent') {
-        return res.status(403).json({ message: "Sales managers can only create sales agent users" });
+      // Sales managers can only create sales_agent users and assign them to their own team
+      if (currentUser.role === 'sales_manager') {
+        if (role !== 'sales_agent') {
+          return res.status(403).json({ message: "Sales managers can only create sales agent users" });
+        }
+        // Force assignment to current manager's team
+        if (!managerId || managerId !== currentUser.id) {
+          return res.status(400).json({ message: "Sales agents must be assigned to the creating manager" });
+        }
+        if (!teamName || teamName !== currentUser.teamName) {
+          return res.status(400).json({ message: "New sales agents must be assigned to the same team as their manager" });
+        }
       }
 
       // Check if email already exists
@@ -566,7 +585,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Calendar Event routes (upcoming/scheduled plans)
   app.get('/api/calendar-events', requireAuth, async (req: any, res) => {
     try {
-      const events = await storage.getCalendarEvents(req.user.id);
+      const currentUser = await storage.getUser(req.user.id);
+      let events;
+      
+      if (currentUser?.role === ROLES.SUPER_ADMIN) {
+        // Super admin sees all events
+        events = await storage.getAllCalendarEvents();
+      } else if (currentUser?.role === ROLES.SALES_MANAGER) {
+        // Sales manager sees events from their team members
+        const teamMembers = await storage.getTeamMembers(currentUser.id);
+        const teamMemberIds = [currentUser.id, ...teamMembers.map(m => m.id)];
+        // Get events for all team members
+        events = await storage.getAllCalendarEvents();
+        events = events.filter(event => event.userId && teamMemberIds.includes(event.userId));
+      } else {
+        // Sales agent sees only their own events
+        events = await storage.getCalendarEvents(currentUser.id);
+      }
+      
       res.json(events);
     } catch (error) {
       console.error("Error fetching calendar events:", error);
@@ -574,16 +610,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get team calendar events (for managers and admins)
+  // Get team calendar events (for managers and admins) - Enhanced with team filtering
   app.get('/api/calendar-events/team', requireAuth, async (req: any, res) => {
     try {
-      // Check if user has permission to view team events
-      if (req.user.role !== 'super_admin' && req.user.role !== 'sales_manager') {
+      const currentUser = await storage.getUser(req.user.id);
+      
+      if (currentUser?.role === ROLES.SUPER_ADMIN) {
+        // Super admin sees all events
+        const events = await storage.getAllCalendarEvents();
+        res.json(events);
+      } else if (currentUser?.role === ROLES.SALES_MANAGER) {
+        // Sales manager sees events from their team members
+        const teamMembers = await storage.getTeamMembers(currentUser.id);
+        const teamMemberIds = [currentUser.id, ...teamMembers.map(m => m.id)];
+        const events = await storage.getAllCalendarEvents();
+        const teamEvents = events.filter(event => teamMemberIds.includes(event.userId));
+        res.json(teamEvents);
+      } else {
         return res.status(403).json({ message: "Insufficient permissions" });
       }
-      
-      const events = await storage.getAllCalendarEvents();
-      res.json(events);
     } catch (error) {
       console.error("Error fetching team calendar events:", error);
       res.status(500).json({ message: "Failed to fetch team calendar events" });

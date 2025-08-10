@@ -28,9 +28,18 @@ const addUserSchema = z.object({
   employeeName: z.string().min(2, "Employee name must be at least 2 characters"),
   employeeCode: z.string().min(2, "Employee code is required"),
   role: z.enum(["super_admin", "sales_manager", "sales_agent"]),
-  managerId: z.string().optional(),
+  managerId: z.string().min(1, "Manager assignment is required for sales agents"),
   teamName: z.enum(["Sales Titans", "Revenue Rangers"]),
   password: z.string().min(6, "Password must be at least 6 characters"),
+}).refine((data) => {
+  // For sales agents, managerId is required
+  if (data.role === "sales_agent" && (!data.managerId || data.managerId === "")) {
+    return false;
+  }
+  return true;
+}, {
+  message: "Sales agents must be assigned to a manager",
+  path: ["managerId"],
 });
 
 type UpdateRoleData = z.infer<typeof updateRoleSchema>;
@@ -45,15 +54,15 @@ export default function UserManagement() {
   const { user: currentUser } = useAuth();
   const { toast } = useToast();
 
-  const { data: users, isLoading } = useQuery({
+  const { data: users, isLoading } = useQuery<User[]>({
     queryKey: ["/api/users"],
   });
 
-  const { data: targets } = useQuery({
+  const { data: targets } = useQuery<any[]>({
     queryKey: ["/api/targets"],
   });
 
-  const { data: teamPerformance } = useQuery({
+  const { data: teamPerformance } = useQuery<any[]>({
     queryKey: ["/api/analytics/team-performance"],
   });
 
@@ -71,8 +80,8 @@ export default function UserManagement() {
       employeeName: "",
       employeeCode: "",
       role: "sales_agent",
-      managerId: "",
-      teamName: "Sales Titans",
+      managerId: currentUser?.role === 'sales_manager' ? currentUser.id : "",
+      teamName: (currentUser?.role === 'sales_manager' ? (currentUser.teamName as "Sales Titans" | "Revenue Rangers") || "Sales Titans" : "Sales Titans"),
       password: "",
     },
   });
@@ -163,7 +172,7 @@ export default function UserManagement() {
     setIsRoleDialogOpen(true);
   };
 
-  const filteredUsers = users?.filter((user) => {
+  const filteredUsers = users?.filter((user: User) => {
     const matchesSearch = 
       user.employeeName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -173,8 +182,8 @@ export default function UserManagement() {
   }) || [];
 
   const getUserStats = (user: User) => {
-    const userTargets = targets?.filter(t => t.userId === user.id) || [];
-    const userPerformance = teamPerformance?.find(p => p.user.id === user.id);
+    const userTargets = targets?.filter((t: any) => t.userId === user.id) || [];
+    const userPerformance = teamPerformance?.find((p: any) => p.user.id === user.id);
     
     return {
       activeTargets: userTargets.length,
@@ -240,7 +249,7 @@ export default function UserManagement() {
   // Get manager name for display
   const getManagerName = (managerId?: string) => {
     if (!managerId) return "No Manager";
-    const manager = users?.find(u => u.id === managerId);
+    const manager = users?.find((u: User) => u.id === managerId);
     return manager?.employeeName || "Unknown Manager";
   };
 
@@ -248,9 +257,29 @@ export default function UserManagement() {
   const canAddUsers = currentUser?.role === "super_admin" || currentUser?.role === "sales_manager";
 
   // Get available managers for assignment (super_admin and sales_manager)
-  const availableManagers = users?.filter(u => 
+  const availableManagers = users?.filter((u: User) => 
     u.role === "super_admin" || u.role === "sales_manager"
   ) || [];
+
+  // Filter users based on role hierarchy
+  const getVisibleUsers = () => {
+    if (!users) return [];
+    
+    if (currentUser?.role === "super_admin") {
+      // Super admin sees all users
+      return filteredUsers;
+    } else if (currentUser?.role === "sales_manager") {
+      // Sales manager sees only their team members
+      return filteredUsers.filter((user: User) => 
+        user.managerId === currentUser.id || user.id === currentUser.id
+      );
+    } else {
+      // Sales agent sees only themselves
+      return filteredUsers.filter((user: User) => user.id === currentUser?.id);
+    }
+  };
+
+  const visibleUsers = getVisibleUsers();
 
   if (isLoading) {
     return (
@@ -268,11 +297,11 @@ export default function UserManagement() {
     );
   }
 
-  const superAdminCount = users?.filter(u => u.role === "super_admin").length || 0;
-  const managerCount = users?.filter(u => u.role === "sales_manager").length || 0;
-  const agentCount = users?.filter(u => u.role === "sales_agent").length || 0;
-  const usersWithoutTargets = users?.filter(u => 
-    u.role === "sales_agent" && !targets?.some(t => t.userId === u.id)
+  const superAdminCount = visibleUsers.filter((u: User) => u.role === "super_admin").length || 0;
+  const managerCount = visibleUsers.filter((u: User) => u.role === "sales_manager").length || 0;
+  const agentCount = visibleUsers.filter((u: User) => u.role === "sales_agent").length || 0;
+  const usersWithoutTargets = visibleUsers.filter((u: User) => 
+    u.role === "sales_agent" && !targets?.some((t: any) => t.userId === u.id)
   ).length || 0;
 
   return (
@@ -406,7 +435,7 @@ export default function UserManagement() {
                                   </SelectTrigger>
                                 </FormControl>
                                 <SelectContent>
-                                  {availableManagers.map((manager) => {
+                                  {availableManagers.map((manager: User) => {
                                     const ManagerIcon = getRoleIcon(manager.role);
                                     return (
                                       <SelectItem key={manager.id} value={manager.id}>
@@ -588,7 +617,7 @@ export default function UserManagement() {
         {/* Users Table */}
         <Card>
           <CardHeader>
-            <CardTitle>Team Members ({filteredUsers.length})</CardTitle>
+            <CardTitle>Team Members ({visibleUsers.length})</CardTitle>
           </CardHeader>
           <CardContent>
             <Table>
@@ -604,7 +633,7 @@ export default function UserManagement() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredUsers.map((user) => {
+                {visibleUsers.map((user: User) => {
                   const stats = getUserStats(user);
                   const RoleIcon = getRoleIcon(user.role);
                   const isCurrentUser = user.id === currentUser?.id;
@@ -614,15 +643,7 @@ export default function UserManagement() {
                       <TableCell>
                         <div className="flex items-center space-x-3">
                           <div className="w-10 h-10 bg-primary-100 rounded-full flex items-center justify-center">
-                            {user.profileImageUrl ? (
-                              <img
-                                src={user.profileImageUrl}
-                                alt={`${user.firstName} ${user.lastName}`}
-                                className="w-10 h-10 rounded-full object-cover"
-                              />
-                            ) : (
-                              <RoleIcon className="w-5 h-5 text-primary-600" />
-                            )}
+                            <RoleIcon className="w-5 h-5 text-primary-600" />
                           </div>
                           <div>
                             <p className="font-medium text-gray-900">
@@ -684,15 +705,7 @@ export default function UserManagement() {
               <div className="space-y-4">
                 <div className="flex items-center space-x-3 p-4 bg-gray-50 rounded-lg">
                   <div className="w-10 h-10 bg-primary-100 rounded-full flex items-center justify-center">
-                    {selectedUser.profileImageUrl ? (
-                      <img
-                        src={selectedUser.profileImageUrl}
-                        alt={`${selectedUser.firstName} ${selectedUser.lastName}`}
-                        className="w-10 h-10 rounded-full object-cover"
-                      />
-                    ) : (
-                      <Users className="w-5 h-5 text-primary-600" />
-                    )}
+                    <Users className="w-5 h-5 text-primary-600" />
                   </div>
                   <div>
                     <p className="font-medium text-gray-900">
