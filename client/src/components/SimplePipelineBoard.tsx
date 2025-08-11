@@ -90,7 +90,7 @@ export default function SimplePipelineBoard() {
   });
 
   useEffect(() => {
-    setLeads(fetchedLeads);
+    setLeads(fetchedLeads as Lead[]);
   }, [fetchedLeads]);
 
   const formatCurrency = (value: any) => {
@@ -279,7 +279,7 @@ export default function SimplePipelineBoard() {
                                         {formatCurrency(lead.value)}
                                       </div>
                                       <div className="text-xs text-gray-500 bg-gray-50 px-2 py-1 rounded">
-                                        {new Date(lead.createdAt).toLocaleDateString()}
+                                        {lead.createdAt ? new Date(lead.createdAt).toLocaleDateString() : 'N/A'}
                                       </div>
                                     </div>
 

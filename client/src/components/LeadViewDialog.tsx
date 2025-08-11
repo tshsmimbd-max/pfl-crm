@@ -20,7 +20,7 @@ import {
   MessageSquare,
   TrendingUp,
   FileText,
-  UserCheck,
+
   Trophy
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -38,7 +38,6 @@ interface LeadViewDialogProps {
 
 export default function LeadViewDialog({ lead, open, onOpenChange, onEdit }: LeadViewDialogProps) {
   const { toast } = useToast();
-  const [convertingToCustomer, setConvertingToCustomer] = useState(false);
   const [showAddActivityDialog, setShowAddActivityDialog] = useState(false);
 
   const { data: interactions = [], isLoading: interactionsLoading, error: interactionsError } = useQuery<any[]>({
@@ -47,35 +46,7 @@ export default function LeadViewDialog({ lead, open, onOpenChange, onEdit }: Lea
     retry: 1,
   });
 
-  const convertToCustomerMutation = useMutation({
-    mutationFn: async (leadId: number) => {
-      return await apiRequest("POST", `/api/customers/convert/${leadId}`, {});
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/leads"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/customers"] });
-      setConvertingToCustomer(false);
-      toast({
-        title: "Success",
-        description: "Lead successfully converted to customer!",
-      });
-      onOpenChange(false);
-    },
-    onError: (error: any) => {
-      setConvertingToCustomer(false);
-      toast({
-        title: "Error",
-        description: error.message || "Failed to convert lead to customer",
-        variant: "destructive",
-      });
-    },
-  });
 
-  const handleConvertToCustomer = () => {
-    if (!lead) return;
-    setConvertingToCustomer(true);
-    convertToCustomerMutation.mutate(lead.id);
-  };
 
   const formatCurrency = (value: any) => {
     const numValue = typeof value === 'string' ? parseFloat(value) : value;
@@ -179,17 +150,7 @@ export default function LeadViewDialog({ lead, open, onOpenChange, onEdit }: Lea
                   Edit
                 </Button>
               )}
-              {lead.stage === 'closed_won' && (
-                <Button 
-                  onClick={handleConvertToCustomer}
-                  disabled={convertingToCustomer}
-                  size="sm"
-                  className="bg-green-600 hover:bg-green-700 text-white"
-                >
-                  <UserCheck className="w-4 h-4 mr-2" />
-                  {convertingToCustomer ? "Converting..." : "Convert to Customer"}
-                </Button>
-              )}
+
             </div>
           </div>
         </DialogHeader>
