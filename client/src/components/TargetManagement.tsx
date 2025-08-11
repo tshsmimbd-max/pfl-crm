@@ -40,6 +40,7 @@ export default function TargetManagement() {
   });
 
   const form = useForm({
+    resolver: zodResolver(insertTargetSchema),
     defaultValues: {
       userId: user?.id || "",
       targetType: "revenue",
@@ -49,6 +50,9 @@ export default function TargetManagement() {
       createdBy: user?.id || "",
       startDate: new Date(),
       endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
+      orderTarget: 0,
+      arpoTarget: 0,
+      merchantsAcquisition: 0,
     },
   });
 
@@ -320,6 +324,67 @@ export default function TargetManagement() {
                         )}
                       />
                     </div>
+
+                    {/* Enhanced Target Fields */}
+                    <div className="space-y-4 border-t pt-4">
+                      <h4 className="font-medium text-gray-900">Additional Target Metrics</h4>
+                      <div className="grid grid-cols-3 gap-4">
+                        <FormField
+                          control={form.control}
+                          name="orderTarget"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Order Target</FormLabel>
+                              <FormControl>
+                                <Input 
+                                  type="number" 
+                                  placeholder="0" 
+                                  {...field}
+                                  onChange={e => field.onChange(Number(e.target.value) || 0)}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={form.control}
+                          name="arpoTarget"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>ARPO Target (৳)</FormLabel>
+                              <FormControl>
+                                <Input 
+                                  type="number" 
+                                  placeholder="0" 
+                                  {...field}
+                                  onChange={e => field.onChange(Number(e.target.value) || 0)}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={form.control}
+                          name="merchantsAcquisition"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Merchants Target</FormLabel>
+                              <FormControl>
+                                <Input 
+                                  type="number" 
+                                  placeholder="0" 
+                                  {...field}
+                                  onChange={e => field.onChange(Number(e.target.value) || 0)}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                    </div>
                     <div className="flex justify-end space-x-2">
                       <Button
                         type="button"
@@ -410,9 +475,10 @@ export default function TargetManagement() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
+                    {/* Revenue Target */}
                     <div>
                       <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm text-gray-600">Target Amount</span>
+                        <span className="text-sm text-gray-600">Revenue Target</span>
                         <span className="font-semibold">{formatCurrency(target.targetValue)}</span>
                       </div>
                       <div className="flex items-center justify-between mb-2">
@@ -429,6 +495,34 @@ export default function TargetManagement() {
                         </span>
                       </div>
                     </div>
+
+                    {/* Additional Target Metrics */}
+                    {(target.orderTarget || target.arpoTarget || target.merchantsAcquisition) && (
+                      <div className="pt-2 border-t border-gray-200">
+                        <h4 className="text-sm font-medium text-gray-700 mb-2">Additional Targets</h4>
+                        <div className="space-y-2">
+                          {target.orderTarget && (
+                            <div className="flex justify-between text-sm">
+                              <span className="text-gray-600">Orders:</span>
+                              <span className="font-medium text-blue-600">{target.orderTarget} orders</span>
+                            </div>
+                          )}
+                          {target.arpoTarget && (
+                            <div className="flex justify-between text-sm">
+                              <span className="text-gray-600">ARPO:</span>
+                              <span className="font-medium text-orange-600">{formatCurrency(target.arpoTarget)}</span>
+                            </div>
+                          )}
+                          {target.merchantsAcquisition && (
+                            <div className="flex justify-between text-sm">
+                              <span className="text-gray-600">Merchants:</span>
+                              <span className="font-medium text-purple-600">{target.merchantsAcquisition} merchants</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
                     <div className="pt-2 border-t border-gray-200">
                       <div className="flex justify-between text-sm">
                         <span className="text-gray-600">Period:</span>
@@ -436,6 +530,11 @@ export default function TargetManagement() {
                           {formatDate(target.startDate)} - {formatDate(target.endDate)}
                         </span>
                       </div>
+                      {target.description && (
+                        <div className="mt-2">
+                          <span className="text-xs text-gray-500">{target.description}</span>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </CardContent>

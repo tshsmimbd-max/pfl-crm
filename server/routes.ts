@@ -806,14 +806,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       const target = await storage.createTarget(targetData);
 
-      // Create notification for the assigned user if target is assigned to someone else
+      // Create notification and send email for the assigned user if target is assigned to someone else
       if (target.userId && target.userId !== req.user.id) {
-        await storage.createNotification({
-          userId: target.userId,
-          type: 'target_assigned',
-          title: 'New Target Assigned',
-          message: `You have been assigned a new ${target.period} target of ৳${target.targetValue}`,
-        });
+        const assignedUser = await storage.getUser(target.userId);
+        if (assignedUser) {
+          // Create in-app notification
+          await storage.createNotification({
+            userId: target.userId,
+            type: 'target_assigned',
+            title: 'New Target Assigned',
+            message: `You have been assigned a new ${target.period} target with multiple metrics`,
+          });
+
+          // Send email notification
+          const { sendTargetAssignmentEmail } = await import('./emailService');
+          await sendTargetAssignmentEmail(assignedUser.email, {
+            assignedUser: assignedUser.employeeName || assignedUser.email,
+            assigner: user.employeeName || user.email,
+            period: target.period,
+            targetValue: target.targetValue,
+            orderTarget: target.orderTarget || undefined,
+            arpoTarget: target.arpoTarget || undefined,
+            merchantsAcquisition: target.merchantsAcquisition || undefined,
+            startDate: target.startDate || undefined,
+            endDate: target.endDate || undefined,
+            description: target.description || undefined
+          });
+        }
       }
 
       res.json(target);

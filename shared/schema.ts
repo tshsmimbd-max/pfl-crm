@@ -92,10 +92,14 @@ export const calendarEvents = pgTable("calendar_events", {
 export const targets = pgTable("targets", {
   id: serial("id").primaryKey(),
   userId: varchar("user_id").references(() => users.id),
-  targetType: varchar("target_type").notNull(), // revenue, leads, deals
+  targetType: varchar("target_type").notNull(), // revenue, leads, deals, orders, arpo, merchants
   targetValue: integer("target_value").notNull(),
   period: varchar("period").notNull(), // monthly, quarterly, annual
   description: text("description"),
+  // New enhanced target fields
+  orderTarget: integer("order_target"), // Number of orders target
+  arpoTarget: integer("arpo_target"), // Average Revenue Per Order target (in Taka)
+  merchantsAcquisition: integer("merchants_acquisition"), // Number of merchants to acquire
   startDate: timestamp("start_date").defaultNow(),
   endDate: timestamp("end_date"),
   createdBy: varchar("created_by").references(() => users.id),
@@ -302,6 +306,30 @@ export const insertTargetSchema = createInsertSchema(targets).omit({
 }).extend({
   startDate: z.union([z.date(), z.string().transform(val => new Date(val))]).optional(),
   endDate: z.union([z.date(), z.string().transform(val => new Date(val))]).optional(),
+  orderTarget: z.union([
+    z.string().min(1).transform(val => {
+      const num = parseInt(val);
+      if (isNaN(num) || num < 0) throw new Error("Order target must be a positive number");
+      return num;
+    }),
+    z.number().min(0, "Order target must be a positive number")
+  ]).optional(),
+  arpoTarget: z.union([
+    z.string().min(1).transform(val => {
+      const num = parseInt(val);
+      if (isNaN(num) || num < 0) throw new Error("ARPO target must be a positive number");
+      return num;
+    }),
+    z.number().min(0, "ARPO target must be a positive number")
+  ]).optional(),
+  merchantsAcquisition: z.union([
+    z.string().min(1).transform(val => {
+      const num = parseInt(val);
+      if (isNaN(num) || num < 0) throw new Error("Merchants acquisition must be a positive number");
+      return num;
+    }),
+    z.number().min(0, "Merchants acquisition must be a positive number")
+  ]).optional(),
 });
 
 export const insertNotificationSchema = createInsertSchema(notifications).omit({
