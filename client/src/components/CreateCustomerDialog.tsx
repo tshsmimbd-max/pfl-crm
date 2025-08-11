@@ -21,7 +21,7 @@ interface CreateCustomerDialogProps {
 type CustomerFormData = {
   merchantCode: string;
   merchantName: string;
-  rateChart: "ISD" | "Pheripheri" | "OSD";
+  rateChart: string;
   contactPerson: string;
   phoneNumber: string;
   assignedAgent: string;
@@ -54,7 +54,7 @@ export default function CreateCustomerDialog({
     defaultValues: {
       merchantCode: "",
       merchantName: "",
-      rateChart: "ISD",
+      rateChart: "",
       contactPerson: "",
       phoneNumber: "",
       assignedAgent: user?.id || "",
@@ -142,18 +142,9 @@ export default function CreateCustomerDialog({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Rate Chart *</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select rate chart" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="ISD">ISD</SelectItem>
-                        <SelectItem value="Pheripheri">Pheripheri</SelectItem>
-                        <SelectItem value="OSD">OSD</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <FormControl>
+                      <Input placeholder="e.g., ISD, Pheripheri, OSD" {...field} />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -228,15 +219,15 @@ export default function CreateCustomerDialog({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Lead ID (Optional)</FormLabel>
-                    <Select onValueChange={(value) => field.onChange(value ? parseInt(value) : undefined)} 
-                            value={field.value?.toString() || ""}>
+                    <Select onValueChange={(value) => field.onChange(value === "none" ? undefined : parseInt(value))} 
+                            value={field.value?.toString() || "none"}>
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select related lead" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="">No Lead</SelectItem>
+                        <SelectItem value="none">No Lead</SelectItem>
                         {leads?.map((lead: any) => (
                           <SelectItem key={lead.id} value={lead.id.toString()}>
                             Lead #{lead.id} - {lead.company}

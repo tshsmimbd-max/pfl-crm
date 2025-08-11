@@ -1,0 +1,128 @@
+bSocket connected for notifications
+@radix-ui_react-dialog.js?v=ceefc2af:342 Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
+(anonymous) @ @radix-ui_react-dialog.js?v=ceefc2af:342
+commitHookEffectListMount @ chunk-RPCDYKBN.js?v=ceefc2af:16915
+commitPassiveMountOnFiber @ chunk-RPCDYKBN.js?v=ceefc2af:18156
+commitPassiveMountEffects_complete @ chunk-RPCDYKBN.js?v=ceefc2af:18129
+commitPassiveMountEffects_begin @ chunk-RPCDYKBN.js?v=ceefc2af:18119
+commitPassiveMountEffects @ chunk-RPCDYKBN.js?v=ceefc2af:18109
+flushPassiveEffectsImpl @ chunk-RPCDYKBN.js?v=ceefc2af:19490
+flushPassiveEffects @ chunk-RPCDYKBN.js?v=ceefc2af:19447
+commitRootImpl @ chunk-RPCDYKBN.js?v=ceefc2af:19416
+commitRoot @ chunk-RPCDYKBN.js?v=ceefc2af:19277
+performSyncWorkOnRoot @ chunk-RPCDYKBN.js?v=ceefc2af:18895
+flushSyncCallbacks @ chunk-RPCDYKBN.js?v=ceefc2af:9119
+(anonymous) @ chunk-RPCDYKBN.js?v=ceefc2af:18627Understand this warning
+@radix-ui_react-select.js?v=ceefc2af:884 Uncaught Error: A <Select.Item /> must have a value prop that is not an empty string. This is because the Select value can be set to an empty string to clear the selection and show the placeholder.
+    at @radix-ui_react-select.js?v=ceefc2af:884:13
+    at renderWithHooks (chunk-RPCDYKBN.js?v=ceefc2af:11548:26)
+    at updateForwardRef (chunk-RPCDYKBN.js?v=ceefc2af:14325:28)
+    at beginWork (chunk-RPCDYKBN.js?v=ceefc2af:15946:22)
+    at HTMLUnknownElement.callCallback2 (chunk-RPCDYKBN.js?v=ceefc2af:3674:22)
+    at Object.invokeGuardedCallbackDev (chunk-RPCDYKBN.js?v=ceefc2af:3699:24)
+    at invokeGuardedCallback (chunk-RPCDYKBN.js?v=ceefc2af:3733:39)
+    at beginWork$1 (chunk-RPCDYKBN.js?v=ceefc2af:19765:15)
+    at performUnitOfWork (chunk-RPCDYKBN.js?v=ceefc2af:19198:20)
+    at workLoopSync (chunk-RPCDYKBN.js?v=ceefc2af:19137:13)
+(anonymous) @ @radix-ui_react-select.js?v=ceefc2af:884
+renderWithHooks @ chunk-RPCDYKBN.js?v=ceefc2af:11548
+updateForwardRef @ chunk-RPCDYKBN.js?v=ceefc2af:14325
+beginWork @ chunk-RPCDYKBN.js?v=ceefc2af:15946
+callCallback2 @ chunk-RPCDYKBN.js?v=ceefc2af:3674
+invokeGuardedCallbackDev @ chunk-RPCDYKBN.js?v=ceefc2af:3699
+invokeGuardedCallback @ chunk-RPCDYKBN.js?v=ceefc2af:3733
+beginWork$1 @ chunk-RPCDYKBN.js?v=ceefc2af:19765
+performUnitOfWork @ chunk-RPCDYKBN.js?v=ceefc2af:19198
+workLoopSync @ chunk-RPCDYKBN.js?v=ceefc2af:19137
+renderRootSync @ chunk-RPCDYKBN.js?v=ceefc2af:19116
+performSyncWorkOnRoot @ chunk-RPCDYKBN.js?v=ceefc2af:18874
+flushSyncCallbacks @ chunk-RPCDYKBN.js?v=ceefc2af:9119
+(anonymous) @ chunk-RPCDYKBN.js?v=ceefc2af:18627Understand this error
+@radix-ui_react-select.js?v=ceefc2af:884 Uncaught Error: A <Select.Item /> must have a value prop that is not an empty string. This is because the Select value can be set to an empty string to clear the selection and show the placeholder.
+    at @radix-ui_react-select.js?v=ceefc2af:884:13
+    at renderWithHooks (chunk-RPCDYKBN.js?v=ceefc2af:11548:26)
+    at updateForwardRef (chunk-RPCDYKBN.js?v=ceefc2af:14325:28)
+    at beginWork (chunk-RPCDYKBN.js?v=ceefc2af:15946:22)
+    at HTMLUnknownElement.callCallback2 (chunk-RPCDYKBN.js?v=ceefc2af:3674:22)
+    at Object.invokeGuardedCallbackDev (chunk-RPCDYKBN.js?v=ceefc2af:3699:24)
+    at invokeGuardedCallback (chunk-RPCDYKBN.js?v=ceefc2af:3733:39)
+    at beginWork$1 (chunk-RPCDYKBN.js?v=ceefc2af:19765:15)
+    at performUnitOfWork (chunk-RPCDYKBN.js?v=ceefc2af:19198:20)
+    at workLoopSync (chunk-RPCDYKBN.js?v=ceefc2af:19137:13)
+(anonymous) @ @radix-ui_react-select.js?v=ceefc2af:884
+renderWithHooks @ chunk-RPCDYKBN.js?v=ceefc2af:11548
+updateForwardRef @ chunk-RPCDYKBN.js?v=ceefc2af:14325
+beginWork @ chunk-RPCDYKBN.js?v=ceefc2af:15946
+callCallback2 @ chunk-RPCDYKBN.js?v=ceefc2af:3674
+invokeGuardedCallbackDev @ chunk-RPCDYKBN.js?v=ceefc2af:3699
+invokeGuardedCallback @ chunk-RPCDYKBN.js?v=ceefc2af:3733
+beginWork$1 @ chunk-RPCDYKBN.js?v=ceefc2af:19765
+performUnitOfWork @ chunk-RPCDYKBN.js?v=ceefc2af:19198
+workLoopSync @ chunk-RPCDYKBN.js?v=ceefc2af:19137
+renderRootSync @ chunk-RPCDYKBN.js?v=ceefc2af:19116
+recoverFromConcurrentError @ chunk-RPCDYKBN.js?v=ceefc2af:18736
+performSyncWorkOnRoot @ chunk-RPCDYKBN.js?v=ceefc2af:18879
+flushSyncCallbacks @ chunk-RPCDYKBN.js?v=ceefc2af:9119
+(anonymous) @ chunk-RPCDYKBN.js?v=ceefc2af:18627Understand this error
+chunk-RPCDYKBN.js?v=ceefc2af:14032 The above error occurred in the <SelectItem> component:
+
+    at https://3b043bf8-785e-42f7-abf7-8c86a4daff98-00-1pja5xjqdxsza.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-select.js?v=ceefc2af:857:7
+    at _c11 (https://3b043bf8-785e-42f7-abf7-8c86a4daff98-00-1pja5xjqdxsza.riker.replit.dev/src/components/ui/select.tsx:208:13)
+    at div
+    at https://3b043bf8-785e-42f7-abf7-8c86a4daff98-00-1pja5xjqdxsza.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-BOL2CCOG.js?v=ceefc2af:42:13
+    at https://3b043bf8-785e-42f7-abf7-8c86a4daff98-00-1pja5xjqdxsza.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-EVLBUYTV.js?v=ceefc2af:79:13
+    at https://3b043bf8-785e-42f7-abf7-8c86a4daff98-00-1pja5xjqdxsza.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-EVLBUYTV.js?v=ceefc2af:56:13
+    at https://3b043bf8-785e-42f7-abf7-8c86a4daff98-00-1pja5xjqdxsza.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-DKA7LSZL.js?v=ceefc2af:39:15
+    at https://3b043bf8-785e-42f7-abf7-8c86a4daff98-00-1pja5xjqdxsza.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-select.js?v=ceefc2af:768:13
+    at div
+    at https://3b043bf8-785e-42f7-abf7-8c86a4daff98-00-1pja5xjqdxsza.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-EVLBUYTV.js?v=ceefc2af:79:13
+    at https://3b043bf8-785e-42f7-abf7-8c86a4daff98-00-1pja5xjqdxsza.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-EVLBUYTV.js?v=ceefc2af:56:13
+    at https://3b043bf8-785e-42f7-abf7-8c86a4daff98-00-1pja5xjqdxsza.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-DKA7LSZL.js?v=ceefc2af:39:15
+    at Provider (https://3b043bf8-785e-42f7-abf7-8c86a4daff98-00-1pja5xjqdxsza.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-OXZDJRWN.js?v=ceefc2af:38:15)
+    at https://3b043bf8-785e-42f7-abf7-8c86a4daff98-00-1pja5xjqdxsza.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-select.js?v=ceefc2af:311:58
+    at https://3b043bf8-785e-42f7-abf7-8c86a4daff98-00-1pja5xjqdxsza.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-EVLBUYTV.js?v=ceefc2af:79:13
+    at https://3b043bf8-785e-42f7-abf7-8c86a4daff98-00-1pja5xjqdxsza.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-EVLBUYTV.js?v=ceefc2af:56:13
+    at https://3b043bf8-785e-42f7-abf7-8c86a4daff98-00-1pja5xjqdxsza.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-BOL2CCOG.js?v=ceefc2af:42:13
+    at https://3b043bf8-785e-42f7-abf7-8c86a4daff98-00-1pja5xjqdxsza.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-JBU2GN2S.js?v=ceefc2af:260:22
+    at SelectPortal
+    at _c7 (https://3b043bf8-785e-42f7-abf7-8c86a4daff98-00-1pja5xjqdxsza.riker.replit.dev/src/components/ui/select.tsx:123:12)
+    at Provider (https://3b043bf8-785e-42f7-abf7-8c86a4daff98-00-1pja5xjqdxsza.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-OXZDJRWN.js?v=ceefc2af:38:15)
+    at Provider (https://3b043bf8-785e-42f7-abf7-8c86a4daff98-00-1pja5xjqdxsza.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-OXZDJRWN.js?v=ceefc2af:38:15)
+    at CollectionProvider (https://3b043bf8-785e-42f7-abf7-8c86a4daff98-00-1pja5xjqdxsza.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-DKA7LSZL.js?v=ceefc2af:29:13)
+    at Provider (https://3b043bf8-785e-42f7-abf7-8c86a4daff98-00-1pja5xjqdxsza.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-OXZDJRWN.js?v=ceefc2af:38:15)
+    at Provider (https://3b043bf8-785e-42f7-abf7-8c86a4daff98-00-1pja5xjqdxsza.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-OXZDJRWN.js?v=ceefc2af:38:15)
+    at Popper (https://3b043bf8-785e-42f7-abf7-8c86a4daff98-00-1pja5xjqdxsza.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-NOO3KPW4.js?v=ceefc2af:1955:11)
+    at Select (https://3b043bf8-785e-42f7-abf7-8c86a4daff98-00-1pja5xjqdxsza.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-select.js?v=ceefc2af:99:5)
+    at div
+    at https://3b043bf8-785e-42f7-abf7-8c86a4daff98-00-1pja5xjqdxsza.riker.replit.dev/src/components/ui/form.tsx:72:6
+    at Controller (https://3b043bf8-785e-42f7-abf7-8c86a4daff98-00-1pja5xjqdxsza.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-4BFJKWC4.js?v=ceefc2af:298:35)
+    at FormField (https://3b043bf8-785e-42f7-abf7-8c86a4daff98-00-1pja5xjqdxsza.riker.replit.dev/src/components/ui/form.tsx:33:6)
+    at div
+    at form
+    at FormProvider (https://3b043bf8-785e-42f7-abf7-8c86a4daff98-00-1pja5xjqdxsza.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-4BFJKWC4.js?v=ceefc2af:102:11)
+    at div
+    at https://3b043bf8-785e-42f7-abf7-8c86a4daff98-00-1pja5xjqdxsza.riker.replit.dev/@
+logCapturedError @ chunk-RPCDYKBN.js?v=ceefc2af:14032
+update.callback @ chunk-RPCDYKBN.js?v=ceefc2af:14052
+callCallback @ chunk-RPCDYKBN.js?v=ceefc2af:11248
+commitUpdateQueue @ chunk-RPCDYKBN.js?v=ceefc2af:11265
+commitLayoutEffectOnFiber @ chunk-RPCDYKBN.js?v=ceefc2af:17093
+commitLayoutMountEffects_complete @ chunk-RPCDYKBN.js?v=ceefc2af:17980
+commitLayoutEffects_begin @ chunk-RPCDYKBN.js?v=ceefc2af:17969
+commitLayoutEffects @ chunk-RPCDYKBN.js?v=ceefc2af:17920
+commitRootImpl @ chunk-RPCDYKBN.js?v=ceefc2af:19353
+commitRoot @ chunk-RPCDYKBN.js?v=ceefc2af:19277
+performSyncWorkOnRoot @ chunk-RPCDYKBN.js?v=ceefc2af:18895
+flushSyncCallbacks @ chunk-RPCDYKBN.js?v=ceefc2af:9119
+(anonymous) @ chunk-RPCDYKBN.js?v=ceefc2af:18627Understand this error
+chunk-RPCDYKBN.js?v=ceefc2af:9129 Uncaught Error: A <Select.Item /> must have a value prop that is not an empty string. This is because the Select value can be set to an empty string to clear the selection and show the placeholder.
+    at @radix-ui_react-select.js?v=ceefc2af:884:13
+    at renderWithHooks (chunk-RPCDYKBN.js?v=ceefc2af:11548:26)
+    at updateForwardRef (chunk-RPCDYKBN.js?v=ceefc2af:14325:28)
+    at beginWork (chunk-RPCDYKBN.js?v=ceefc2af:15946:22)
+    at beginWork$1 (chunk-RPCDYKBN.js?v=ceefc2af:19753:22)
+    at performUnitOfWork (chunk-RPCDYKBN.js?v=ceefc2af:19198:20)
+    at workLoopSync (chunk-RPCDYKBN.js?v=ceefc2af:19137:13)
+    at renderRootSync (chunk-RPCDYKBN.js?v=ceefc2af:19116:15)
+    at recoverFromConcurrentError (chunk-RPCDYKBN.js?v=ceefc2af:18736:28)
+    at performSyncWorkOnRoot (chunk-RPCDYKBN.js?v=ceefc2af:18879:28)

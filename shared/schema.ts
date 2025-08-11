@@ -333,7 +333,7 @@ export const insertCustomerSchema = createInsertSchema(customers).omit({
 }).extend({
   merchantCode: z.string().min(2, "Merchant code must be at least 2 characters"),
   merchantName: z.string().min(2, "Merchant name must be at least 2 characters"),
-  rateChart: z.enum(["ISD", "Pheripheri", "OSD"]),
+  rateChart: z.string().min(1, "Rate chart is required"),
   contactPerson: z.string().min(2, "Contact person must be at least 2 characters"),
   phoneNumber: z.string().min(10, "Phone number must be at least 10 digits"),
   assignedAgent: z.string().min(1, "Assigned agent is required"),
