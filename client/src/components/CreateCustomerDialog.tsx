@@ -38,13 +38,13 @@ export default function CreateCustomerDialog({
   const { user } = useAuth();
 
   // Fetch users for assigned agent dropdown
-  const { data: users = [] } = useQuery({
+  const { data: users = [] } = useQuery<any[]>({
     queryKey: ["/api/users"],
     enabled: user?.role === "super_admin" && open,
   });
 
   // Fetch leads for Lead ID dropdown
-  const { data: leads = [] } = useQuery({
+  const { data: leads = [] } = useQuery<any[]>({
     queryKey: ["/api/leads"],
     enabled: open,
   });
@@ -207,7 +207,7 @@ export default function CreateCustomerDialog({
                             {user.employeeName || user.fullName || user.email} (Me)
                           </SelectItem>
                         )}
-                        {users?.filter(u => u.id !== user?.id).map((userOption) => (
+                        {users?.filter((u: any) => u.id !== user?.id).map((userOption: any) => (
                           <SelectItem key={userOption.id} value={userOption.id}>
                             {userOption.employeeName || userOption.fullName || userOption.email}
                           </SelectItem>
@@ -237,7 +237,7 @@ export default function CreateCustomerDialog({
                       </FormControl>
                       <SelectContent>
                         <SelectItem value="">No Lead</SelectItem>
-                        {leads?.map((lead) => (
+                        {leads?.map((lead: any) => (
                           <SelectItem key={lead.id} value={lead.id.toString()}>
                             Lead #{lead.id} - {lead.company}
                           </SelectItem>

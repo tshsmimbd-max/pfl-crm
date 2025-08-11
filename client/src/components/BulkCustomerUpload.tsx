@@ -125,16 +125,16 @@ export default function BulkCustomerUpload() {
   };
 
   const downloadTemplate = () => {
-    const csvContent = `contactName,email,phone,company,totalValue,leadSource,packageSize,preferredPickTime,pickupAddress,website,facebookPageUrl,customerType,notes
-John Doe,john@techcorp.com,+1234567890,TechCorp,50000,Social Media,Large,2024-02-15 10:00,123 Tech Street,https://techcorp.com,https://facebook.com/techcorp,new,Enterprise client with high potential
-Jane Smith,jane@business.com,+1987654321,Business Solutions,35000,Referral,Medium,2024-02-16 14:30,456 Business Ave,https://business.com,,returning,Long-term customer relationship
-Mike Johnson,mike@startup.io,+1555123456,StartupXYZ,75000,Ads,Large,2024-02-17 09:00,789 Innovation Blvd,https://startupxyz.io,https://facebook.com/startupxyz,new,High growth startup potential`;
+    const csvContent = `merchantCode,merchantName,rateChart,contactPerson,phoneNumber,assignedAgent,leadId,productType,notes
+MC001,TechCorp Solutions,ISD,John Doe,+8801712345678,admin,11,Service,Enterprise technology client
+MC002,Business Solutions Ltd,Pheripheri,Jane Smith,+8801887654321,admin,,Product,Medium-scale business solutions
+MC003,StartupXYZ,OSD,Mike Johnson,+8801555123456,admin,12,Service,High growth startup potential`;
     
     const blob = new Blob([csvContent], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'enhanced-customer-template.csv';
+    a.download = 'customer-template.csv';
     a.click();
     window.URL.revokeObjectURL(url);
   };
@@ -158,8 +158,8 @@ Mike Johnson,mike@startup.io,+1555123456,StartupXYZ,75000,Ads,Large,2024-02-17 0
             <div className="flex items-center gap-3">
               <FileText className="w-5 h-5 text-blue-600" />
               <div>
-                <p className="font-medium text-blue-900">Download Enhanced Template</p>
-                <p className="text-sm text-blue-700">Get the CSV template with all customer fields including enhanced data</p>
+                <p className="font-medium text-blue-900">Download Customer Template</p>
+                <p className="text-sm text-blue-700">Get the CSV template with new customer structure (merchant code, name, rate chart, etc.)</p>
               </div>
             </div>
             <Button variant="outline" onClick={downloadTemplate} className="flex items-center gap-2">
