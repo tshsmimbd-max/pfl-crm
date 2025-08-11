@@ -7,68 +7,59 @@ interface EmailParams {
   html?: string;
 }
 
-// Real email service using EmailJS Node.js SDK
+// Create Gmail SMTP transporter
+const createTransporter = () => {
+  return nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+      user: process.env.GMAIL_USER,
+      pass: process.env.GMAIL_APP_PASSWORD
+    }
+  });
+};
+
 export async function sendEmail(params: EmailParams): Promise<boolean> {
   try {
-    // Using EmailJS with default public configuration for sending actual emails
-    const response = await emailjs.send(
-      'default_service', // Service ID
-      'contact_form',    // Template ID
-      {
-        to_email: params.to,
-        subject: params.subject,
-        message: params.text || params.html?.replace(/<[^>]*>/g, '') || '',
-        from_name: 'Paperfly CRM'
-      },
-      {
-        publicKey: 'ljFqJoVVMyYpCEhHF', // Public key for EmailJS
-        privateKey: 'gqfK1CPaov-WKCI6fQ3lS' // Private key for EmailJS
-      }
-    );
+    // Check if Gmail credentials are available
+    if (!process.env.GMAIL_USER || !process.env.GMAIL_APP_PASSWORD) {
+      console.log('Gmail credentials not found, using console fallback');
+      return logToConsole(params);
+    }
 
-    console.log(`✅ Email sent successfully via EmailJS to: ${params.to}`);
-    console.log(`Email response:`, response);
+    const transporter = createTransporter();
+    
+    const mailOptions = {
+      from: `"Paperfly CRM" <${process.env.GMAIL_USER}>`,
+      to: params.to,
+      subject: params.subject,
+      text: params.text,
+      html: params.html
+    };
+
+    const info = await transporter.sendMail(mailOptions);
+    console.log(`✅ Email sent successfully via Gmail SMTP to: ${params.to}`);
+    console.log(`Message ID: ${info.messageId}`);
     return true;
   } catch (error) {
-    console.error('EmailJS failed:', error);
-    
-    // Try backup webhook service
-    try {
-      const webhookResponse = await fetch('https://formsubmit.co/ajax/' + params.to, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        },
-        body: JSON.stringify({
-          subject: params.subject,
-          message: params.text || params.html?.replace(/<[^>]*>/g, '') || '',
-          _template: 'table'
-        })
-      });
-
-      if (webhookResponse.ok) {
-        console.log(`✅ Email sent successfully via FormSubmit to: ${params.to}`);
-        return true;
-      }
-    } catch (webhookError) {
-      console.error('FormSubmit backup failed:', webhookError);
-    }
-    
-    // Console fallback with clear instructions
-    console.log(`\n========================================`);
-    console.log(`📧 EMAIL NOTIFICATION (Console Fallback)`);
-    console.log(`========================================`);
-    console.log(`To: ${params.to}`);
-    console.log(`Subject: ${params.subject}`);
-    console.log(`Content: ${params.text || params.html?.replace(/<[^>]*>/g, '') || ''}`);
-    console.log(`========================================`);
-    console.log(`⚠️  Email services unavailable - using console`);
-    console.log(`📱 Please copy the verification code from above`);
-    console.log(`========================================\n`);
-    
-    return true;
+    console.error('Gmail SMTP failed:', error);
+    console.log('Falling back to console logging...');
+    return logToConsole(params);
   }
+}
+
+// Console fallback function
+function logToConsole(params: EmailParams): boolean {
+  console.log(`\n========================================`);
+  console.log(`📧 EMAIL NOTIFICATION (Console Fallback)`);
+  console.log(`========================================`);
+  console.log(`To: ${params.to}`);
+  console.log(`Subject: ${params.subject}`);
+  console.log(`Content: ${params.text || params.html?.replace(/<[^>]*>/g, '') || ''}`);
+  console.log(`========================================`);
+  console.log(`⚠️  SMTP unavailable - using console display`);
+  console.log(`📱 Please copy the code from above`);
+  console.log(`========================================\n`);
+  return true;
 }
 
 export async function sendVerificationCode(email: string, code: string): Promise<boolean> {
