@@ -126,9 +126,9 @@ export default function BulkCustomerUpload() {
 
   const downloadTemplate = () => {
     const csvContent = `merchantCode,merchantName,rateChart,contactPerson,phoneNumber,assignedAgent,leadId,productType,notes
-MC001,TechCorp Solutions,ISD,John Doe,+8801712345678,admin,11,Service,Enterprise technology client
-MC002,Business Solutions Ltd,Pheripheri,Jane Smith,+8801887654321,admin,,Product,Medium-scale business solutions
-MC003,StartupXYZ,OSD,Mike Johnson,+8801555123456,admin,12,Service,High growth startup potential`;
+MC002,TechCorp Solutions,ISD,John Doe,+8801712345678,admin,,Service,Enterprise technology client
+MC003,Business Solutions Ltd,Pheripheri,Jane Smith,+8801887654321,18210b2f-d726-4e0e-9317-865ca720ddce,,Product,Medium-scale business solutions
+MC004,StartupXYZ,OSD,Mike Johnson,+8801555123456,admin,,Service,High growth startup potential`;
     
     const blob = new Blob([csvContent], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);

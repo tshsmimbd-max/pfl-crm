@@ -1157,9 +1157,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let failed = 0;
       const errors: string[] = [];
 
+      // Get all valid user IDs for validation
+      const validUsers = await storage.getAllUsers();
+      const validUserIds = new Set(validUsers.map(u => u.id));
+
       for (let i = 0; i < customers.length; i++) {
         try {
           const row = customers[i];
+          
+          // Validate assigned agent exists
+          const assignedAgent = row.assignedAgent?.trim() || req.user.id;
+          if (!validUserIds.has(assignedAgent)) {
+            throw new Error(`Invalid assigned agent ID: ${assignedAgent}. Must be a valid user ID.`);
+          }
           
           // Parse customer data with new structure
           const customerData = insertCustomerSchema.parse({
@@ -1168,7 +1178,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             rateChart: row.rateChart?.trim() || "ISD",
             contactPerson: row.contactPerson?.trim(),
             phoneNumber: row.phoneNumber?.trim(),
-            assignedAgent: row.assignedAgent?.trim() || req.user.id,
+            assignedAgent: assignedAgent,
             leadId: row.leadId ? parseInt(row.leadId.toString()) : undefined,
             productType: row.productType?.trim() || null,
             notes: row.notes?.trim() || null,

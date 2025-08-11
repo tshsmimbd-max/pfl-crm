@@ -1,0 +1,4 @@
+merchantCode,merchantName,rateChart,contactPerson,phoneNumber,assignedAgent,leadId,productType,notes
+MC001,TechCorp Solutions,ISD,John Doe,8.80171E+12,E3092,11,Service,Enterprise technology client
+MC002,Business Solutions Ltd,Pheripheri,Jane Smith,8.80189E+12,E3092,,Product,Medium-scale business solutions
+MC003,StartupXYZ,OSD,Mike Johnson,8.80156E+12,E3092,12,Service,High growth startup potential
