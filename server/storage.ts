@@ -560,12 +560,12 @@ export class DatabaseStorage implements IStorage {
 
     const customer = await this.createCustomer(customerData);
     
-    // Create notification for successful conversion
+    // Create congratulations notification for successful conversion
     await this.createNotification({
       userId: lead.assignedTo || userId,
       type: "lead_converted",
-      title: "Lead Converted to Customer",
-      message: `Lead "${lead.contactName}" has been successfully converted to customer ${customer.merchantName}`,
+      title: "🎉 Congratulations! Lead Converted",
+      message: `Congratulations! Your lead "${lead.contactName}" has been successfully converted to customer ${customer.merchantName}. Great work on closing this deal!`,
     });
 
     return customer;

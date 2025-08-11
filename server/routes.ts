@@ -1119,13 +1119,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Create notification for assigned agent
       if (customer.assignedAgent && customer.assignedAgent !== req.user.id) {
-        await storage.createNotification({
-          userId: customer.assignedAgent,
-          type: "customer_assigned",
-          title: "New Customer Assigned",
-          message: `Customer ${customer.merchantName} has been assigned to you by ${currentUser.employeeName || currentUser.email}`,
-          read: false
-        });
+        if (customer.leadId) {
+          // If customer was created from a lead, send congratulations
+          await storage.createNotification({
+            userId: customer.assignedAgent,
+            type: "lead_converted",
+            title: "🎉 Congratulations! Lead Converted",
+            message: `Congratulations! Your lead has been successfully converted to customer ${customer.merchantName}. Great work on closing this deal!`,
+            read: false
+          });
+        } else {
+          // If it's a new customer assignment, send assignment notification
+          await storage.createNotification({
+            userId: customer.assignedAgent,
+            type: "customer_assigned",
+            title: "New Customer Assigned",
+            message: `Customer ${customer.merchantName} has been assigned to you by ${currentUser.employeeName || currentUser.email}`,
+            read: false
+          });
+        }
       }
 
       res.status(201).json(customer);
@@ -1193,7 +1205,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
             createdBy: req.user.id,
           });
 
-          await storage.createCustomer(customerData);
+          const newCustomer = await storage.createCustomer(customerData);
+          
+          // Check if this customer was created from a lead
+          if (newCustomer.leadId && newCustomer.assignedAgent !== req.user.id) {
+            // Send congratulations notification to assigned agent
+            await storage.createNotification({
+              userId: newCustomer.assignedAgent,
+              type: "lead_converted",
+              title: "🎉 Congratulations! Lead Converted", 
+              message: `Congratulations! Your lead has been successfully converted to customer ${newCustomer.merchantName}. Great work on closing this deal!`,
+              read: false
+            });
+          }
+          
           processed++;
         } catch (error: any) {
           failed++;
