@@ -127,8 +127,8 @@ export default function BulkCustomerUpload() {
   const downloadTemplate = () => {
     const csvContent = `merchantCode,merchantName,rateChart,contactPerson,phoneNumber,assignedAgent,leadId,productType,notes
 MC002,TechCorp Solutions,ISD,John Doe,+8801712345678,admin,,Service,Enterprise technology client
-MC003,Business Solutions Ltd,Pheripheri,Jane Smith,+8801887654321,admin,,Product,Medium-scale business solutions
-MC004,StartupXYZ,OSD,Mike Johnson,+8801555123456,admin,,Service,High growth startup potential`;
+MC003,Business Solutions Ltd,Pheripheri,Jane Smith,+8801887654321,emp323000,,Product,Medium-scale business solutions
+MC004,StartupXYZ,OSD,Mike Johnson,+8801555123456,shm,,Service,High growth startup potential`;
     
     const blob = new Blob([csvContent], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
@@ -159,7 +159,7 @@ MC004,StartupXYZ,OSD,Mike Johnson,+8801555123456,admin,,Service,High growth star
               <FileText className="w-5 h-5 text-blue-600" />
               <div>
                 <p className="font-medium text-blue-900">Download Customer Template</p>
-                <p className="text-sm text-blue-700">Get the CSV template with new customer structure (merchant code, name, rate chart, etc.)</p>
+                <p className="text-sm text-blue-700">Get the CSV template with new customer structure. You can use either user IDs or employee names for assignedAgent field.</p>
               </div>
             </div>
             <Button variant="outline" onClick={downloadTemplate} className="flex items-center gap-2">

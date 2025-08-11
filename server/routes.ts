@@ -1157,18 +1157,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let failed = 0;
       const errors: string[] = [];
 
-      // Get all valid user IDs for validation
+      // Get all valid users for validation
       const validUsers = await storage.getAllUsers();
       const validUserIds = new Set(validUsers.map(u => u.id));
+      const employeeNameToId = new Map(validUsers.map(u => [u.employeeName, u.id]));
 
       for (let i = 0; i < customers.length; i++) {
         try {
           const row = customers[i];
           
-          // Validate assigned agent exists
-          const assignedAgent = row.assignedAgent?.trim() || req.user.id;
+          // Validate and resolve assigned agent (accept both user ID and employee name)
+          let assignedAgent = row.assignedAgent?.trim() || req.user.id;
+          
+          // If it's not a valid user ID, check if it's an employee name
           if (!validUserIds.has(assignedAgent)) {
-            throw new Error(`Invalid assigned agent ID: ${assignedAgent}. Must be a valid user ID.`);
+            const userIdFromName = employeeNameToId.get(assignedAgent);
+            if (userIdFromName) {
+              assignedAgent = userIdFromName;
+            } else {
+              throw new Error(`Invalid assigned agent: "${assignedAgent}". Must be a valid user ID or employee name.`);
+            }
           }
           
           // Parse customer data with new structure
