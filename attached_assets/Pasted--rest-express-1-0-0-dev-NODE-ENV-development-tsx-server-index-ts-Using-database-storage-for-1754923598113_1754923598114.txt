@@ -1,0 +1,138 @@
+
+> rest-express@1.0.0 dev
+> NODE_ENV=development tsx server/index.ts
+
+Using database storage for production - data will persist
+2:24:17 PM [express] serving on port 5000
+Browserslist: browsers data (caniuse-lite) is 10 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+2:24:36 PM [express] GET /api/user 304 in 113ms :: {"id":"admin","email":"admin@paperfly.com","emplo…
+2:24:36 PM [express] GET /api/notifications/unread-count 304 in 109ms :: {"count":0}
+2:24:36 PM [express] GET /api/user 304 in 97ms :: {"id":"admin","email":"admin@paperfly.com","employ…
+2:24:36 PM [express] GET /api/analytics/metrics 304 in 320ms :: {"totalRevenue":75000,"activeLeads":…
+2:24:36 PM [express] GET /api/leads 304 in 105ms :: [{"id":11,"contactName":"nrw","email":"nrw@sdfd.…
+2:24:37 PM [express] GET /api/notifications 304 in 127ms :: [{"id":1,"userId":"admin","type":"lead_c…
+2:24:37 PM [express] GET /api/analytics/team-performance 304 in 402ms :: [{"user":{"id":"18210b2f-d7…
+WebSocket client connected
+2:24:37 PM [express] GET /api/users 304 in 134ms :: [{"id":"admin","email":"admin@paperfly.com","pas…
+2:24:37 PM [express] GET /api/targets 304 in 95ms :: []
+2:39:09 PM [express] GET /api/notifications/unread-count 304 in 726ms :: {"count":0}
+2:39:09 PM [express] GET /api/notifications 304 in 758ms :: [{"id":1,"userId":"admin","type":"lead_c…
+2:39:24 PM [express] GET /api/user 304 in 97ms :: {"id":"admin","email":"admin@paperfly.com","employ…
+2:39:25 PM [express] GET /api/user 304 in 97ms :: {"id":"admin","email":"admin@paperfly.com","employ…
+2:39:25 PM [express] GET /api/notifications/unread-count 304 in 101ms :: {"count":0}
+2:39:25 PM [express] GET /api/leads 304 in 106ms :: [{"id":11,"contactName":"nrw","email":"nrw@sdfd.…
+2:39:25 PM [express] GET /api/analytics/metrics 304 in 134ms :: {"totalRevenue":75000,"activeLeads":…
+2:39:25 PM [express] GET /api/targets 304 in 97ms :: []
+2:39:25 PM [express] GET /api/notifications 304 in 137ms :: [{"id":1,"userId":"admin","type":"lead_c…
+2:39:25 PM [express] GET /api/users 304 in 132ms :: [{"id":"admin","email":"admin@paperfly.com","pas…
+2:39:25 PM [express] GET /api/analytics/team-performance 304 in 558ms :: [{"user":{"id":"18210b2f-d7…
+WebSocket client connected
+2:39:55 PM [express] GET /api/notifications/unread-count 304 in 273ms :: {"count":0}
+2:39:56 PM [express] GET /api/notifications 304 in 134ms :: [{"id":1,"userId":"admin","type":"lead_c…
+2:40:26 PM [express] GET /api/notifications/unread-count 304 in 278ms :: {"count":0}
+2:40:26 PM [express] GET /api/notifications 304 in 314ms :: [{"id":1,"userId":"admin","type":"lead_c…
+2:40:44 PM [express] POST /api/users 200 in 417ms :: {"id":"4a7a9cc0-e169-4c1d-8bdf-141899f1c58d","e…
+2:40:45 PM [express] GET /api/users 200 in 135ms :: [{"id":"admin","email":"admin@paperfly.com","pas…
+2:40:56 PM [express] GET /api/notifications/unread-count 304 in 261ms :: {"count":0}
+2:40:57 PM [express] GET /api/notifications 304 in 128ms :: [{"id":1,"userId":"admin","type":"lead_c…
+2:41:17 PM [express] GET /api/user 401 in 1ms :: {"message":"Authentication required"}
+2:41:18 PM [express] GET /api/user 401 in 0ms :: {"message":"Authentication required"}
+2:41:28 PM [express] POST /api/login 200 in 312ms :: {"message":"Login successful","user":{"id":"4a7…
+2:41:29 PM [express] GET /api/user 200 in 162ms :: {"id":"4a7a9cc0-e169-4c1d-8bdf-141899f1c58d","ema…
+2:41:29 PM [express] GET /api/notifications 200 in 214ms :: []
+2:41:29 PM [express] GET /api/notifications/unread-count 200 in 250ms :: {"count":0}
+2:41:29 PM [express] GET /api/leads 200 in 329ms :: []
+2:41:29 PM [express] GET /api/analytics/metrics 200 in 372ms :: {"totalRevenue":0,"activeLeads":0,"c…
+2:41:29 PM [express] GET /api/analytics/team-performance 200 in 701ms :: [{"user":{"id":"4a7a9cc0-e1…
+WebSocket client connected
+2:41:31 PM [express] GET /api/user 304 in 102ms :: {"id":"4a7a9cc0-e169-4c1d-8bdf-141899f1c58d","ema…
+2:41:31 PM [express] GET /api/interactions/all 200 in 214ms :: []
+2:41:34 PM [express] GET /api/users 200 in 133ms :: [{"id":"4a7a9cc0-e169-4c1d-8bdf-141899f1c58d","e…
+2:41:34 PM [express] GET /api/interactions/team-report 200 in 233ms :: [{"user":{"id":"4a7a9cc0-e169…
+2:41:35 PM [express] GET /api/users/assignment 200 in 97ms :: [{"id":"4a7a9cc0-e169-4c1d-8bdf-141899…
+2:41:35 PM [express] GET /api/user 304 in 100ms :: {"id":"4a7a9cc0-e169-4c1d-8bdf-141899f1c58d","ema…
+2:41:38 PM [express] GET /api/user 304 in 99ms :: {"id":"4a7a9cc0-e169-4c1d-8bdf-141899f1c58d","emai…
+2:41:38 PM [express] GET /api/calendar-events 200 in 172ms :: []
+2:41:39 PM [express] GET /api/user 304 in 99ms :: {"id":"4a7a9cc0-e169-4c1d-8bdf-141899f1c58d","emai…
+2:41:40 PM [express] GET /api/user 304 in 98ms :: {"id":"4a7a9cc0-e169-4c1d-8bdf-141899f1c58d","emai…
+2:41:42 PM [express] GET /api/user 304 in 99ms :: {"id":"4a7a9cc0-e169-4c1d-8bdf-141899f1c58d","emai…
+2:41:42 PM [express] GET /api/customers 200 in 173ms :: []
+2:41:42 PM [express] GET /api/targets 200 in 264ms :: []
+2:41:42 PM [express] GET /api/daily-revenue 200 in 309ms :: []
+2:41:42 PM [express] GET /api/user 304 in 103ms :: {"id":"4a7a9cc0-e169-4c1d-8bdf-141899f1c58d","ema…
+2:41:43 PM [express] GET /api/user 304 in 100ms :: {"id":"4a7a9cc0-e169-4c1d-8bdf-141899f1c58d","ema…
+2:41:44 PM [express] GET /api/user 304 in 100ms :: {"id":"4a7a9cc0-e169-4c1d-8bdf-141899f1c58d","ema…
+2:41:55 PM [express] GET /api/user 304 in 255ms :: {"id":"4a7a9cc0-e169-4c1d-8bdf-141899f1c58d","ema…
+2:41:58 PM [express] POST /api/logout 200 in 64ms :: {"message":"Logged out successfully"}
+WebSocket client disconnected
+2:42:03 PM [express] GET /api/user 401 in 34ms :: {"message":"Authentication required"}
+2:42:03 PM [express] GET /api/user 401 in 35ms :: {"message":"Authentication required"}
+Email sending failed: Error: Missing credentials for "PLAIN"
+    at SMTPConnection._formatError (/home/runner/workspace/node_modules/nodemailer/lib/smtp-connection/index.js:809:19)
+    at SMTPConnection.login (/home/runner/workspace/node_modules/nodemailer/lib/smtp-connection/index.js:454:38)
+    at /home/runner/workspace/node_modules/nodemailer/lib/smtp-transport/index.js:272:32
+    at SMTPConnection.<anonymous> (/home/runner/workspace/node_modules/nodemailer/lib/smtp-connection/index.js:215:17)
+    at Object.onceWrapper (node:events:638:28)
+    at SMTPConnection.emit (node:events:524:28)
+    at SMTPConnection._actionEHLO (/home/runner/workspace/node_modules/nodemailer/lib/smtp-connection/index.js:1371:14)
+    at SMTPConnection._processResponse (/home/runner/workspace/node_modules/nodemailer/lib/smtp-connection/index.js:993:20)
+    at SMTPConnection._onData (/home/runner/workspace/node_modules/nodemailer/lib/smtp-connection/index.js:774:14)
+    at SMTPConnection._onSocketData (/home/runner/workspace/node_modules/nodemailer/lib/smtp-connection/index.js:195:44)
+    at TLSSocket.emit (node:events:524:28)
+    at addChunk (node:internal/streams/readable:561:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+    at Readable.push (node:internal/streams/readable:392:5)
+    at TLSWrap.onStreamRead (node:internal/stream_base_commons:191:23) {
+  code: 'EAUTH',
+  command: 'API'
+}
+
+========================================
+🔒 PASSWORD RESET CODE
+========================================
+User: tshsmimbd@gmail.com (shamimbdt)
+Reset Code: 829579
+========================================
+⚠️  Email service failed - using console
+========================================
+
+2:42:08 PM [express] POST /api/request-password-reset 200 in 183ms :: {"message":"If the email exist…
+2:42:57 PM [express] GET /api/notifications/unread-count 304 in 313ms :: {"count":0}
+2:42:57 PM [express] GET /api/notifications 304 in 339ms :: [{"id":1,"userId":"admin","type":"lead_c…
+2:43:30 PM [express] GET /api/user 401 in 201ms :: {"message":"Authentication required"}
+2:43:46 PM [express] GET /api/user 401 in 33ms :: {"message":"Authentication required"}
+2:43:46 PM [express] GET /api/user 401 in 31ms :: {"message":"Authentication required"}
+Email sending failed: Error: Missing credentials for "PLAIN"
+    at SMTPConnection._formatError (/home/runner/workspace/node_modules/nodemailer/lib/smtp-connection/index.js:809:19)
+    at SMTPConnection.login (/home/runner/workspace/node_modules/nodemailer/lib/smtp-connection/index.js:454:38)
+    at /home/runner/workspace/node_modules/nodemailer/lib/smtp-transport/index.js:272:32
+    at SMTPConnection.<anonymous> (/home/runner/workspace/node_modules/nodemailer/lib/smtp-connection/index.js:215:17)
+    at Object.onceWrapper (node:events:638:28)
+    at SMTPConnection.emit (node:events:524:28)
+    at SMTPConnection._actionEHLO (/home/runner/workspace/node_modules/nodemailer/lib/smtp-connection/index.js:1371:14)
+    at SMTPConnection._processResponse (/home/runner/workspace/node_modules/nodemailer/lib/smtp-connection/index.js:993:20)
+    at SMTPConnection._onData (/home/runner/workspace/node_modules/nodemailer/lib/smtp-connection/index.js:774:14)
+    at SMTPConnection._onSocketData (/home/runner/workspace/node_modules/nodemailer/lib/smtp-connection/index.js:195:44)
+    at TLSSocket.emit (node:events:524:28)
+    at addChunk (node:internal/streams/readable:561:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+    at Readable.push (node:internal/streams/readable:392:5)
+    at TLSWrap.onStreamRead (node:internal/stream_base_commons:191:23) {
+  code: 'EAUTH',
+  command: 'API'
+}
+
+========================================
+🔒 PASSWORD RESET CODE
+========================================
+User: tshsmimbd@gmail.com (shamimbdt)
+Reset Code: 124777
+========================================
+⚠️  Email service failed - using console
+========================================
+
+2:44:03 PM [express] POST /api/request-password-reset 200 in 362ms :: {"message":"If the email exist…
+2:44:58 PM [express] GET /api/notifications/unread-count 304 in 253ms :: {"count":0}
+2:44:58 PM [express] GET /api/notifications 304 in 305ms :: [{"id":1,"userId":"admin","type":"lead_c…
