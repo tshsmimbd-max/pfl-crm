@@ -52,8 +52,18 @@ export default function NotificationSystem() {
   // WebSocket connection for real-time notifications
   useEffect(() => {
     const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-    const port = window.location.port || (protocol === "wss:" ? "443" : "80");
-    const wsUrl = `${protocol}//${window.location.hostname}:${port}/ws`;
+    const hostname = window.location.hostname;
+    const port = window.location.port;
+    
+    // Construct WebSocket URL properly handling undefined port
+    let wsUrl;
+    if (port && port !== '') {
+      wsUrl = `${protocol}//${hostname}:${port}/ws`;
+    } else {
+      // Use default ports when port is undefined or empty
+      const defaultPort = protocol === "wss:" ? "443" : "80";
+      wsUrl = `${protocol}//${hostname}:${defaultPort}/ws`;
+    }
     
     const socket = new WebSocket(wsUrl);
 
