@@ -17,8 +17,9 @@ export function useAuth() {
       }
     },
     retry: false,
-    staleTime: 0, // Always refetch to get the latest auth state
-    refetchOnMount: true,
+    staleTime: 30000, // Cache for 30 seconds to prevent rapid refetches
+    refetchOnMount: false, // Don't refetch on mount if we have cached data
+    refetchOnWindowFocus: false, // Don't refetch on window focus
   });
 
   return {

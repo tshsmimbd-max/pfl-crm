@@ -10,10 +10,7 @@ import AuthPage from "@/pages/AuthPage";
 
 
 function Router() {
-  const { isAuthenticated, isLoading, user } = useAuth();
-
-  // Debug logging to understand the authentication state
-  console.log('Auth state:', { isAuthenticated, isLoading, user: !!user });
+  const { isAuthenticated, isLoading } = useAuth();
 
   if (isLoading) {
     return (

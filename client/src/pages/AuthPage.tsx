@@ -60,9 +60,13 @@ export default function AuthPage() {
       const result = await response.json();
       
       if (response.ok) {
-        // Set the user data in cache and invalidate the query to trigger a refresh
+        // Set the user data in cache - this will trigger authentication state change
         queryClient.setQueryData(["/api/user"], result.user);
-        await queryClient.invalidateQueries({ queryKey: ["/api/user"] });
+        
+        // Small delay to ensure session is established before invalidating
+        setTimeout(() => {
+          queryClient.invalidateQueries({ queryKey: ["/api/user"] });
+        }, 100);
         
         if (!result.user.emailVerified) {
           setVerificationEmail(result.user.email);
