@@ -297,7 +297,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           verificationCode: currentUser.verificationCode,
           codeExpiresAt: currentUser.codeExpiresAt,
           createdAt: currentUser.createdAt,
-          updatedAt: currentUser.updatedAt
+          updatedAt: currentUser.updatedAt,
+          passwordResetCode: null,
+          passwordResetExpiresAt: null
         },
         ...users.filter(u => u.id !== currentUser.id)
       ];
@@ -696,7 +698,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         events = events.filter(event => event.userId && teamMemberIds.includes(event.userId));
       } else {
         // Sales agent sees only their own events
-        events = await storage.getCalendarEvents(currentUser.id);
+        events = await storage.getCalendarEvents(currentUser?.id || "");
       }
       
       res.json(events);
@@ -1084,12 +1086,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Apply role-based filtering
       if (currentUser?.role === ROLES.SALES_AGENT) {
-        customers = customers.filter(customer => customer.assignedTo === currentUser.id);
+        customers = customers.filter(customer => customer.assignedAgent === currentUser.id);
       } else if (currentUser?.role === ROLES.SALES_MANAGER) {
         const teamMembers = await storage.getTeamMembers(currentUser.id);
         const teamMemberIds = teamMembers.map(m => m.id);
         customers = customers.filter(customer => 
-          teamMemberIds.includes(customer.assignedTo || '') || customer.assignedTo === currentUser.id
+          teamMemberIds.includes(customer.assignedAgent || '') || customer.assignedAgent === currentUser.id
         );
       }
       
@@ -1102,13 +1104,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/customers', requireAuth, async (req: any, res) => {
     try {
+      // Only super admin can create customers
+      const currentUser = await storage.getUser(req.user.id);
+      if (currentUser?.role !== ROLES.SUPER_ADMIN) {
+        return res.status(403).json({ message: "Only super admins can create customers" });
+      }
+
       const customerData = insertCustomerSchema.parse({
         ...req.body,
-        convertedBy: req.user.id,
-        assignedTo: req.user.id,
+        createdBy: req.user.id,
       });
       
       const customer = await storage.createCustomer(customerData);
+
+      // Create notification for assigned agent
+      if (customer.assignedAgent && customer.assignedAgent !== req.user.id) {
+        await storage.createNotification({
+          userId: customer.assignedAgent,
+          type: "customer_assigned",
+          title: "New Customer Assigned",
+          message: `Customer ${customer.merchantName} has been assigned to you by ${currentUser.employeeName || currentUser.email}`,
+          read: false
+        });
+      }
+
       res.status(201).json(customer);
     } catch (error) {
       console.error("Error creating customer:", error);
@@ -1142,22 +1161,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         try {
           const row = customers[i];
           
-          // Enhanced customer data parsing with all fields
+          // Parse customer data with new structure
           const customerData = insertCustomerSchema.parse({
-            contactName: row.contactName?.trim(),
-            email: row.email?.trim(),
-            phone: row.phone?.trim() || null,
-            company: row.company?.trim(),
-            totalValue: row.totalValue ? parseInt(row.totalValue.toString()) : 0,
-            assignedTo: req.user.id,
-            convertedBy: req.user.id,
-            // Enhanced fields
-            leadSource: row.leadSource?.trim() || "Others",
-            packageSize: row.packageSize?.trim() || null,
-            website: row.website?.trim() || null,
-            facebookPageUrl: row.facebookPageUrl?.trim() || null,
-            orderVolume: parseInt(row.orderVolume || '0') || 0,
+            merchantCode: row.merchantCode?.trim(),
+            merchantName: row.merchantName?.trim(),
+            rateChart: row.rateChart?.trim() || "ISD",
+            contactPerson: row.contactPerson?.trim(),
+            phoneNumber: row.phoneNumber?.trim(),
+            assignedAgent: row.assignedAgent?.trim() || req.user.id,
+            leadId: row.leadId ? parseInt(row.leadId.toString()) : undefined,
+            productType: row.productType?.trim() || null,
             notes: row.notes?.trim() || null,
+            createdBy: req.user.id,
           });
 
           await storage.createCustomer(customerData);

@@ -107,25 +107,19 @@ export const targets = pgTable("targets", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
-// Customers table (converted from won leads)
+// Customers table - New structure based on merchant requirements
 export const customers = pgTable("customers", {
   id: serial("id").primaryKey(),
-  originalLeadId: integer("original_lead_id").references(() => leads.id),
-  contactName: varchar("contact_name").notNull(),
-  email: varchar("email").notNull(),
-  phone: varchar("phone"),
-  company: varchar("company").notNull(),
-  totalValue: integer("total_value").notNull(), // Value from the original lead
-  assignedTo: varchar("assigned_to").references(() => users.id),
-  convertedBy: varchar("converted_by").references(() => users.id),
-  convertedAt: timestamp("converted_at").defaultNow(),
-  // Enhanced customer fields based on lead fields
-  leadSource: varchar("lead_source"),
-  packageSize: varchar("package_size"),
-  website: text("website"),
-  facebookPageUrl: text("facebook_page_url"),
-  orderVolume: integer("order_volume"),
+  merchantCode: varchar("merchant_code").notNull().unique(),
+  merchantName: varchar("merchant_name").notNull(),
+  rateChart: varchar("rate_chart").notNull(), // ISD, Pheripheri, OSD
+  contactPerson: varchar("contact_person").notNull(),
+  phoneNumber: varchar("phone_number").notNull(),
+  assignedAgent: varchar("assigned_agent").references(() => users.id).notNull(), // Employee ID
+  leadId: integer("lead_id").references(() => leads.id), // Optional reference to original lead
+  productType: varchar("product_type"),
   notes: text("notes"),
+  createdBy: varchar("created_by").references(() => users.id).notNull(),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -199,30 +193,25 @@ export const targetsRelations = relations(targets, ({ one }) => ({
   }),
 }));
 
-export const customersRelations = relations(customers, ({ one, many }) => ({
-  originalLead: one(leads, {
-    fields: [customers.originalLeadId],
+export const customersRelations = relations(customers, ({ one }) => ({
+  lead: one(leads, {
+    fields: [customers.leadId],
     references: [leads.id],
   }),
-  assignedUser: one(users, {
-    fields: [customers.assignedTo],
+  assignedAgent: one(users, {
+    fields: [customers.assignedAgent],
     references: [users.id],
   }),
-  convertedByUser: one(users, {
-    fields: [customers.convertedBy],
+  createdByUser: one(users, {
+    fields: [customers.createdBy],
     references: [users.id],
   }),
-  dailyRevenue: many(dailyRevenue),
 }));
 
 export const dailyRevenueRelations = relations(dailyRevenue, ({ one }) => ({
   user: one(users, {
     fields: [dailyRevenue.userId],
     references: [users.id],
-  }),
-  customer: one(customers, {
-    fields: [dailyRevenue.customerId],
-    references: [customers.id],
   }),
   createdByUser: one(users, {
     fields: [dailyRevenue.createdBy],
@@ -341,34 +330,23 @@ export const insertCustomerSchema = createInsertSchema(customers).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
-  convertedAt: true,
 }).extend({
-  contactName: z.string().min(2, "Contact name must be at least 2 characters"),
-  email: z.string().email("Please enter a valid email address"),
-  phone: z.string().optional(),
-  company: z.string().min(2, "Company name must be at least 2 characters"),
-  totalValue: z.union([
-    z.string().min(1, "Value is required").transform(val => {
+  merchantCode: z.string().min(2, "Merchant code must be at least 2 characters"),
+  merchantName: z.string().min(2, "Merchant name must be at least 2 characters"),
+  rateChart: z.enum(["ISD", "Pheripheri", "OSD"]),
+  contactPerson: z.string().min(2, "Contact person must be at least 2 characters"),
+  phoneNumber: z.string().min(10, "Phone number must be at least 10 digits"),
+  assignedAgent: z.string().min(1, "Assigned agent is required"),
+  leadId: z.union([
+    z.string().min(1).transform(val => {
       const num = parseInt(val);
-      if (isNaN(num) || num < 0) throw new Error("Value must be a positive number");
+      if (isNaN(num)) throw new Error("Lead ID must be a number");
       return num;
     }),
-    z.number().min(0, "Value must be a positive number")
-  ]),
-  // Enhanced customer fields
-  leadSource: z.enum(["Social Media", "Referral", "Ads", "Others"]).default("Others"),
-  packageSize: z.string().optional().nullable(),
-  website: z.string().optional().nullable(),
-  facebookPageUrl: z.string().optional().nullable(),
-  orderVolume: z.union([
-    z.string().min(1, "Order volume is required").transform(val => {
-      const num = parseInt(val);
-      if (isNaN(num) || num < 0) throw new Error("Order volume must be a positive number");
-      return num;
-    }),
-    z.number().min(0, "Order volume must be a positive number")
+    z.number()
   ]).optional(),
-  notes: z.string().optional().nullable(),
+  productType: z.string().optional(),
+  notes: z.string().optional(),
 });
 
 export const insertDailyRevenueSchema = createInsertSchema(dailyRevenue).omit({

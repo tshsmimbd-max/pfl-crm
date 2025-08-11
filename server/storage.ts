@@ -380,7 +380,7 @@ export class DatabaseStorage implements IStorage {
     await db.delete(interactions).where(eq(interactions.leadId, id));
     
     // Check if this lead was converted to a customer
-    const relatedCustomer = await db.select().from(customers).where(eq(customers.originalLeadId, id)).limit(1);
+    const relatedCustomer = await db.select().from(customers).where(eq(customers.leadId, id)).limit(1);
     
     if (relatedCustomer.length > 0) {
       // If there's a related customer, we should not delete the lead
@@ -508,7 +508,7 @@ export class DatabaseStorage implements IStorage {
 
   // Customer operations
   async getCustomers(): Promise<Customer[]> {
-    return await db.select().from(customers).orderBy(desc(customers.convertedAt));
+    return await db.select().from(customers).orderBy(desc(customers.createdAt));
   }
 
   async getCustomer(id: number): Promise<Customer | undefined> {
@@ -544,22 +544,18 @@ export class DatabaseStorage implements IStorage {
       throw new Error("Only won leads can be converted to customers");
     }
 
-    // Create customer from lead data
+    // Create customer from lead data using new customer structure
     const customerData: InsertCustomer = {
-      originalLeadId: lead.id,
-      contactName: lead.contactName,
-      email: lead.email,
-      phone: lead.phone,
-      company: lead.company,
-      totalValue: lead.value,
-      assignedTo: lead.assignedTo,
-      convertedBy: userId,
-      leadSource: lead.leadSource,
-      packageSize: lead.packageSize,
-      website: lead.website,
-      facebookPageUrl: lead.facebookPageUrl,
-      orderVolume: lead.orderVolume,
+      leadId: lead.id,
+      merchantCode: `MC${lead.id.toString().padStart(4, '0')}`, // Auto-generate merchant code
+      merchantName: lead.company,
+      rateChart: "ISD", // Default rate chart
+      contactPerson: lead.contactName,
+      phoneNumber: lead.phone || "",
+      assignedAgent: lead.assignedTo || userId,
+      productType: lead.packageSize || "Service",
       notes: lead.notes,
+      createdBy: userId,
     };
 
     const customer = await this.createCustomer(customerData);
@@ -569,14 +565,14 @@ export class DatabaseStorage implements IStorage {
       userId: lead.assignedTo || userId,
       type: "lead_converted",
       title: "Lead Converted to Customer",
-      message: `Lead "${lead.contactName}" has been successfully converted to a customer`,
+      message: `Lead "${lead.contactName}" has been successfully converted to customer ${customer.merchantName}`,
     });
 
     return customer;
   }
 
   async getCustomersByUser(userId: string): Promise<Customer[]> {
-    return await db.select().from(customers).where(eq(customers.assignedTo, userId));
+    return await db.select().from(customers).where(eq(customers.assignedAgent, userId));
   }
 
   // Daily Revenue operations

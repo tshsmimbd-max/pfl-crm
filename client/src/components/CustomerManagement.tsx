@@ -18,8 +18,10 @@ import { format } from "date-fns";
 import DailyRevenueDialog from "./DailyRevenueDialog";
 import CreateCustomerDialog from "./CreateCustomerDialog";
 import BulkCustomerUpload from "./BulkCustomerUpload";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function CustomerManagement() {
+  const { user } = useAuth();
   const [showRevenueDialog, setShowRevenueDialog] = useState(false);
   const [showCreateCustomerDialog, setShowCreateCustomerDialog] = useState(false);
 
@@ -76,14 +78,18 @@ export default function CustomerManagement() {
           <p className="text-gray-600 mt-1">Manage converted customers and track revenue</p>
         </div>
         <div className="flex space-x-3">
-          <Button 
-            onClick={() => setShowCreateCustomerDialog(true)}
-            className="bg-primary-600 hover:bg-primary-700"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Add Customer
-          </Button>
-          <BulkCustomerUpload />
+          {user?.role === "super_admin" && (
+            <>
+              <Button 
+                onClick={() => setShowCreateCustomerDialog(true)}
+                className="bg-primary-600 hover:bg-primary-700"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add Customer
+              </Button>
+              <BulkCustomerUpload />
+            </>
+          )}
           <Button 
             onClick={() => setShowRevenueDialog(true)}
             className="bg-green-600 hover:bg-green-700"
@@ -150,66 +156,66 @@ export default function CustomerManagement() {
             <div className="text-center py-8">
               <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
               <h3 className="text-lg font-medium text-gray-900 mb-2">No customers yet</h3>
-              <p className="text-gray-600">Convert won leads to customers to get started</p>
+              <p className="text-gray-600">Only super admins can create customers</p>
             </div>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Customer</TableHead>
-                  <TableHead>Company</TableHead>
-                  <TableHead>Contact</TableHead>
-                  <TableHead>Converted</TableHead>
-                  <TableHead>Total Revenue</TableHead>
-                  <TableHead>Total Orders</TableHead>
-                  <TableHead>Original Value</TableHead>
+                  <TableHead>Merchant Code</TableHead>
+                  <TableHead>Merchant Name</TableHead>
+                  <TableHead>Rate Chart</TableHead>
+                  <TableHead>Contact Person</TableHead>
+                  <TableHead>Phone</TableHead>
+                  <TableHead>Assigned Agent</TableHead>
+                  <TableHead>Product Type</TableHead>
+                  <TableHead>Created</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {customers.map((customer: any) => (
                   <TableRow key={customer.id}>
                     <TableCell>
-                      <div className="font-medium">{customer.contactName}</div>
+                      <div className="font-medium text-blue-600">{customer.merchantCode}</div>
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center">
                         <Building2 className="h-4 w-4 mr-2 text-gray-400" />
-                        {customer.company}
+                        {customer.merchantName}
                       </div>
                     </TableCell>
                     <TableCell>
-                      <div className="space-y-1">
-                        <div className="flex items-center text-sm">
-                          <Mail className="h-3 w-3 mr-1 text-gray-400" />
-                          {customer.email}
-                        </div>
-                        {customer.phone && (
-                          <div className="flex items-center text-sm text-gray-600">
-                            <Phone className="h-3 w-3 mr-1 text-gray-400" />
-                            {customer.phone}
-                          </div>
-                        )}
+                      <div className={`px-2 py-1 rounded text-xs font-medium inline-block ${
+                        customer.rateChart === 'ISD' ? 'bg-blue-100 text-blue-800' :
+                        customer.rateChart === 'Pheripheri' ? 'bg-green-100 text-green-800' :
+                        'bg-yellow-100 text-yellow-800'
+                      }`}>
+                        {customer.rateChart}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="font-medium">{customer.contactPerson}</div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center text-sm">
+                        <Phone className="h-3 w-3 mr-1 text-gray-400" />
+                        {customer.phoneNumber}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="text-sm">
+                        {customer.assignedAgent || 'Not assigned'}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="text-sm">
+                        {customer.productType || 'N/A'}
                       </div>
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center text-sm">
                         <Calendar className="h-3 w-3 mr-1 text-gray-400" />
-                        {formatDate(customer.convertedAt)}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="font-medium text-green-600">
-                        {formatCurrency(getTotalRevenueForCustomer(customer.id))}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="secondary">
-                        {getTotalOrdersForCustomer(customer.id)} orders
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <div className="font-medium">
-                        {formatCurrency(customer.totalValue)}
+                        {formatDate(customer.createdAt)}
                       </div>
                     </TableCell>
                   </TableRow>
