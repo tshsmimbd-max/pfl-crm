@@ -10,7 +10,10 @@ import AuthPage from "@/pages/AuthPage";
 
 
 function Router() {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, user } = useAuth();
+
+  // Debug logging to understand the authentication state
+  console.log('Auth state:', { isAuthenticated, isLoading, user: !!user });
 
   if (isLoading) {
     return (
@@ -30,7 +33,6 @@ function Router() {
       <Route path="/leads" component={Home} />
       <Route path="/pipeline" component={Home} />
       <Route path="/customers" component={Home} />
-
       <Route path="/analytics" component={Home} />
       <Route path="/targets" component={Home} />
       <Route path="/user-management" component={Home} />
