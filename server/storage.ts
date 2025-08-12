@@ -54,6 +54,7 @@ export interface IStorage {
   deleteLead(id: number): Promise<void>;
   getLeadsByStage(stage: string): Promise<Lead[]>;
   getLeadsByUser(userId: string): Promise<Lead[]>;
+  getLeadsByCreator(userId: string): Promise<Lead[]>;
 
   // Interaction operations
   getInteractions(leadId?: number): Promise<Interaction[]>;
@@ -395,7 +396,13 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getLeadsByUser(userId: string): Promise<Lead[]> {
-    return await db.select().from(leads).where(eq(leads.assignedTo, userId));
+    const result = await db.select().from(leads).where(eq(leads.assignedTo, userId));
+    return result;
+  }
+
+  async getLeadsByCreator(userId: string): Promise<Lead[]> {
+    const result = await this.db.select().from(leads).where(eq(leads.createdBy, userId));
+    return result;
   }
 
   // Interaction operations

@@ -534,6 +534,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
           .on('end', async () => {
             for (const row of results) {
               try {
+                // Handle assignTo field - can be user ID, employee name, or "myself"
+                let assignedTo = req.user.id; // Default to current user
+                
+                if (row.assignTo && row.assignTo.trim()) {
+                  const assignToValue = row.assignTo.trim();
+                  
+                  if (assignToValue.toLowerCase() === 'myself') {
+                    assignedTo = req.user.id;
+                  } else {
+                    // Check if it's a valid user ID
+                    const allUsers = await storage.getAllUsers();
+                    const targetUser = allUsers.find(u => 
+                      u.id === assignToValue || 
+                      u.employeeName === assignToValue ||
+                      u.email === assignToValue
+                    );
+                    
+                    if (targetUser) {
+                      // Validate assignment permissions based on current user role
+                      const currentUser = await storage.getUser(req.user.id);
+                      const availableUsers = await storage.getUsersForAssignment(req.user.id, currentUser?.role || 'sales_agent');
+                      const canAssign = availableUsers.some(u => u.id === targetUser.id);
+                      
+                      if (canAssign) {
+                        assignedTo = targetUser.id;
+                      } else {
+                        errors.push(`Cannot assign to user "${assignToValue}" - insufficient permissions`);
+                        failed++;
+                        continue;
+                      }
+                    } else {
+                      errors.push(`Invalid assignTo value: "${assignToValue}" - user not found`);
+                      failed++;
+                      continue;
+                    }
+                  }
+                }
+
                 const leadData = {
                   contactName: row.contactName || row.name,
                   email: row.email,
@@ -542,7 +580,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   value: parseFloat(row.value) || 0,
                   stage: row.stage || 'prospecting',
                   createdBy: req.user.id,
-                  assignedTo: req.user.id,
+                  assignedTo: assignedTo,
                   // Enhanced fields from CSV
                   leadSource: row.leadSource || row.lead_source || 'Others',
                   packageSize: row.packageSize || row.package_size || '',
@@ -558,7 +596,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   continue;
                 }
 
-                await storage.createLead(leadData);
+                const newLead = await storage.createLead(leadData);
+
+                // Create notification if lead is assigned to someone else
+                if (assignedTo && assignedTo !== req.user.id) {
+                  const assignedUser = await storage.getUser(assignedTo);
+                  const currentUser = await storage.getUser(req.user.id);
+                  
+                  if (assignedUser) {
+                    await storage.createNotification({
+                      userId: assignedTo,
+                      type: 'lead_assigned',
+                      title: 'New Lead Assigned (Bulk Upload)',
+                      message: `A new lead "${leadData.contactName}" from ${leadData.company} has been assigned to you via bulk upload by ${currentUser?.employeeName || currentUser?.email || 'Unknown'}`,
+                      read: false
+                    });
+                  }
+                }
+
                 processed++;
               } catch (error: any) {
                 errors.push(`Failed to process row: ${JSON.stringify(row)} - ${error.message}`);
