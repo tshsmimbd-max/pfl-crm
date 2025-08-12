@@ -23,13 +23,15 @@ import {
   Filter,
   Edit,
   Tag,
-  X
+  X,
+  Upload
 } from "lucide-react";
 import { format } from "date-fns";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import DailyRevenueDialog from "./DailyRevenueDialog";
+import SuperAdminRevenueDialog from "./SuperAdminRevenueDialog";
+import BulkRevenueUpload from "./BulkRevenueUpload";
 import CreateCustomerDialog from "./CreateCustomerDialog";
 import BulkCustomerUpload from "./BulkCustomerUpload";
 import { useAuth } from "@/hooks/useAuth";
@@ -43,6 +45,7 @@ export default function CustomerManagement() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [showRevenueDialog, setShowRevenueDialog] = useState(false);
+  const [showBulkRevenueUpload, setShowBulkRevenueUpload] = useState(false);
   const [showCreateCustomerDialog, setShowCreateCustomerDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
@@ -235,15 +238,22 @@ export default function CustomerManagement() {
                 Add Customer
               </Button>
               <BulkCustomerUpload />
+              <Button 
+                onClick={() => setShowRevenueDialog(true)}
+                className="bg-green-600 hover:bg-green-700"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add Revenue
+              </Button>
+              <Button 
+                onClick={() => setShowBulkRevenueUpload(true)}
+                className="bg-blue-600 hover:bg-blue-700"
+              >
+                <Upload className="h-4 w-4 mr-2" />
+                Bulk Revenue
+              </Button>
             </>
           )}
-          <Button 
-            onClick={() => setShowRevenueDialog(true)}
-            className="bg-green-600 hover:bg-green-700"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Add Daily Revenue
-          </Button>
         </div>
       </div>
 
@@ -674,10 +684,15 @@ export default function CustomerManagement() {
         </DialogContent>
       </Dialog>
 
-      {/* Daily Revenue Dialog */}
-      <DailyRevenueDialog 
+      {/* Super Admin Revenue Dialogs */}
+      <SuperAdminRevenueDialog 
         open={showRevenueDialog} 
         onOpenChange={setShowRevenueDialog} 
+      />
+      
+      <BulkRevenueUpload
+        open={showBulkRevenueUpload}
+        onOpenChange={setShowBulkRevenueUpload}
       />
 
       {/* Create Customer Dialog */}

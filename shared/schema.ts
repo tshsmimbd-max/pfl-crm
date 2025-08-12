@@ -125,16 +125,16 @@ export const customers = pgTable("customers", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
-// Daily revenue entries
+// Daily revenue entries - Updated schema for super admin only
 export const dailyRevenue = pgTable("daily_revenue", {
   id: serial("id").primaryKey(),
-  userId: varchar("user_id").references(() => users.id),
-  customerId: integer("customer_id").references(() => customers.id),
-  date: timestamp("date").notNull(),
-  revenue: integer("revenue").notNull(), // Daily revenue amount
-  orders: integer("orders").notNull().default(1), // Number of orders
+  assignedUser: varchar("assigned_user").references(() => users.id).notNull(), // Employee who earned the revenue
+  merchantCode: varchar("merchant_code").notNull(), // Merchant code from customers table
+  date: timestamp("date").notNull().defaultNow(),
+  revenue: integer("revenue").notNull(), // Revenue amount in Taka
+  orders: integer("orders").notNull().default(1), // Number of orders for the day
   description: text("description"),
-  createdBy: varchar("created_by").references(() => users.id),
+  createdBy: varchar("created_by").references(() => users.id).notNull(), // Super admin who uploaded
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -210,8 +210,8 @@ export const customersRelations = relations(customers, ({ one }) => ({
 }));
 
 export const dailyRevenueRelations = relations(dailyRevenue, ({ one }) => ({
-  user: one(users, {
-    fields: [dailyRevenue.userId],
+  assignedUser: one(users, {
+    fields: [dailyRevenue.assignedUser],
     references: [users.id],
   }),
   createdByUser: one(users, {
@@ -355,8 +355,27 @@ export const insertDailyRevenueSchema = createInsertSchema(dailyRevenue).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
+  createdBy: true,
 }).extend({
-  date: z.union([z.string(), z.date()]),
+  date: z.string().optional(), // Accept date as string for easier form handling
+  assignedUser: z.string().min(1, "Assigned user is required"),
+  merchantCode: z.string().min(1, "Merchant code is required"),
+  revenue: z.union([
+    z.string().min(1, "Revenue is required").transform(val => {
+      const num = parseInt(val);
+      if (isNaN(num) || num < 0) throw new Error("Revenue must be a positive number");
+      return num;
+    }),
+    z.number().min(0, "Revenue must be a positive number")
+  ]),
+  orders: z.union([
+    z.string().min(1, "Orders count is required").transform(val => {
+      const num = parseInt(val);
+      if (isNaN(num) || num < 1) throw new Error("Orders must be at least 1");
+      return num;
+    }),
+    z.number().min(1, "Orders must be at least 1")
+  ]).default(1),
 });
 
 // Types

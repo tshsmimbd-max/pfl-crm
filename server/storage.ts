@@ -584,7 +584,7 @@ export class DatabaseStorage implements IStorage {
   async getDailyRevenue(userId?: string, startDate?: Date, endDate?: Date): Promise<DailyRevenue[]> {
     const conditions = [];
     if (userId) {
-      conditions.push(eq(dailyRevenue.userId, userId));
+      conditions.push(eq(dailyRevenue.assignedUser, userId));
     }
     if (startDate) {
       conditions.push(gte(dailyRevenue.date, startDate));
@@ -621,7 +621,7 @@ export class DatabaseStorage implements IStorage {
   async getTotalRevenueForPeriod(userId?: string, startDate?: Date, endDate?: Date): Promise<number> {
     const conditions = [];
     if (userId) {
-      conditions.push(eq(dailyRevenue.userId, userId));
+      conditions.push(eq(dailyRevenue.assignedUser, userId));
     }
     if (startDate) {
       conditions.push(gte(dailyRevenue.date, startDate));
@@ -792,6 +792,228 @@ export class DatabaseStorage implements IStorage {
     }
 
     return performance;
+  }
+
+  async sendRevenueNotificationAndEmail(revenue: DailyRevenue, createdBy: User): Promise<void> {
+    try {
+      // Get assigned user details
+      const assignedUser = await this.getUser(revenue.assignedUser);
+      if (!assignedUser) return;
+
+      // Get user's targets for progress calculation
+      const userTargets = await this.getTargetsByUser(revenue.assignedUser);
+      const currentMonthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+      const currentMonthEnd = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0);
+      
+      // Calculate monthly progress
+      const monthlyRevenue = await this.getDailyRevenue(revenue.assignedUser, currentMonthStart, currentMonthEnd);
+      const totalMonthlyRevenue = monthlyRevenue.reduce((sum, r) => sum + r.revenue, 0);
+      const totalMonthlyOrders = monthlyRevenue.reduce((sum, r) => sum + r.orders, 0);
+
+      // Find relevant targets
+      const revenueTarget = userTargets.find(t => t.targetType === 'revenue');
+      const orderTarget = userTargets.find(t => t.targetType === 'orders');
+
+      let targetProgress = "";
+      if (revenueTarget) {
+        const progressPercentage = Math.round((totalMonthlyRevenue / revenueTarget.targetValue) * 100);
+        targetProgress += `Revenue: ৳${totalMonthlyRevenue.toLocaleString()} / ৳${revenueTarget.targetValue.toLocaleString()} (${progressPercentage}%)`;
+      }
+      if (orderTarget) {
+        const progressPercentage = Math.round((totalMonthlyOrders / orderTarget.targetValue) * 100);
+        targetProgress += targetProgress ? `\nOrders: ${totalMonthlyOrders} / ${orderTarget.targetValue} (${progressPercentage}%)` : 
+          `Orders: ${totalMonthlyOrders} / ${orderTarget.targetValue} (${progressPercentage}%)`;
+      }
+
+      // Create notification
+      await this.createNotification({
+        userId: revenue.assignedUser,
+        type: "revenue_added",
+        title: "💰 Daily Revenue Added",
+        message: `Your daily revenue of ৳${revenue.revenue.toLocaleString()} for ${revenue.orders} orders from merchant ${revenue.merchantCode} has been recorded by ${createdBy.employeeName}.`,
+        read: false
+      });
+
+      // Send email summary
+      const emailSubject = `Daily Revenue Summary - ৳${revenue.revenue.toLocaleString()}`;
+      const emailContent = `
+        <h2>Daily Revenue Summary</h2>
+        <p>Dear ${assignedUser.employeeName},</p>
+        
+        <p>Your daily revenue has been updated by ${createdBy.employeeName}:</p>
+        
+        <div style="background-color: #f8f9fa; padding: 15px; border-radius: 5px; margin: 15px 0;">
+          <h3>Today's Revenue Entry</h3>
+          <p><strong>Merchant:</strong> ${revenue.merchantCode}</p>
+          <p><strong>Revenue:</strong> ৳${revenue.revenue.toLocaleString()}</p>
+          <p><strong>Orders:</strong> ${revenue.orders}</p>
+          <p><strong>Date:</strong> ${new Date(revenue.date).toLocaleDateString()}</p>
+          ${revenue.description ? `<p><strong>Notes:</strong> ${revenue.description}</p>` : ''}
+        </div>
+
+        ${targetProgress ? `
+        <div style="background-color: #e3f2fd; padding: 15px; border-radius: 5px; margin: 15px 0;">
+          <h3>Monthly Target Progress</h3>
+          <pre style="font-family: Arial, sans-serif; white-space: pre-line;">${targetProgress}</pre>
+        </div>
+        ` : ''}
+
+        <div style="background-color: #f1f8e9; padding: 15px; border-radius: 5px; margin: 15px 0;">
+          <h3>Monthly Summary</h3>
+          <p><strong>Total Revenue:</strong> ৳${totalMonthlyRevenue.toLocaleString()}</p>
+          <p><strong>Total Orders:</strong> ${totalMonthlyOrders}</p>
+          <p><strong>Average Revenue per Order:</strong> ৳${totalMonthlyOrders > 0 ? Math.round(totalMonthlyRevenue / totalMonthlyOrders).toLocaleString() : '0'}</p>
+        </div>
+
+        <p>Keep up the excellent work!</p>
+        
+        <p>Best regards,<br>Paperfly CRM Team</p>
+      `;
+
+      await this.sendEmail(assignedUser.email, emailSubject, emailContent);
+    } catch (error) {
+      console.error("Error sending revenue notification/email:", error);
+      // Don't throw error as this is supplementary functionality
+    }
+  }
+
+  async processBulkRevenueUpload(file: any, createdById: string): Promise<any> {
+    const fs = (await import('fs')).default;
+    const csv = (await import('csv-parser')).default;
+
+    return new Promise((resolve, reject) => {
+      const results: any[] = [];
+      const errors: string[] = [];
+      let successCount = 0;
+      let failedCount = 0;
+
+      fs.createReadStream(file.path)
+        .pipe(csv())
+        .on('data', (data) => results.push(data))
+        .on('end', async () => {
+          try {
+            const createdByUser = await this.getUser(createdById);
+            if (!createdByUser) {
+              return reject(new Error("Creator user not found"));
+            }
+
+            let totalRevenue = 0;
+            let totalOrders = 0;
+            const affectedUsers = new Set<string>();
+
+            for (const row of results) {
+              try {
+                // Validate CSV row
+                const revenueData = {
+                  assignedUser: row.assigned_user,
+                  merchantCode: row.merchant_code,
+                  revenue: parseInt(row.revenue),
+                  orders: parseInt(row.orders) || 1,
+                  description: row.description || "",
+                  createdBy: createdById,
+                };
+
+                // Check if assigned user exists
+                const assignedUser = await this.getUser(revenueData.assignedUser);
+                if (!assignedUser) {
+                  errors.push(`Row ${results.indexOf(row) + 1}: User ${revenueData.assignedUser} not found`);
+                  failedCount++;
+                  continue;
+                }
+
+                // Create revenue entry
+                const createdRevenue = await this.createDailyRevenue(revenueData);
+
+                // Send notification and email
+                await this.sendRevenueNotificationAndEmail(createdRevenue, createdByUser);
+
+                successCount++;
+                totalRevenue += revenueData.revenue;
+                totalOrders += revenueData.orders;
+                affectedUsers.add(revenueData.assignedUser);
+
+              } catch (error: any) {
+                errors.push(`Row ${results.indexOf(row) + 1}: ${error.message}`);
+                failedCount++;
+              }
+            }
+
+            // Clean up uploaded file
+            fs.unlink(file.path, (err: any) => {
+              if (err) console.error("Error deleting uploaded file:", err);
+            });
+
+            // Send summary email to super admin
+            if (successCount > 0) {
+              await this.sendBulkUploadSummaryEmail(createdByUser, {
+                totalEntries: results.length,
+                successCount,
+                failedCount,
+                totalRevenue,
+                totalOrders,
+                affectedUsers: affectedUsers.size,
+                errors
+              });
+            }
+
+            resolve({
+              success: successCount,
+              failed: failedCount,
+              errors,
+              summary: {
+                totalRevenue,
+                totalOrders,
+                affectedUsers: affectedUsers.size
+              }
+            });
+
+          } catch (error: any) {
+            reject(error);
+          }
+        })
+        .on('error', (error: any) => {
+          reject(error);
+        });
+    });
+  }
+
+  async sendBulkUploadSummaryEmail(admin: User, summary: any): Promise<void> {
+    try {
+      const emailSubject = `Bulk Revenue Upload Summary - ${summary.successCount} entries processed`;
+      const emailContent = `
+        <h2>Bulk Revenue Upload Summary</h2>
+        <p>Dear ${admin.employeeName},</p>
+        
+        <p>Your bulk revenue upload has been processed:</p>
+        
+        <div style="background-color: #f8f9fa; padding: 15px; border-radius: 5px; margin: 15px 0;">
+          <h3>Upload Results</h3>
+          <p><strong>Total Entries:</strong> ${summary.totalEntries}</p>
+          <p><strong>Successful:</strong> ${summary.successCount}</p>
+          <p><strong>Failed:</strong> ${summary.failedCount}</p>
+          <p><strong>Total Revenue Added:</strong> ৳${summary.totalRevenue.toLocaleString()}</p>
+          <p><strong>Total Orders:</strong> ${summary.totalOrders}</p>
+          <p><strong>Users Affected:</strong> ${summary.affectedUsers}</p>
+        </div>
+
+        ${summary.errors.length > 0 ? `
+        <div style="background-color: #fef2f2; padding: 15px; border-radius: 5px; margin: 15px 0; border-left: 4px solid #ef4444;">
+          <h3>Errors</h3>
+          <ul>
+            ${summary.errors.map((error: string) => `<li>${error}</li>`).join('')}
+          </ul>
+        </div>
+        ` : ''}
+
+        <p>Summary emails have been sent to all affected users.</p>
+        
+        <p>Best regards,<br>Paperfly CRM Team</p>
+      `;
+
+      await this.sendEmail(admin.email, emailSubject, emailContent);
+    } catch (error) {
+      console.error("Error sending bulk upload summary email:", error);
+    }
   }
 }
 
