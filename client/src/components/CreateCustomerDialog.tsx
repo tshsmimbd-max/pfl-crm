@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { insertCustomerSchema, type InsertCustomer } from "@shared/schema";
+import { z } from "zod";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/useAuth";
@@ -18,17 +19,9 @@ interface CreateCustomerDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
-type CustomerFormData = {
-  merchantCode: string;
-  merchantName: string;
-  rateChart: string;
-  contactPerson: string;
-  phoneNumber: string;
-  assignedAgent: string;
-  leadId?: number;
-  productType?: string;
-  notes?: string;
-};
+// Create a form schema without createdBy since it's added automatically
+const customerFormSchema = insertCustomerSchema.omit({ createdBy: true });
+type CustomerFormData = z.infer<typeof customerFormSchema>;
 
 export default function CreateCustomerDialog({ 
   open, 
@@ -50,7 +43,7 @@ export default function CreateCustomerDialog({
   });
   
   const form = useForm<CustomerFormData>({
-    resolver: zodResolver(insertCustomerSchema),
+    resolver: zodResolver(customerFormSchema),
     defaultValues: {
       merchantCode: "",
       merchantName: "",
@@ -296,6 +289,11 @@ export default function CreateCustomerDialog({
               <Button 
                 type="submit" 
                 disabled={createCustomerMutation.isPending}
+                onClick={() => {
+                  console.log("Submit button clicked");
+                  console.log("Form state:", form.formState);
+                  console.log("Form errors:", form.formState.errors);
+                }}
               >
                 {createCustomerMutation.isPending ? "Creating..." : "Create Customer"}
               </Button>
