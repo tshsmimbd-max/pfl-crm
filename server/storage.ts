@@ -906,15 +906,23 @@ export class DatabaseStorage implements IStorage {
 
             for (const row of results) {
               try {
-                // Validate CSV row
+                // Validate CSV row - handle missing fields gracefully
                 const revenueData = {
                   assignedUser: row.assigned_user,
                   merchantCode: row.merchant_code,
-                  revenue: parseInt(row.revenue),
+                  revenue: parseInt(row.revenue) || 0,
                   orders: parseInt(row.orders) || 1,
                   description: row.description || "",
                   createdBy: createdById,
+                  date: new Date(),
                 };
+
+                // Validate required fields
+                if (!revenueData.assignedUser || !revenueData.merchantCode || revenueData.revenue <= 0) {
+                  errors.push(`Row ${results.indexOf(row) + 1}: Missing required fields (assigned_user, merchant_code, revenue)`);
+                  failedCount++;
+                  continue;
+                }
 
                 // Check if assigned user exists
                 const assignedUser = await this.getUser(revenueData.assignedUser);
