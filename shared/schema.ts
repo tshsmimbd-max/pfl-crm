@@ -355,13 +355,13 @@ export const insertDailyRevenueSchema = createInsertSchema(dailyRevenue).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
-  createdBy: true,
 }).extend({
   date: z.union([z.string(), z.date()]).transform(val => 
     typeof val === 'string' ? new Date(val) : val
   ).optional(), // Accept date as string or Date object
   assignedUser: z.string().min(1, "Assigned user is required"),
   merchantCode: z.string().min(1, "Merchant code is required"),
+  createdBy: z.string().min(1, "Created by is required"),
   revenue: z.union([
     z.string().min(1, "Revenue is required").transform(val => {
       const num = parseInt(val);
