@@ -66,11 +66,15 @@ export default function CreateCustomerDialog({
 
   const createCustomerMutation = useMutation({
     mutationFn: async (data: CustomerFormData) => {
+      console.log("Mutation function called with:", data);
       const customerData = {
         ...data,
         createdBy: user?.id || "",
       };
-      await apiRequest("POST", "/api/customers", customerData);
+      console.log("Making API request with:", customerData);
+      const result = await apiRequest("POST", "/api/customers", customerData);
+      console.log("API request successful:", result);
+      return result;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/customers"] });
@@ -83,6 +87,7 @@ export default function CreateCustomerDialog({
       });
     },
     onError: (error) => {
+      console.error("Mutation error:", error);
       toast({
         title: "Error",
         description: "Failed to create customer",
@@ -92,6 +97,8 @@ export default function CreateCustomerDialog({
   });
 
   const onSubmit = (data: CustomerFormData) => {
+    console.log("Form submitted with data:", data);
+    console.log("Form validation errors:", form.formState.errors);
     createCustomerMutation.mutate(data);
   };
 
