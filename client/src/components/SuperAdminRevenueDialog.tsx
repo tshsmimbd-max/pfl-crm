@@ -12,6 +12,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { insertDailyRevenueSchema, type InsertDailyRevenue } from "@shared/schema";
+import { z } from "zod";
 import { Save, X, DollarSign, ShoppingCart, Users, Calendar } from "lucide-react";
 import { format } from "date-fns";
 
@@ -19,6 +20,18 @@ interface SuperAdminRevenueDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
+
+// Form schema for revenue entry
+const revenueFormSchema = z.object({
+  assignedUser: z.string().min(1, "Please select a user"),
+  merchantCode: z.string().min(1, "Please select a merchant"),
+  date: z.string(),
+  revenue: z.number().min(1, "Revenue must be greater than 0"),
+  orders: z.number().min(1, "Orders must be at least 1"),
+  description: z.string().optional(),
+});
+
+type RevenueFormData = z.infer<typeof revenueFormSchema>;
 
 export default function SuperAdminRevenueDialog({ open, onOpenChange }: SuperAdminRevenueDialogProps) {
   const { toast } = useToast();
@@ -33,8 +46,8 @@ export default function SuperAdminRevenueDialog({ open, onOpenChange }: SuperAdm
     enabled: open,
   });
 
-  const form = useForm<InsertDailyRevenue>({
-    resolver: zodResolver(insertDailyRevenueSchema),
+  const form = useForm<RevenueFormData>({
+    resolver: zodResolver(revenueFormSchema),
     defaultValues: {
       assignedUser: "",
       merchantCode: "",
@@ -46,9 +59,17 @@ export default function SuperAdminRevenueDialog({ open, onOpenChange }: SuperAdm
   });
 
   const createRevenueMutation = useMutation({
-    mutationFn: async (data: InsertDailyRevenue) => {
-      console.log("Creating revenue entry:", data);
-      return await apiRequest("POST", "/api/daily-revenue", data);
+    mutationFn: async (data: RevenueFormData) => {
+      const revenueData = {
+        assignedUser: data.assignedUser,
+        merchantCode: data.merchantCode,
+        revenue: data.revenue,
+        orders: data.orders,
+        description: data.description || "",
+        date: data.date,
+      };
+      console.log("Creating revenue entry:", revenueData);
+      return await apiRequest("POST", "/api/daily-revenue", revenueData);
     },
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ["/api/daily-revenue"] });
@@ -85,7 +106,7 @@ export default function SuperAdminRevenueDialog({ open, onOpenChange }: SuperAdm
     customer.merchantCode === selectedMerchantCode
   );
 
-  const onSubmit = (data: InsertDailyRevenue) => {
+  const onSubmit = (data: RevenueFormData) => {
     console.log("Form submission:", data);
     createRevenueMutation.mutate(data);
   };
@@ -261,7 +282,11 @@ export default function SuperAdminRevenueDialog({ open, onOpenChange }: SuperAdm
                       placeholder="Additional notes about this revenue entry..."
                       className="resize-none"
                       rows={3}
-                      {...field}
+                      value={field.value || ""}
+                      onChange={field.onChange}
+                      onBlur={field.onBlur}
+                      name={field.name}
+                      ref={field.ref}
                     />
                   </FormControl>
                   <FormMessage />

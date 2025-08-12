@@ -48,7 +48,19 @@ export default function BulkRevenueUpload({ open, onOpenChange }: BulkRevenueUpl
       const formData = new FormData();
       formData.append("file", file);
       
-      return await apiRequest("POST", "/api/daily-revenue/bulk-upload", formData);
+      // Use fetch directly for file upload to avoid JSON parsing issues
+      const response = await fetch("/api/daily-revenue/bulk-upload", {
+        method: "POST",
+        body: formData,
+        credentials: "include", // Include cookies for authentication
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Upload failed");
+      }
+      
+      return await response.json();
     },
     onSuccess: (result: UploadResult) => {
       setUploadResult(result);

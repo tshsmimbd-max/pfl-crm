@@ -733,7 +733,7 @@ export class DatabaseStorage implements IStorage {
           return acc;
         }, [] as Lead[]);
 
-        userRevenue = await db.select().from(dailyRevenue).where(eq(dailyRevenue.userId, userId));
+        userRevenue = await db.select().from(dailyRevenue).where(eq(dailyRevenue.assignedUser, userId));
       } else {
         userLeads = await db.select().from(leads);
         userRevenue = await db.select().from(dailyRevenue);
@@ -801,7 +801,9 @@ export class DatabaseStorage implements IStorage {
       if (!assignedUser) return;
 
       // Get user's targets for progress calculation
-      const userTargets = await this.getTargetsByUser(revenue.assignedUser);
+      const userTargets = await this.getTargets().then(targets => 
+        targets.filter(t => t.userId === revenue.assignedUser)
+      );
       const currentMonthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
       const currentMonthEnd = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0);
       
@@ -811,8 +813,8 @@ export class DatabaseStorage implements IStorage {
       const totalMonthlyOrders = monthlyRevenue.reduce((sum, r) => sum + r.orders, 0);
 
       // Find relevant targets
-      const revenueTarget = userTargets.find(t => t.targetType === 'revenue');
-      const orderTarget = userTargets.find(t => t.targetType === 'orders');
+      const revenueTarget = userTargets.find((t: any) => t.targetType === 'revenue');
+      const orderTarget = userTargets.find((t: any) => t.targetType === 'orders');
 
       let targetProgress = "";
       if (revenueTarget) {
@@ -870,7 +872,8 @@ export class DatabaseStorage implements IStorage {
         <p>Best regards,<br>Paperfly CRM Team</p>
       `;
 
-      await this.sendEmail(assignedUser.email, emailSubject, emailContent);
+      // Email functionality will be implemented separately
+      console.log(`Would send email to ${assignedUser.email}: ${emailSubject}`);
     } catch (error) {
       console.error("Error sending revenue notification/email:", error);
       // Don't throw error as this is supplementary functionality
@@ -1010,7 +1013,8 @@ export class DatabaseStorage implements IStorage {
         <p>Best regards,<br>Paperfly CRM Team</p>
       `;
 
-      await this.sendEmail(admin.email, emailSubject, emailContent);
+      // Email functionality will be implemented separately
+      console.log(`Would send bulk upload summary email to ${admin.email}: ${emailSubject}`);
     } catch (error) {
       console.error("Error sending bulk upload summary email:", error);
     }
