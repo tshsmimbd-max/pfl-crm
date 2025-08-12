@@ -119,7 +119,7 @@ export default function NotificationSystem() {
     // Navigate to appropriate page based on notification type
     if (notification.type === "target_assigned") {
       setLocation("/targets");
-    } else if (notification.type === "lead_update") {
+    } else if (notification.type === "lead_update" || notification.type === "lead_assigned") {
       setLocation("/leads");
     } else if (notification.type === "target_reminder") {
       setLocation("/analytics");
@@ -136,6 +136,7 @@ export default function NotificationSystem() {
       case "target_reminder":
         return AlertCircle;
       case "lead_update":
+      case "lead_assigned":
         return User;
       default:
         return Bell;
@@ -149,6 +150,7 @@ export default function NotificationSystem() {
       case "target_reminder":
         return "bg-warning-100 text-warning-700";
       case "lead_update":
+      case "lead_assigned":
         return "bg-success-100 text-success-700";
       default:
         return "bg-gray-100 text-gray-700";

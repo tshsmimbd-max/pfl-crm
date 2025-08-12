@@ -25,7 +25,7 @@ import {
   InsertCalendarEvent,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, and, gte, lte, sum, count, inArray } from "drizzle-orm";
+import { eq, desc, and, gte, lte, sum, count, inArray, sql } from "drizzle-orm";
 import * as crypto from "crypto";
 import bcrypt from 'bcrypt';
 
@@ -56,15 +56,18 @@ export interface IStorage {
   getLeadsByUser(userId: string): Promise<Lead[]>;
 
   // Interaction operations
-  getInteractions(leadId: number): Promise<Interaction[]>;
+  getInteractions(leadId?: number): Promise<Interaction[]>;
   getAllInteractions(): Promise<Interaction[]>;
   getUserInteractions(userId: string): Promise<Interaction[]>;
+  getInteractionsByUser(userId: string): Promise<Interaction[]>;
+  getInteractionsByUsers(userIds: string[]): Promise<Interaction[]>;
   createInteraction(interaction: InsertInteraction): Promise<Interaction>;
   updateInteraction(id: number, interaction: Partial<InsertInteraction>): Promise<Interaction>;
 
   // Calendar Event operations
-  getCalendarEvents(userId: string): Promise<CalendarEvent[]>;
+  getCalendarEvents(userId?: string): Promise<CalendarEvent[]>;
   getAllCalendarEvents(): Promise<CalendarEvent[]>;
+  getCalendarEvent(id: number): Promise<CalendarEvent | undefined>;
   createCalendarEvent(event: InsertCalendarEvent): Promise<CalendarEvent>;
   updateCalendarEvent(id: number, event: Partial<InsertCalendarEvent>): Promise<CalendarEvent>;
   deleteCalendarEvent(id: number): Promise<void>;
@@ -94,17 +97,12 @@ export interface IStorage {
 
   // Notification operations
   getNotifications(userId: string): Promise<Notification[]>;
-  createNotification(notification: InsertNotification): Promise<Notification>;
-  markNotificationRead(id: number): Promise<void>;
+  createNotification(data: InsertNotification): Promise<Notification>;
+  markNotificationRead(notificationId: number): Promise<void>;
   getUnreadNotificationCount(userId: string): Promise<number>;
 
   // Analytics operations
-  getSalesMetrics(userId?: string): Promise<{
-    totalRevenue: number;
-    activeLeads: number;
-    conversionRate: number;
-    targetProgress: number;
-  }>;
+  getSalesMetrics(userId?: string): Promise<any>;
   getTeamPerformance(): Promise<Array<{
     user: User;
     dealsCount: number;
@@ -182,7 +180,7 @@ export class DatabaseStorage implements IStorage {
         })
         .where(eq(users.id, user.id))
         .returning();
-      
+
       return verifiedUser;
     }
 
@@ -250,7 +248,7 @@ export class DatabaseStorage implements IStorage {
   async adminResetPassword(userId: string, newPassword: string): Promise<boolean> {
     try {
       const hashedPassword = await bcrypt.hash(newPassword, 10);
-      
+
       const result = await db
         .update(users)
         .set({
@@ -355,7 +353,7 @@ export class DatabaseStorage implements IStorage {
   async createLead(lead: InsertLead): Promise<Lead> {
     // No special date conversion needed after removing preferredPickTime
     const leadData: any = { ...lead };
-    
+
     const [newLead] = await db.insert(leads).values(leadData).returning();
     return newLead;
   }
@@ -366,7 +364,7 @@ export class DatabaseStorage implements IStorage {
     if (updateData.preferredPickTime instanceof Date) {
       updateData.preferredPickTime = updateData.preferredPickTime.toISOString();
     }
-    
+
     const [updatedLead] = await db
       .update(leads)
       .set(updateData)
@@ -378,16 +376,16 @@ export class DatabaseStorage implements IStorage {
   async deleteLead(id: number): Promise<void> {
     // First, delete related interactions
     await db.delete(interactions).where(eq(interactions.leadId, id));
-    
+
     // Check if this lead was converted to a customer
     const relatedCustomer = await db.select().from(customers).where(eq(customers.leadId, id)).limit(1);
-    
+
     if (relatedCustomer.length > 0) {
       // If there's a related customer, we should not delete the lead
       // Instead, we could mark it as archived or return an error
       throw new Error("Cannot delete lead: This lead has been converted to a customer. Please delete the customer first if needed.");
     }
-    
+
     // Now delete the lead
     await db.delete(leads).where(eq(leads.id, id));
   }
@@ -440,7 +438,7 @@ export class DatabaseStorage implements IStorage {
       endDate: event.endDate instanceof Date ? event.endDate : new Date(event.endDate),
       updatedAt: new Date() 
     };
-    
+
     const [newEvent] = await db.insert(calendarEvents).values(eventData).returning();
     return newEvent;
   }
@@ -471,7 +469,7 @@ export class DatabaseStorage implements IStorage {
     if (updateData.endDate instanceof Date) {
       updateData.endDate = updateData.endDate;
     }
-    
+
     const [updatedEvent] = await db
       .update(calendarEvents)
       .set(updateData)
@@ -539,7 +537,7 @@ export class DatabaseStorage implements IStorage {
     if (!lead) {
       throw new Error("Lead not found");
     }
-    
+
     if (lead.stage !== "closed_won") {
       throw new Error("Only won leads can be converted to customers");
     }
@@ -559,7 +557,7 @@ export class DatabaseStorage implements IStorage {
     };
 
     const customer = await this.createCustomer(customerData);
-    
+
     // Create congratulations notification for successful conversion
     await this.createNotification({
       userId: lead.assignedTo || userId,
@@ -587,11 +585,11 @@ export class DatabaseStorage implements IStorage {
     if (endDate) {
       conditions.push(lte(dailyRevenue.date, endDate));
     }
-    
+
     if (conditions.length > 0) {
       return await db.select().from(dailyRevenue).where(and(...conditions)).orderBy(desc(dailyRevenue.date));
     }
-    
+
     return await db.select().from(dailyRevenue).orderBy(desc(dailyRevenue.date));
   }
 
@@ -624,14 +622,14 @@ export class DatabaseStorage implements IStorage {
     if (endDate) {
       conditions.push(lte(dailyRevenue.date, endDate));
     }
-    
+
     let result;
     if (conditions.length > 0) {
       result = await db.select({ total: sum(dailyRevenue.revenue) }).from(dailyRevenue).where(and(...conditions));
     } else {
       result = await db.select({ total: sum(dailyRevenue.revenue) }).from(dailyRevenue);
     }
-    
+
     return Number(result[0]?.total || 0);
   }
 
@@ -686,57 +684,74 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(notifications.createdAt));
   }
 
-  async createNotification(notification: InsertNotification): Promise<Notification> {
-    const [newNotification] = await db.insert(notifications).values(notification).returning();
-    return newNotification;
+  async createNotification(data: InsertNotification): Promise<Notification> {
+    const [notification] = await db.insert(notifications).values({
+      ...data,
+      createdAt: new Date()
+    }).returning();
+    return notification;
   }
 
-  async markNotificationRead(id: number): Promise<void> {
-    await db.update(notifications).set({ read: true }).where(eq(notifications.id, id));
+  async markNotificationRead(notificationId: number): Promise<void> {
+    await db.update(notifications)
+      .set({ read: true })
+      .where(eq(notifications.id, notificationId));
   }
 
   async getUnreadNotificationCount(userId: string): Promise<number> {
-    const [result] = await db
-      .select({ count: count() })
+    const result = await db.select({ count: sql<number>`count(*)` })
       .from(notifications)
       .where(and(eq(notifications.userId, userId), eq(notifications.read, false)));
-    return result.count;
+
+    return result[0]?.count || 0;
   }
 
   // Analytics operations
-  async getSalesMetrics(userId?: string): Promise<{
-    totalRevenue: number;
-    activeLeads: number;
-    conversionRate: number;
-    targetProgress: number;
-  }> {
-    let allLeads;
-    if (userId) {
-      allLeads = await db.select().from(leads).where(eq(leads.assignedTo, userId));
-    } else {
-      allLeads = await db.select().from(leads);
-    }
-    const activeLeads = allLeads.filter(lead => !['closed_won', 'closed_lost'].includes(lead.stage));
-    const closedWonLeads = allLeads.filter(lead => lead.stage === 'closed_won');
+  async getSalesMetrics(userId?: string): Promise<any> {
+    try {
+      let userLeads: Lead[] = [];
+      let userRevenue: any[] = [];
 
-    const totalRevenue = closedWonLeads.reduce((sum, lead) => sum + (lead.value || 0), 0);
-    const conversionRate = allLeads.length > 0 ? (closedWonLeads.length / allLeads.length) * 100 : 0;
+      if (userId) {
+        // Get leads assigned to user OR created by user
+        const assignedLeads = await db.select().from(leads).where(eq(leads.assignedTo, userId));
+        const createdLeads = await db.select().from(leads).where(eq(leads.createdBy, userId));
 
-    // Calculate target progress
-    let targetProgress = 0;
-    if (userId) {
-      const currentTarget = await this.getCurrentTarget(userId, 'monthly');
-      if (currentTarget) {
-        targetProgress = (totalRevenue / currentTarget.targetValue) * 100;
+        // Merge and deduplicate
+        const allLeads = [...assignedLeads, ...createdLeads];
+        userLeads = allLeads.reduce((acc, lead) => {
+          if (!acc.find(l => l.id === lead.id)) {
+            acc.push(lead);
+          }
+          return acc;
+        }, [] as Lead[]);
+
+        userRevenue = await db.select().from(dailyRevenue).where(eq(dailyRevenue.userId, userId));
+      } else {
+        userLeads = await db.select().from(leads);
+        userRevenue = await db.select().from(dailyRevenue);
       }
-    }
 
-    return {
-      totalRevenue,
-      activeLeads: activeLeads.length,
-      conversionRate,
-      targetProgress,
-    };
+      const totalRevenue = userRevenue.reduce((sum, r) => sum + (r.revenue || 0), 0);
+      const activeLeads = userLeads.filter(lead => !['closed_won', 'closed_lost'].includes(lead.stage)).length;
+      const closedWonLeads = userLeads.filter(lead => lead.stage === 'closed_won').length;
+      const conversionRate = userLeads.length > 0 ? (closedWonLeads / userLeads.length) * 100 : 0;
+
+      return {
+        totalRevenue,
+        activeLeads,
+        closedWonLeads,
+        conversionRate: Math.round(conversionRate * 100) / 100
+      };
+    } catch (error) {
+      console.error("Error fetching sales metrics:", error);
+      return {
+        totalRevenue: 0,
+        activeLeads: 0,
+        closedWonLeads: 0,
+        conversionRate: 0
+      };
+    }
   }
 
   async getTeamPerformance(): Promise<Array<{
@@ -753,7 +768,7 @@ export class DatabaseStorage implements IStorage {
         const userLeads = await this.getLeadsByUser(user.id);
         const closedWonLeads = userLeads.filter(lead => lead.stage === 'closed_won');
         const revenue = closedWonLeads.reduce((sum, lead) => sum + (lead.value || 0), 0);
-        
+
         let targetProgress = 0;
         const currentTarget = await this.getCurrentTarget(user.id, 'monthly');
         if (currentTarget) {

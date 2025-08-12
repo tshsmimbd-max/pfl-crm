@@ -383,11 +383,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const teamMemberIds = [currentUser.id, ...teamMembers.map(m => m.id)];
         leads = await storage.getLeads();
         leads = leads.filter(lead => 
-          teamMemberIds.includes(lead.assignedTo) || 
-          teamMemberIds.includes(lead.createdBy)
+          (lead.assignedTo && teamMemberIds.includes(lead.assignedTo)) || 
+          (lead.createdBy && teamMemberIds.includes(lead.createdBy))
         );
       } else {
-        leads = await storage.getLeadsByUser(currentUser.id);
+        // For sales agents, get leads assigned to them OR created by them
+        const userLeads = await storage.getLeadsByUser(currentUser.id);
+        const createdLeads = await storage.getLeadsByCreator(currentUser.id);
+        
+        // Merge and deduplicate leads
+        const allLeads = [...userLeads, ...createdLeads];
+        const uniqueLeads = allLeads.reduce((acc, lead) => {
+          if (!acc.find(l => l.id === lead.id)) {
+            acc.push(lead);
+          }
+          return acc;
+        }, [] as any[]);
+        
+        leads = uniqueLeads;
       }
 
       res.json(leads);
@@ -450,6 +463,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
         orderVolume: validation.orderVolume,
         notes: validation.notes
       });
+
+      // Create notification if lead is assigned to someone else
+      if (finalAssignedTo && finalAssignedTo !== req.user.id) {
+        const assignedUser = await storage.getUser(finalAssignedTo);
+        const currentUser = await storage.getUser(req.user.id);
+        
+        if (assignedUser) {
+          await storage.createNotification({
+            userId: finalAssignedTo,
+            type: 'lead_assigned',
+            title: 'New Lead Assigned',
+            message: `A new lead "${validation.contactName}" from ${validation.company} has been assigned to you by ${currentUser?.employeeName || currentUser?.email || 'Unknown'}`,
+            read: false
+          });
+        }
+      }
+
       res.status(201).json(lead);
     } catch (error) {
       console.error("Error creating lead:", error);
