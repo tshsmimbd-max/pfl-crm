@@ -357,7 +357,9 @@ export const insertDailyRevenueSchema = createInsertSchema(dailyRevenue).omit({
   updatedAt: true,
   createdBy: true,
 }).extend({
-  date: z.string().optional(), // Accept date as string for easier form handling
+  date: z.union([z.string(), z.date()]).transform(val => 
+    typeof val === 'string' ? new Date(val) : val
+  ).optional(), // Accept date as string or Date object
   assignedUser: z.string().min(1, "Assigned user is required"),
   merchantCode: z.string().min(1, "Merchant code is required"),
   revenue: z.union([

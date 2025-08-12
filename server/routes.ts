@@ -1412,11 +1412,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Only super admins can add revenue entries" });
       }
 
-      // Handle date conversion and validation
+      // Validate the request data
       const requestData = {
         ...req.body,
         createdBy: req.user.id,
-        date: req.body.date ? new Date(req.body.date) : new Date(),
+        date: req.body.date || new Date().toISOString(),
       };
       
       const revenueData = insertDailyRevenueSchema.parse(requestData);
