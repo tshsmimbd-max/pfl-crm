@@ -11,17 +11,18 @@ export async function apiRequest(
   method: string,
   url: string,
   data?: unknown | undefined,
-): Promise<Response> {
+): Promise<any> {
   const response = await fetch(url, {
     method: method,
     headers: {
       'Content-Type': 'application/json',
     },
+    credentials: 'include', // Include cookies for authentication
     body: data ? JSON.stringify(data) : undefined,
   });
 
   await throwIfResNotOk(response);
-  return response;
+  return await response.json();
 }
 
 type UnauthorizedBehavior = "returnNull" | "throw";

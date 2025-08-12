@@ -401,7 +401,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getLeadsByCreator(userId: string): Promise<Lead[]> {
-    const result = await this.db.select().from(leads).where(eq(leads.createdBy, userId));
+    const result = await db.select().from(leads).where(eq(leads.createdBy, userId));
     return result;
   }
 

@@ -53,15 +53,15 @@ export default function CustomerManagement() {
   const [newTag, setNewTag] = useState("");
   const [showTagDialog, setShowTagDialog] = useState(false);
 
-  const { data: customers = [], isLoading } = useQuery({
+  const { data: customers = [], isLoading } = useQuery<any[]>({
     queryKey: ["/api/customers"],
   });
 
-  const { data: dailyRevenue = [] } = useQuery({
+  const { data: dailyRevenue = [] } = useQuery<any[]>({
     queryKey: ["/api/daily-revenue"],
   });
 
-  const { data: users = [] } = useQuery({
+  const { data: users = [] } = useQuery<any[]>({
     queryKey: ["/api/users"],
   });
 
@@ -81,6 +81,7 @@ export default function CustomerManagement() {
 
   const updateCustomerMutation = useMutation({
     mutationFn: async (data: { id: number; updates: any }) => {
+      console.log("Updating customer:", data.id, data.updates);
       return await apiRequest("PUT", `/api/customers/${data.id}`, data.updates);
     },
     onSuccess: () => {
