@@ -81,10 +81,7 @@ export default function CustomerManagement() {
 
   const updateCustomerMutation = useMutation({
     mutationFn: async (data: { id: number; updates: any }) => {
-      return await apiRequest(`/api/customers/${data.id}`, {
-        method: "PUT",
-        body: JSON.stringify(data.updates),
-      });
+      return await apiRequest("PUT", `/api/customers/${data.id}`, data.updates);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/customers"] });
