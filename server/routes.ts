@@ -1353,6 +1353,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.put('/api/customers/:id', requireAuth, async (req: any, res) => {
+    try {
+      // Only super admin can update customers
+      const currentUser = await storage.getUser(req.user.id);
+      if (currentUser?.role !== ROLES.SUPER_ADMIN) {
+        return res.status(403).json({ message: "Only super admins can update customers" });
+      }
+
+      const customerId = parseInt(req.params.id);
+      const updates = req.body;
+      
+      const customer = await storage.updateCustomer(customerId, updates);
+      res.json(customer);
+    } catch (error) {
+      console.error("Error updating customer:", error);
+      res.status(500).json({ message: "Failed to update customer" });
+    }
+  });
+
   // Daily Revenue routes
   app.get('/api/daily-revenue', requireAuth, async (req: any, res) => {
     try {

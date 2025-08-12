@@ -118,6 +118,7 @@ export const customers = pgTable("customers", {
   assignedAgent: varchar("assigned_agent").references(() => users.id).notNull(), // Employee ID
   leadId: integer("lead_id").references(() => leads.id), // Optional reference to original lead
   productType: varchar("product_type"),
+  tags: text("tags"), // Comma-separated tags
   notes: text("notes"),
   createdBy: varchar("created_by").references(() => users.id).notNull(),
   createdAt: timestamp("created_at").defaultNow(),
@@ -346,6 +347,7 @@ export const insertCustomerSchema = createInsertSchema(customers).omit({
     z.number()
   ]).optional(),
   productType: z.string().optional(),
+  tags: z.string().optional(),
   notes: z.string().optional(),
 });
 
