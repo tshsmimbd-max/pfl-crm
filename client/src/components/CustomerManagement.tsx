@@ -23,15 +23,13 @@ import {
   Filter,
   Edit,
   Tag,
-  X,
-  Upload
+  X
 } from "lucide-react";
 import { format } from "date-fns";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import SuperAdminRevenueDialog from "./SuperAdminRevenueDialog";
-import BulkRevenueUpload from "./BulkRevenueUpload";
+import DailyRevenueDialog from "./DailyRevenueDialog";
 import CreateCustomerDialog from "./CreateCustomerDialog";
 import BulkCustomerUpload from "./BulkCustomerUpload";
 import { useAuth } from "@/hooks/useAuth";
@@ -45,7 +43,6 @@ export default function CustomerManagement() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [showRevenueDialog, setShowRevenueDialog] = useState(false);
-  const [showBulkRevenueUpload, setShowBulkRevenueUpload] = useState(false);
   const [showCreateCustomerDialog, setShowCreateCustomerDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
@@ -56,15 +53,15 @@ export default function CustomerManagement() {
   const [newTag, setNewTag] = useState("");
   const [showTagDialog, setShowTagDialog] = useState(false);
 
-  const { data: customers = [], isLoading } = useQuery<any[]>({
+  const { data: customers = [], isLoading } = useQuery({
     queryKey: ["/api/customers"],
   });
 
-  const { data: dailyRevenue = [] } = useQuery<any[]>({
+  const { data: dailyRevenue = [] } = useQuery({
     queryKey: ["/api/daily-revenue"],
   });
 
-  const { data: users = [] } = useQuery<any[]>({
+  const { data: users = [] } = useQuery({
     queryKey: ["/api/users"],
   });
 
@@ -84,8 +81,21 @@ export default function CustomerManagement() {
 
   const updateCustomerMutation = useMutation({
     mutationFn: async (data: { id: number; updates: any }) => {
-      console.log("Updating customer:", data.id, data.updates);
-      return await apiRequest("PUT", `/api/customers/${data.id}`, data.updates);
+      const response = await fetch(`/api/customers/${data.id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify(data.updates),
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Failed to update customer: ${errorText}`);
+      }
+      
+      return await response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/customers"] });
@@ -133,9 +143,27 @@ export default function CustomerManagement() {
     if (!tag.trim()) return;
     
     const customer = customers.find((c: any) => c.id === customerId);
-    if (!customer) return;
+    if (!customer) {
+      toast({
+        title: "Error",
+        description: "Customer not found",
+        variant: "destructive",
+      });
+      return;
+    }
 
     const currentTags = customer.tags ? customer.tags.split(",").filter((t: string) => t.trim()) : [];
+    
+    // Check if tag already exists
+    if (currentTags.includes(tag.trim())) {
+      toast({
+        title: "Error",
+        description: "Tag already exists",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     const newTags = [...currentTags, tag.trim()];
     
     updateCustomerMutation.mutate({
@@ -147,7 +175,14 @@ export default function CustomerManagement() {
 
   const handleRemoveTag = (customerId: number, tagToRemove: string) => {
     const customer = customers.find((c: any) => c.id === customerId);
-    if (!customer) return;
+    if (!customer) {
+      toast({
+        title: "Error",
+        description: "Customer not found",
+        variant: "destructive",
+      });
+      return;
+    }
 
     const currentTags = customer.tags ? customer.tags.split(",").filter((t: string) => t.trim()) : [];
     const newTags = currentTags.filter((tag: string) => tag !== tagToRemove);
@@ -238,22 +273,15 @@ export default function CustomerManagement() {
                 Add Customer
               </Button>
               <BulkCustomerUpload />
-              <Button 
-                onClick={() => setShowRevenueDialog(true)}
-                className="bg-green-600 hover:bg-green-700"
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Add Revenue
-              </Button>
-              <Button 
-                onClick={() => setShowBulkRevenueUpload(true)}
-                className="bg-blue-600 hover:bg-blue-700"
-              >
-                <Upload className="h-4 w-4 mr-2" />
-                Bulk Revenue
-              </Button>
             </>
           )}
+          <Button 
+            onClick={() => setShowRevenueDialog(true)}
+            className="bg-green-600 hover:bg-green-700"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Add Daily Revenue
+          </Button>
         </div>
       </div>
 
@@ -684,15 +712,10 @@ export default function CustomerManagement() {
         </DialogContent>
       </Dialog>
 
-      {/* Super Admin Revenue Dialogs */}
-      <SuperAdminRevenueDialog 
+      {/* Daily Revenue Dialog */}
+      <DailyRevenueDialog 
         open={showRevenueDialog} 
         onOpenChange={setShowRevenueDialog} 
-      />
-      
-      <BulkRevenueUpload
-        open={showBulkRevenueUpload}
-        onOpenChange={setShowBulkRevenueUpload}
       />
 
       {/* Create Customer Dialog */}
