@@ -1364,6 +1364,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const customerId = parseInt(req.params.id);
       const updates = req.body;
       
+      console.log(`Updating customer ${customerId} with:`, updates);
+      
       const customer = await storage.updateCustomer(customerId, updates);
       res.json(customer);
     } catch (error) {
@@ -1372,7 +1374,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Daily Revenue routes - Super Admin Only
+  // Daily Revenue routes
   app.get('/api/daily-revenue', requireAuth, async (req: any, res) => {
     try {
       const { startDate, endDate, userId } = req.query;
@@ -1380,7 +1382,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       let targetUserId = userId as string;
       
-      // Apply role-based filtering for viewing revenue
+      // Apply role-based filtering
       if (currentUser?.role === ROLES.SALES_AGENT) {
         targetUserId = currentUser.id; // Agents can only see their own revenue
       } else if (currentUser?.role === ROLES.SALES_MANAGER && userId) {
@@ -1406,52 +1408,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/daily-revenue', requireAuth, async (req: any, res) => {
     try {
-      // Only super admin can create revenue entries
-      const currentUser = await storage.getUser(req.user.id);
-      if (currentUser?.role !== ROLES.SUPER_ADMIN) {
-        return res.status(403).json({ message: "Only super admins can add revenue entries" });
-      }
-
-      // Validate the request data
-      const requestData = {
-        ...req.body,
+      const revenueData = {
+        date: new Date(req.body.date),
+        revenue: Number(req.body.revenue),
+        description: req.body.description,
+        userId: req.user.id,
         createdBy: req.user.id,
-        date: req.body.date || new Date().toISOString(),
+        orders: Number(req.body.orders) || 1,
+        customerId: req.body.customerId ? Number(req.body.customerId) : null,
       };
       
-      const revenueData = insertDailyRevenueSchema.parse(requestData);
-      
       const revenue = await storage.createDailyRevenue(revenueData);
-      
-      // Send notification and email to assigned user
-      await storage.sendRevenueNotificationAndEmail(revenue, currentUser);
-      
       res.json(revenue);
     } catch (error: any) {
       console.error("Error creating daily revenue:", error);
-      res.status(500).json({ message: error.message || "Failed to create daily revenue entry" });
-    }
-  });
-
-  // Bulk revenue upload - Super Admin Only
-  app.post('/api/daily-revenue/bulk-upload', requireAuth, upload.single('file'), async (req: any, res) => {
-    try {
-      // Only super admin can bulk upload revenue
-      const currentUser = await storage.getUser(req.user.id);
-      if (currentUser?.role !== ROLES.SUPER_ADMIN) {
-        return res.status(403).json({ message: "Only super admins can bulk upload revenue" });
-      }
-
-      const file = req.file;
-      if (!file) {
-        return res.status(400).json({ message: "No file uploaded" });
-      }
-
-      const result = await storage.processBulkRevenueUpload(file, req.user.id);
-      res.json(result);
-    } catch (error: any) {
-      console.error("Error in bulk revenue upload:", error);
-      res.status(500).json({ message: error.message || "Failed to process bulk upload" });
+      res.status(500).json({ message: "Failed to create daily revenue entry" });
     }
   });
 
