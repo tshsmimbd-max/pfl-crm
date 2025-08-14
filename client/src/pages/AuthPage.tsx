@@ -56,10 +56,9 @@ export default function AuthPage() {
 
   const onLogin = async (data: LoginData) => {
     try {
-      const response = await apiRequest("POST", "/api/login", data);
-      const result = await response.json();
+      const result = await apiRequest("POST", "/api/login", data);
       
-      if (response.ok) {
+      if (result) {
         // Set the user data in cache - this will trigger authentication state change
         queryClient.setQueryData(["/api/user"], result.user);
         
@@ -77,8 +76,6 @@ export default function AuthPage() {
             description: "You have been logged in successfully.",
           });
         }
-      } else {
-        throw new Error(result.message || "Login failed");
       }
     } catch (error: any) {
       toast({
@@ -91,13 +88,12 @@ export default function AuthPage() {
 
   const onVerifyCode = async (data: VerifyCodeData) => {
     try {
-      const response = await apiRequest("POST", "/api/verify-code", {
+      const result = await apiRequest("POST", "/api/verify-code", {
         email: verificationEmail,
         code: data.code,
       });
-      const result = await response.json();
       
-      if (response.ok) {
+      if (result) {
         // Set the user data in cache and invalidate the query to trigger a refresh
         queryClient.setQueryData(["/api/user"], result.user);
         await queryClient.invalidateQueries({ queryKey: ["/api/user"] });
@@ -108,8 +104,6 @@ export default function AuthPage() {
         });
 
         setShowVerification(false);
-      } else {
-        throw new Error(result.message || "Verification failed");
       }
     } catch (error: any) {
       toast({
