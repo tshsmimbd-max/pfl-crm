@@ -375,16 +375,16 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteLead(id: number): Promise<void> {
-    // First, delete related interactions
+    // Delete related records first to avoid foreign key constraints
     await db.delete(interactions).where(eq(interactions.leadId, id));
+    await db.delete(calendarEvents).where(eq(calendarEvents.leadId, id));
 
     // Check if this lead was converted to a customer
     const relatedCustomer = await db.select().from(customers).where(eq(customers.leadId, id)).limit(1);
 
     if (relatedCustomer.length > 0) {
-      // If there's a related customer, we should not delete the lead
-      // Instead, we could mark it as archived or return an error
-      throw new Error("Cannot delete lead: This lead has been converted to a customer. Please delete the customer first if needed.");
+      // Update customer to remove lead reference instead of preventing deletion
+      await db.update(customers).set({ leadId: null }).where(eq(customers.leadId, id));
     }
 
     // Now delete the lead
