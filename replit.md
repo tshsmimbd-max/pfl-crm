@@ -125,12 +125,13 @@ Paperfly is a modern Customer Relationship Management (CRM) system designed for 
 - **Production Ready**: Database cleaned of demo/test data on August 14, 2025
 
 ### Production Database State (August 14, 2025)
-- **Users**: 1 production admin account (admin@paperfly.com)
+- **Users**: 1 production admin account (shamim.ahammed@paperfly.com.bd)
 - **Demo Data**: All test users, leads, customers, and interactions removed
 - **Clean State**: Ready for production deployment with clean database
 - **Authentication**: Super admin account ready for initial system setup
 
 ## Recent Changes
+- August 14, 2025: **ADMIN EMAIL UPDATED** - Changed super admin email to shamim.ahammed@paperfly.com.bd
 - August 14, 2025: **PRODUCTION READINESS COMPLETE** - Confirmed PostgreSQL database usage and cleaned all demo data
 - August 14, 2025: Fixed login authentication error ("responseJson is not a function") in AuthPage.tsx 
 - August 14, 2025: Resolved revenue system date validation and database constraint errors
@@ -202,7 +203,7 @@ Paperfly is a modern Customer Relationship Management (CRM) system designed for 
 ## Production User Account
 
 ### Super Admin Account (Production Ready)
-- **Email**: admin@paperfly.com
+- **Email**: shamim.ahammed@paperfly.com.bd
 - **Password**: admin123
 - **Role**: super_admin
 - **Permissions**: Full system access across all features
