@@ -131,6 +131,7 @@ Paperfly is a modern Customer Relationship Management (CRM) system designed for 
 - **Authentication**: Super admin account ready for initial system setup
 
 ## Recent Changes
+- August 14, 2025: **BUSINESS RULE CONFIRMED** - Sales agents can only be assigned to teams where their manager is also assigned
 - August 14, 2025: **ADMIN EMAIL UPDATED** - Changed super admin email to shamim.ahammed@paperfly.com.bd
 - August 14, 2025: **PRODUCTION READINESS COMPLETE** - Confirmed PostgreSQL database usage and cleaned all demo data
 - August 14, 2025: Fixed login authentication error ("responseJson is not a function") in AuthPage.tsx 

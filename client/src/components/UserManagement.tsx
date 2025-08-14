@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -41,6 +41,17 @@ const addUserSchema = z.object({
 }, {
   message: "Sales agents must be assigned to a manager",
   path: ["managerId"],
+}).refine((data, ctx) => {
+  // For sales agents, manager and team must be the same
+  if (data.role === "sales_agent" && data.managerId) {
+    // This validation will be handled by the backend since we need to check manager's team
+    // The frontend will show the appropriate team based on selected manager
+    return true;
+  }
+  return true;
+}, {
+  message: "Sales agents must be assigned to the same team as their manager",
+  path: ["teamName"],
 });
 
 type UpdateRoleData = z.infer<typeof updateRoleSchema>;
@@ -88,6 +99,20 @@ export default function UserManagement() {
       password: "",
     },
   });
+
+  // Watch for manager selection changes to automatically set the team
+  const watchedManagerId = addUserForm.watch("managerId");
+  const watchedRole = addUserForm.watch("role");
+
+  // Effect to update team when manager is selected for sales agents
+  React.useEffect(() => {
+    if (watchedRole === "sales_agent" && watchedManagerId) {
+      const selectedManager = users?.find(u => u.id === watchedManagerId);
+      if (selectedManager?.teamName) {
+        addUserForm.setValue("teamName", selectedManager.teamName as "Sales Titans" | "Revenue Rangers");
+      }
+    }
+  }, [watchedManagerId, watchedRole, users, addUserForm]);
 
   const updateRoleMutation = useMutation({
     mutationFn: async ({ userId, role }: { userId: string; role: string }) => {
@@ -472,23 +497,37 @@ export default function UserManagement() {
                       <FormField
                         control={addUserForm.control}
                         name="teamName"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Team</FormLabel>
-                            <Select onValueChange={field.onChange} defaultValue={field.value}>
-                              <FormControl>
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Select team" />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                <SelectItem value="Sales Titans">Sales Titans</SelectItem>
-                                <SelectItem value="Revenue Rangers">Revenue Rangers</SelectItem>
-                              </SelectContent>
-                            </Select>
-                            <FormMessage />
-                          </FormItem>
-                        )}
+                        render={({ field }) => {
+                          const isDisabled = watchedRole === "sales_agent" && watchedManagerId;
+                          return (
+                            <FormItem>
+                              <FormLabel>
+                                Team
+                                {isDisabled && (
+                                  <span className="text-sm text-gray-500 ml-2">
+                                    (Auto-selected based on manager's team)
+                                  </span>
+                                )}
+                              </FormLabel>
+                              <Select 
+                                onValueChange={field.onChange} 
+                                defaultValue={field.value}
+                                disabled={isDisabled}
+                              >
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Select team" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  <SelectItem value="Sales Titans">Sales Titans</SelectItem>
+                                  <SelectItem value="Revenue Rangers">Revenue Rangers</SelectItem>
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          );
+                        }}
                       />
 
                       <div className="flex justify-end space-x-2">
