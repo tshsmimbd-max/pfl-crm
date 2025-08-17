@@ -1496,6 +1496,120 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Bulk Revenue Upload endpoint
+  app.post('/api/daily-revenue/bulk-upload', requireAuth, upload.single('revenue'), async (req: any, res) => {
+    try {
+      const currentUser = await storage.getUser(req.user.id);
+      
+      // Only super admins can bulk upload revenue data
+      if (currentUser?.role !== ROLES.SUPER_ADMIN) {
+        return res.status(403).json({ message: "Only super admins can bulk upload revenue data" });
+      }
+
+      if (!req.file) {
+        return res.status(400).json({ message: "CSV file is required" });
+      }
+
+      const results: any[] = [];
+      const errors: string[] = [];
+
+      // Parse CSV file
+      const parser = csvParser();
+      const chunks: any[] = [];
+
+      parser.on('data', (data) => chunks.push(data));
+      parser.on('end', async () => {
+        try {
+          for (let i = 0; i < chunks.length; i++) {
+            const row = chunks[i];
+            try {
+              // Find customer by merchant code
+              const customers = await storage.getCustomers();
+              const customer = customers.find(c => 
+                c.merchantCode.toLowerCase() === row.merchantCode?.toLowerCase()
+              );
+
+              if (!customer) {
+                errors.push(`Row ${i + 2}: Customer with merchant code "${row.merchantCode}" not found`);
+                continue;
+              }
+
+              // Find user by employee ID or email
+              const users = await storage.getAllUsers();
+              const assignedUser = users.find(u => 
+                u.id === row.assignedUser || 
+                u.email.toLowerCase() === row.assignedUser?.toLowerCase() ||
+                u.employeeName?.toLowerCase() === row.assignedUser?.toLowerCase()
+              );
+
+              if (!assignedUser) {
+                errors.push(`Row ${i + 2}: User "${row.assignedUser}" not found`);
+                continue;
+              }
+
+              const revenueData = {
+                assignedUser: assignedUser.id,
+                merchantCode: customer.merchantCode,
+                date: new Date(row.date),
+                revenue: parseInt(row.revenue),
+                orders: parseInt(row.orders) || 1,
+                description: row.description || "",
+                createdBy: req.user.id,
+              };
+
+              // Validate required fields
+              if (!revenueData.revenue || revenueData.revenue <= 0) {
+                errors.push(`Row ${i + 2}: Invalid revenue amount`);
+                continue;
+              }
+
+              if (isNaN(revenueData.date.getTime())) {
+                errors.push(`Row ${i + 2}: Invalid date format`);
+                continue;
+              }
+
+              const revenue = await storage.createDailyRevenue(revenueData);
+              results.push({
+                merchantCode: customer.merchantCode,
+                merchantName: customer.merchantName,
+                assignedUser: assignedUser.employeeName || assignedUser.email,
+                revenue: revenueData.revenue,
+                orders: revenueData.orders,
+                date: revenueData.date
+              });
+
+            } catch (rowError: any) {
+              errors.push(`Row ${i + 2}: ${rowError.message}`);
+            }
+          }
+
+          res.json({
+            message: `Successfully uploaded ${results.length} revenue entries`,
+            results,
+            errors: errors.length > 0 ? errors : undefined
+          });
+
+        } catch (processingError: any) {
+          console.error("Error processing CSV:", processingError);
+          res.status(500).json({ message: "Error processing CSV file" });
+        }
+      });
+
+      parser.on('error', (error) => {
+        console.error("CSV parsing error:", error);
+        res.status(500).json({ message: "Error parsing CSV file" });
+      });
+
+      // Parse the uploaded file
+      const readable = require('stream').Readable.from([req.file.buffer]);
+      readable.pipe(parser);
+
+    } catch (error: any) {
+      console.error("Error in bulk revenue upload:", error);
+      res.status(500).json({ message: "Failed to upload revenue data" });
+    }
+  });
+
   // Notification routes - fixed for agent-specific filtering
   app.get('/api/notifications', requireAuth, async (req: any, res) => {
     try {

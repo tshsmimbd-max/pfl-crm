@@ -98,7 +98,7 @@ export default function DailyRevenueDialog({ open, onOpenChange }: DailyRevenueD
                     <SelectContent>
                       {customers.map((customer: any) => (
                         <SelectItem key={customer.id} value={customer.id.toString()}>
-                          {customer.contactName} - {customer.company}
+                          {customer.merchantName} - {customer.merchantCode} ({customer.contactPerson})
                         </SelectItem>
                       ))}
                     </SelectContent>

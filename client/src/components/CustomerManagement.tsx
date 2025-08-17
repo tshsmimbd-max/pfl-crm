@@ -32,6 +32,7 @@ import { z } from "zod";
 import DailyRevenueDialog from "./DailyRevenueDialog";
 import CreateCustomerDialog from "./CreateCustomerDialog";
 import BulkCustomerUpload from "./BulkCustomerUpload";
+import BulkRevenueUpload from "./BulkRevenueUpload";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -43,6 +44,7 @@ export default function CustomerManagement() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [showRevenueDialog, setShowRevenueDialog] = useState(false);
+  const [showBulkRevenueUpload, setShowBulkRevenueUpload] = useState(false);
   const [showCreateCustomerDialog, setShowCreateCustomerDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
@@ -275,13 +277,23 @@ export default function CustomerManagement() {
               <BulkCustomerUpload />
             </>
           )}
-          <Button 
-            onClick={() => setShowRevenueDialog(true)}
-            className="bg-green-600 hover:bg-green-700"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Add Daily Revenue
-          </Button>
+          <div className="flex gap-2">
+            <Button 
+              onClick={() => setShowRevenueDialog(true)}
+              className="bg-green-600 hover:bg-green-700"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Add Daily Revenue
+            </Button>
+            <Button 
+              onClick={() => setShowBulkRevenueUpload(true)}
+              variant="outline"
+              className="border-green-600 text-green-600 hover:bg-green-50"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Bulk Revenue Upload
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -722,6 +734,12 @@ export default function CustomerManagement() {
       <CreateCustomerDialog 
         open={showCreateCustomerDialog} 
         onOpenChange={setShowCreateCustomerDialog} 
+      />
+
+      {/* Bulk Revenue Upload Dialog */}
+      <BulkRevenueUpload 
+        open={showBulkRevenueUpload} 
+        onOpenChange={setShowBulkRevenueUpload} 
       />
     </div>
   );

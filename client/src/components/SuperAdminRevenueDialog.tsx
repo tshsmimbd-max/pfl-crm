@@ -13,12 +13,20 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { insertDailyRevenueSchema, type InsertDailyRevenue } from "@shared/schema";
 import { z } from "zod";
-import { Save, X, DollarSign, ShoppingCart, Users, Calendar } from "lucide-react";
+import { Save, X, DollarSign, ShoppingCart, Users, Calendar, Upload } from "lucide-react";
 import { format } from "date-fns";
+import BulkRevenueUpload from "./BulkRevenueUpload";
 
 interface SuperAdminRevenueDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+}
+
+interface SuperAdminRevenueDialogWithUploadProps {
+  singleEntryOpen: boolean;
+  onSingleEntryOpenChange: (open: boolean) => void;
+  bulkUploadOpen: boolean;
+  onBulkUploadOpenChange: (open: boolean) => void;
 }
 
 // Form schema for revenue entry
@@ -33,7 +41,7 @@ const revenueFormSchema = z.object({
 
 type RevenueFormData = z.infer<typeof revenueFormSchema>;
 
-export default function SuperAdminRevenueDialog({ open, onOpenChange }: SuperAdminRevenueDialogProps) {
+function SingleRevenueDialog({ open, onOpenChange }: SuperAdminRevenueDialogProps) {
   const { toast } = useToast();
 
   const { data: users = [] } = useQuery<any[]>({
@@ -174,8 +182,8 @@ export default function SuperAdminRevenueDialog({ open, onOpenChange }: SuperAdm
                     </FormControl>
                     <SelectContent>
                       {availableMerchants.map((customer: any) => (
-                        <SelectItem key={customer.merchantCode} value={customer.merchantCode}>
-                          {customer.merchantCode} - {customer.merchantName}
+                        <SelectItem key={customer.merchantCode || customer.id} value={customer.merchantCode || customer.id.toString()}>
+                          {customer.contactName} - {customer.company} {customer.merchantCode ? `(${customer.merchantCode})` : ''}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -188,12 +196,12 @@ export default function SuperAdminRevenueDialog({ open, onOpenChange }: SuperAdm
             {/* Selected Customer Info */}
             {selectedCustomer && (
               <div className="p-3 bg-muted rounded-lg text-sm">
-                <div className="font-medium">{selectedCustomer.merchantName}</div>
+                <div className="font-medium">{selectedCustomer.company}</div>
                 <div className="text-muted-foreground">
-                  Contact: {selectedCustomer.contactPerson}
+                  Contact: {selectedCustomer.contactName}
                 </div>
                 <div className="text-muted-foreground">
-                  Rate Chart: {selectedCustomer.rateChart}
+                  Email: {selectedCustomer.email}
                 </div>
               </div>
             )}
@@ -319,3 +327,19 @@ export default function SuperAdminRevenueDialog({ open, onOpenChange }: SuperAdm
     </Dialog>
   );
 }
+
+export function SuperAdminRevenueWithUpload({ 
+  singleEntryOpen, 
+  onSingleEntryOpenChange, 
+  bulkUploadOpen, 
+  onBulkUploadOpenChange 
+}: SuperAdminRevenueDialogWithUploadProps) {
+  return (
+    <>
+      <SingleRevenueDialog open={singleEntryOpen} onOpenChange={onSingleEntryOpenChange} />
+      <BulkRevenueUpload open={bulkUploadOpen} onOpenChange={onBulkUploadOpenChange} />
+    </>
+  );
+}
+
+export default SuperAdminRevenueDialog;
