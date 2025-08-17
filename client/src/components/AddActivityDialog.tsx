@@ -51,12 +51,7 @@ export default function AddActivityDialog({ open, onOpenChange, leadId }: AddAct
 
   const createActivityMutation = useMutation({
     mutationFn: async (data: InsertInteraction) => {
-      const response = await apiRequest("POST", "/api/interactions", data);
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to create activity");
-      }
-      return response.json();
+      return await apiRequest("POST", "/api/interactions", data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/interactions"] });
