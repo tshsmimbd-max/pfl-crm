@@ -11,7 +11,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { insertDailyRevenueSchema, type InsertDailyRevenue } from "@shared/schema";
+import { insertDailyRevenueSchema, type InsertDailyRevenue, type Customer } from "@shared/schema";
 import { Save, X, DollarSign, ShoppingCart } from "lucide-react";
 import { format } from "date-fns";
 
@@ -22,17 +22,25 @@ interface DailyRevenueDialogProps {
 
 export default function DailyRevenueDialog({ open, onOpenChange }: DailyRevenueDialogProps) {
   const { toast } = useToast();
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
 
-  const { data: customers = [] } = useQuery({
+  const { data: customers = [] } = useQuery<Customer[]>({
     queryKey: ["/api/customers"],
+    enabled: open,
+  });
+
+  const { data: currentUser } = useQuery<{ id: string }>({
+    queryKey: ["/api/user"],
     enabled: open,
   });
 
   const form = useForm<InsertDailyRevenue>({
     resolver: zodResolver(insertDailyRevenueSchema),
     defaultValues: {
-      customerId: undefined,
-      date: format(new Date(), "yyyy-MM-dd"),
+      merchantCode: "",
+      assignedUser: "",
+      createdBy: "",
+      date: new Date(),
       revenue: 0,
       orders: 1,
       description: "",
@@ -41,13 +49,19 @@ export default function DailyRevenueDialog({ open, onOpenChange }: DailyRevenueD
 
   const createRevenueMutation = useMutation({
     mutationFn: async (data: InsertDailyRevenue) => {
-      await apiRequest("POST", "/api/daily-revenue", data);
+      const revenueData = {
+        ...data,
+        createdBy: currentUser?.id || "",
+        assignedUser: currentUser?.id || "",
+      };
+      await apiRequest("POST", "/api/daily-revenue", revenueData);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/daily-revenue"] });
       queryClient.invalidateQueries({ queryKey: ["/api/analytics/metrics"] });
       onOpenChange(false);
       form.reset();
+      setSelectedCustomer(null);
       toast({
         title: "Success",
         description: "Daily revenue entry created successfully",
@@ -63,7 +77,20 @@ export default function DailyRevenueDialog({ open, onOpenChange }: DailyRevenueD
   });
 
   const onSubmit = (data: InsertDailyRevenue) => {
-    createRevenueMutation.mutate(data);
+    if (!selectedCustomer) {
+      toast({
+        title: "Error",
+        description: "Please select a customer",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    const submitData = {
+      ...data,
+      merchantCode: selectedCustomer.merchantCode,
+    };
+    createRevenueMutation.mutate(submitData);
   };
 
   const formatCurrency = (value: any) => {
@@ -83,30 +110,24 @@ export default function DailyRevenueDialog({ open, onOpenChange }: DailyRevenueD
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <FormField
-              control={form.control}
-              name="customerId"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Customer *</FormLabel>
-                  <Select onValueChange={(value) => field.onChange(parseInt(value))} value={field.value?.toString()}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select customer" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {customers.map((customer: any) => (
-                        <SelectItem key={customer.id} value={customer.id.toString()}>
-                          {customer.merchantName} - {customer.merchantCode} ({customer.contactPerson})
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <div>
+              <Label>Customer *</Label>
+              <Select onValueChange={(value) => {
+                const customer = customers.find((c: Customer) => c.id.toString() === value);
+                setSelectedCustomer(customer || null);
+              }} value={selectedCustomer?.id?.toString() || ""}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select customer" />
+                </SelectTrigger>
+                <SelectContent>
+                  {customers.map((customer: Customer) => (
+                    <SelectItem key={customer.id} value={customer.id.toString()}>
+                      {customer.merchantName} - {customer.merchantCode} ({customer.contactPerson})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
             <FormField
               control={form.control}
@@ -115,7 +136,11 @@ export default function DailyRevenueDialog({ open, onOpenChange }: DailyRevenueD
                 <FormItem>
                   <FormLabel>Date *</FormLabel>
                   <FormControl>
-                    <Input type="date" {...field} />
+                    <Input 
+                      type="date" 
+                      value={field.value ? format(field.value, "yyyy-MM-dd") : ""}
+                      onChange={(e) => field.onChange(new Date(e.target.value))}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -173,6 +198,7 @@ export default function DailyRevenueDialog({ open, onOpenChange }: DailyRevenueD
                     <Textarea
                       placeholder="Optional description of the revenue entry..."
                       {...field}
+                      value={field.value || ""}
                     />
                   </FormControl>
                   <FormMessage />

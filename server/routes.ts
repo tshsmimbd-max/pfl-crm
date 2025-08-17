@@ -1408,20 +1408,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/daily-revenue', requireAuth, async (req: any, res) => {
     try {
-      const revenueData = {
-        assignedUser: req.user.id,
+      console.log("Creating revenue entry:", req.body);
+      
+      // Validate input with schema
+      const validatedData = insertDailyRevenueSchema.parse({
+        assignedUser: req.body.assignedUser || req.user.id,
         merchantCode: req.body.merchantCode || "",
-        date: new Date(req.body.date),
+        date: req.body.date ? new Date(req.body.date) : new Date(),
         revenue: Number(req.body.revenue),
         description: req.body.description || "",
-        createdBy: req.user.id,
+        createdBy: req.body.createdBy || req.user.id,
         orders: Number(req.body.orders) || 1,
-      };
+      });
       
-      const revenue = await storage.createDailyRevenue(revenueData);
+      const revenue = await storage.createDailyRevenue(validatedData);
+      console.log("Revenue entry created:", revenue);
       res.json(revenue);
     } catch (error: any) {
       console.error("Error creating daily revenue:", error);
+      if (error.name === 'ZodError') {
+        return res.status(400).json({ 
+          message: "Validation failed", 
+          errors: error.errors 
+        });
+      }
       res.status(500).json({ message: "Failed to create daily revenue entry" });
     }
   });
