@@ -351,9 +351,6 @@ export const insertDailyRevenueSchema = createInsertSchema(dailyRevenue).omit({
   createdAt: true,
   updatedAt: true,
 }).extend({
-  date: z.union([z.string(), z.date()]).transform(val => 
-    typeof val === 'string' ? new Date(val) : val
-  ).optional(), // Accept date as string or Date object
   assignedUser: z.string().min(1, "Assigned user is required"),
   merchantCode: z.string().min(1, "Merchant code is required"),
   createdBy: z.string().min(1, "Created by is required"),
@@ -373,6 +370,7 @@ export const insertDailyRevenueSchema = createInsertSchema(dailyRevenue).omit({
     }),
     z.number().min(1, "Orders must be at least 1")
   ]).default(1),
+  description: z.string().optional(),
 });
 
 // Types

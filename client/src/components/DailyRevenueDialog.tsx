@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -43,14 +43,22 @@ export default function DailyRevenueDialog({ open, onOpenChange }: DailyRevenueD
     resolver: zodResolver(insertDailyRevenueSchema),
     defaultValues: {
       merchantCode: "",
-      assignedUser: currentUser?.id || "",
-      createdBy: currentUser?.id || "",
+      assignedUser: "",
+      createdBy: "",
       date: new Date(),
       revenue: 0,
       orders: 1,
       description: "",
     },
   });
+
+  // Set default values when currentUser is available
+  useEffect(() => {
+    if (currentUser?.id && open) {
+      form.setValue("assignedUser", currentUser.id);
+      form.setValue("createdBy", currentUser.id);
+    }
+  }, [currentUser?.id, open, form]);
 
   const createRevenueMutation = useMutation({
     mutationFn: async (data: InsertDailyRevenue) => {
@@ -81,12 +89,15 @@ export default function DailyRevenueDialog({ open, onOpenChange }: DailyRevenueD
   });
 
   const onSubmit = (data: InsertDailyRevenue) => {
+    console.log("=== FORM SUBMISSION START ===");
     console.log("Form submitted with data:", data);
     console.log("Selected customer:", selectedCustomer);
     console.log("Current user:", currentUser);
     console.log("Form errors:", form.formState.errors);
+    console.log("Form is valid:", form.formState.isValid);
     
     if (!selectedCustomer) {
+      console.log("ERROR: No customer selected");
       toast({
         title: "Error",
         description: "Please select a customer",
@@ -95,7 +106,18 @@ export default function DailyRevenueDialog({ open, onOpenChange }: DailyRevenueD
       return;
     }
     
+    if (!data.assignedUser) {
+      console.log("ERROR: No assigned user");
+      toast({
+        title: "Error",
+        description: "Please select an assigned user",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     if (!data.revenue || data.revenue <= 0) {
+      console.log("ERROR: Invalid revenue amount");
       toast({
         title: "Error",
         description: "Please enter a valid revenue amount",
@@ -108,9 +130,11 @@ export default function DailyRevenueDialog({ open, onOpenChange }: DailyRevenueD
       ...data,
       merchantCode: selectedCustomer.merchantCode,
       createdBy: currentUser?.id || "admin",
+      date: data.date || new Date(),
     };
     
-    console.log("Submitting data:", submitData);
+    console.log("Submitting data to API:", submitData);
+    console.log("=== CALLING MUTATION ===");
     createRevenueMutation.mutate(submitData);
   };
 
@@ -134,8 +158,16 @@ export default function DailyRevenueDialog({ open, onOpenChange }: DailyRevenueD
             <div>
               <Label>Customer *</Label>
               <Select onValueChange={(value) => {
+                console.log("Customer selected:", value);
                 const customer = customers.find((c: Customer) => c.id.toString() === value);
+                console.log("Found customer:", customer);
                 setSelectedCustomer(customer || null);
+                
+                // Auto-assign user based on customer's assigned agent
+                if (customer?.assignedAgent) {
+                  console.log("Setting assigned user to:", customer.assignedAgent);
+                  form.setValue("assignedUser", customer.assignedAgent);
+                }
               }} value={selectedCustomer?.id?.toString() || ""}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select customer" />
