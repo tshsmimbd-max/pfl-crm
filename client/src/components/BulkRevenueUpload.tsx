@@ -17,7 +17,8 @@ import {
   Users, 
   DollarSign,
   ShoppingCart,
-  Mail
+  Mail,
+  X
 } from "lucide-react";
 
 interface BulkRevenueUploadProps {

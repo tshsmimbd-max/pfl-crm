@@ -1,0 +1,24 @@
+2
+BulkRevenueUpload.tsx:271 Uncaught ReferenceError: X is not defined
+    at BulkRevenueUpload (BulkRevenueUpload.tsx:271:20)
+chunk-RPCDYKBN.js?v=44b53349:14032 The above error occurred in the <BulkRevenueUpload> component:
+
+    at BulkRevenueUpload (https://3b043bf8-785e-42f7-abf7-8c86a4daff98-00-1pja5xjqdxsza.riker.replit.dev/src/components/BulkRevenueUpload.tsx:38:45)
+    at div
+    at CustomerManagement (https://3b043bf8-785e-42f7-abf7-8c86a4daff98-00-1pja5xjqdxsza.riker.replit.dev/src/components/CustomerManagement.tsx:57:20)
+    at div
+    at main
+    at div
+    at Home (https://3b043bf8-785e-42f7-abf7-8c86a4daff98-00-1pja5xjqdxsza.riker.replit.dev/src/pages/Home.tsx:37:31)
+    at Route (https://3b043bf8-785e-42f7-abf7-8c86a4daff98-00-1pja5xjqdxsza.riker.replit.…/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=44b53349:323:16)
+    at Switch (https://3b043bf8-785e-42f7-abf7-8c86a4daff98-00-1pja5xjqdxsza.riker.replit.…/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=44b53349:379:17)
+    at Router (https://3b043bf8-785e-42f7-abf7-8c86a4daff98-00-1pja5xjqdxsza.riker.replit.dev/src/App.tsx?v=DiXWCFxB4G8MtDImiyXUc:29:42)
+    at Provider (https://3b043bf8-785e-42f7-abf7-8c86a4daff98-00-1pja5xjqdxsza.riker.replit.…unner/workspace/node_modules/.vite/deps/chunk-OXZDJRWN.js?v=44b53349:38:15)
+    at TooltipProvider (https://3b043bf8-785e-42f7-abf7-8c86a4daff98-00-1pja5xjqdxsza.riker.replit.…rkspace/node_modules/.vite/deps/@radix-ui_react-tooltip.js?v=44b53349:63:5)
+    at QueryClientProvider (https://3b043bf8-785e-42f7-abf7-8c86a4daff98-00-1pja5xjqdxsza.riker.replit.…rkspace/node_modules/.vite/deps/@tanstack_react-query.js?v=44b53349:2805:3)
+    at App
+
+Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://reactjs.org/link/error-boundaries to learn more about error boundaries.
+chunk-RPCDYKBN.js?v=44b53349:9129 Uncaught ReferenceError: X is not defined
+    at BulkRevenueUpload (BulkRevenueUpload.tsx:271:20)

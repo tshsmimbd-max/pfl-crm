@@ -1499,7 +1499,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Bulk Revenue Upload endpoint
   app.post('/api/daily-revenue/bulk-upload', requireAuth, upload.single('file'), async (req: any, res) => {
     try {
+      console.log("Bulk revenue upload - user:", req.user?.id);
+      console.log("File uploaded:", req.file?.filename);
+      
       const currentUser = await storage.getUser(req.user.id);
+      console.log("Current user role:", currentUser?.role);
       
       // Only super admins can bulk upload revenue data
       if (currentUser?.role !== ROLES.SUPER_ADMIN) {
@@ -1507,6 +1511,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       if (!req.file) {
+        console.log("No file uploaded");
         return res.status(400).json({ message: "CSV file is required" });
       }
 
@@ -1514,7 +1519,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const errors: string[] = [];
 
       // Parse CSV file
-      const parser = csvParser();
+      const parser = csv();
       const chunks: any[] = [];
 
       parser.on('data', (data: any) => chunks.push(data));
@@ -1613,8 +1618,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       // Parse the uploaded file
-      const readable = require('stream').Readable.from([req.file.buffer]);
-      readable.pipe(parser);
+      console.log("Starting CSV parsing for file:", req.file.path);
+      fs.createReadStream(req.file.path)
+        .pipe(parser);
 
     } catch (error: any) {
       console.error("Error in bulk revenue upload:", error);
