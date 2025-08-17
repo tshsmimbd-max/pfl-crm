@@ -1,4 +1,4 @@
-assigned_user,merchant_code,revenue,orders,description
-emp323000,MC001,15000,3,Daily revenue for merchant MC001
-shm,MC002,25000,5,Revenue from multiple orders
-shamimbdt,MC003,8000,2,Small orders revenue
+assignedUser,merchantCode,date,revenue,orders,description
+admin,C158756,2025-01-17,15000,3,Daily revenue entry
+admin,C158757,2025-01-17,25000,5,Revenue from multiple orders
+admin,C158758,2025-01-17,8000,2,Small orders revenue

@@ -1409,13 +1409,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/daily-revenue', requireAuth, async (req: any, res) => {
     try {
       const revenueData = {
+        assignedUser: req.user.id,
+        merchantCode: req.body.merchantCode || "",
         date: new Date(req.body.date),
         revenue: Number(req.body.revenue),
-        description: req.body.description,
-        userId: req.user.id,
+        description: req.body.description || "",
         createdBy: req.user.id,
         orders: Number(req.body.orders) || 1,
-        customerId: req.body.customerId ? Number(req.body.customerId) : null,
       };
       
       const revenue = await storage.createDailyRevenue(revenueData);
@@ -1443,10 +1443,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (currentUser?.role === ROLES.SUPER_ADMIN) {
         canEdit = true;
       } else if (currentUser?.role === ROLES.SALES_MANAGER) {
-        const canAccess = targetRevenue.userId ? await canAccessUser(currentUser, targetRevenue.userId) : false;
-        canEdit = canAccess || targetRevenue.userId === currentUser.id;
+        const canAccess = targetRevenue.assignedUser ? await canAccessUser(currentUser, targetRevenue.assignedUser) : false;
+        canEdit = canAccess || targetRevenue.assignedUser === currentUser.id;
       } else if (currentUser?.role === ROLES.SALES_AGENT) {
-        canEdit = targetRevenue.userId === currentUser.id;
+        canEdit = targetRevenue.assignedUser === currentUser.id;
       }
       
       if (!canEdit) {
@@ -1478,10 +1478,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (currentUser?.role === ROLES.SUPER_ADMIN) {
         canDelete = true;
       } else if (currentUser?.role === ROLES.SALES_MANAGER) {
-        const canAccess = targetRevenue.userId ? await canAccessUser(currentUser, targetRevenue.userId) : false;
-        canDelete = canAccess || targetRevenue.userId === currentUser.id;
+        const canAccess = targetRevenue.assignedUser ? await canAccessUser(currentUser, targetRevenue.assignedUser) : false;
+        canDelete = canAccess || targetRevenue.assignedUser === currentUser.id;
       } else if (currentUser?.role === ROLES.SALES_AGENT) {
-        canDelete = targetRevenue.userId === currentUser.id;
+        canDelete = targetRevenue.assignedUser === currentUser.id;
       }
       
       if (!canDelete) {
@@ -1497,7 +1497,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Bulk Revenue Upload endpoint
-  app.post('/api/daily-revenue/bulk-upload', requireAuth, upload.single('revenue'), async (req: any, res) => {
+  app.post('/api/daily-revenue/bulk-upload', requireAuth, upload.single('file'), async (req: any, res) => {
     try {
       const currentUser = await storage.getUser(req.user.id);
       
@@ -1517,7 +1517,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const parser = csvParser();
       const chunks: any[] = [];
 
-      parser.on('data', (data) => chunks.push(data));
+      parser.on('data', (data: any) => chunks.push(data));
       parser.on('end', async () => {
         try {
           for (let i = 0; i < chunks.length; i++) {
@@ -1583,10 +1583,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
             }
           }
 
+          // Calculate summary metrics
+          const totalRevenue = results.reduce((sum, entry) => sum + entry.revenue, 0);
+          const totalOrders = results.reduce((sum, entry) => sum + entry.orders, 0);
+          const affectedUsers = new Set(results.map(entry => entry.assignedUser)).size;
+
           res.json({
             message: `Successfully uploaded ${results.length} revenue entries`,
-            results,
-            errors: errors.length > 0 ? errors : undefined
+            success: results.length,
+            failed: errors.length,
+            errors: errors.length > 0 ? errors : [],
+            summary: {
+              totalRevenue,
+              totalOrders,
+              affectedUsers
+            },
+            results
           });
 
         } catch (processingError: any) {
@@ -1595,7 +1607,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       });
 
-      parser.on('error', (error) => {
+      parser.on('error', (error: any) => {
         console.error("CSV parsing error:", error);
         res.status(500).json({ message: "Error parsing CSV file" });
       });
