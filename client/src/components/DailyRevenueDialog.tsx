@@ -49,12 +49,16 @@ export default function DailyRevenueDialog({ open, onOpenChange }: DailyRevenueD
 
   const createRevenueMutation = useMutation({
     mutationFn: async (data: InsertDailyRevenue) => {
+      console.log("Mutation called with data:", data);
       const revenueData = {
         ...data,
-        createdBy: currentUser?.id || "",
-        assignedUser: currentUser?.id || "",
+        createdBy: currentUser?.id || "admin",
+        assignedUser: currentUser?.id || "admin",
       };
-      await apiRequest("POST", "/api/daily-revenue", revenueData);
+      console.log("Sending API request:", revenueData);
+      const result = await apiRequest("POST", "/api/daily-revenue", revenueData);
+      console.log("API response:", result);
+      return result;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/daily-revenue"] });
@@ -77,6 +81,11 @@ export default function DailyRevenueDialog({ open, onOpenChange }: DailyRevenueD
   });
 
   const onSubmit = (data: InsertDailyRevenue) => {
+    console.log("Form submitted with data:", data);
+    console.log("Selected customer:", selectedCustomer);
+    console.log("Current user:", currentUser);
+    console.log("Form errors:", form.formState.errors);
+    
     if (!selectedCustomer) {
       toast({
         title: "Error",
@@ -86,10 +95,23 @@ export default function DailyRevenueDialog({ open, onOpenChange }: DailyRevenueD
       return;
     }
     
+    if (!data.revenue || data.revenue <= 0) {
+      toast({
+        title: "Error",
+        description: "Please enter a valid revenue amount",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     const submitData = {
       ...data,
       merchantCode: selectedCustomer.merchantCode,
+      assignedUser: currentUser?.id || "admin",
+      createdBy: currentUser?.id || "admin",
     };
+    
+    console.log("Submitting data:", submitData);
     createRevenueMutation.mutate(submitData);
   };
 
