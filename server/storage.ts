@@ -283,6 +283,18 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
 
+  async updateUserStatus(id: string, isActive: boolean): Promise<User> {
+    const [user] = await db
+      .update(users)
+      .set({ 
+        isActive,
+        updatedAt: new Date() 
+      })
+      .where(eq(users.id, id))
+      .returning();
+    return user;
+  }
+
   async getTeamMembers(managerId: string): Promise<User[]> {
     return await db
       .select()
@@ -299,27 +311,25 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deactivateUser(id: string): Promise<User> {
-    // Since schema doesn't have isActive, we'll return the user as-is
-    const [user] = await db.select().from(users).where(eq(users.id, id));
-    if (!user) throw new Error("User not found");
-    return user;
+    return await this.updateUserStatus(id, false);
   }
 
   async activateUser(id: string): Promise<User> {
-    // Since schema doesn't have isActive, we'll return the user as-is
-    const [user] = await db.select().from(users).where(eq(users.id, id));
-    if (!user) throw new Error("User not found");
-    return user;
+    return await this.updateUserStatus(id, true);
   }
 
   async getUsersForAssignment(currentUserId: string, currentUserRole: string): Promise<User[]> {
     if (currentUserRole === 'super_admin') {
-      return await db.select().from(users);
+      return await db.select().from(users).where(eq(users.isActive, true));
     } else if (currentUserRole === 'sales_manager') {
-      return await db.select().from(users).where(eq(users.managerId, currentUserId));
+      return await db.select().from(users).where(
+        and(eq(users.managerId, currentUserId), eq(users.isActive, true))
+      );
     } else {
-      // Sales agents can only see themselves
-      return await db.select().from(users).where(eq(users.id, currentUserId));
+      // Sales agents can only see themselves (if active)
+      return await db.select().from(users).where(
+        and(eq(users.id, currentUserId), eq(users.isActive, true))
+      );
     }
   }
 

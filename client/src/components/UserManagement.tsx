@@ -9,7 +9,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Plus, Search, Users, UserCog, Crown, Shield, Edit, Trash2, AlertCircle, KeyRound } from "lucide-react";
+import { Plus, Search, Users, UserCog, Crown, Shield, Edit, Trash2, AlertCircle, KeyRound, UserCheck, UserX, ToggleLeft, ToggleRight } from "lucide-react";
 import { AdminPasswordResetDialog } from "@/components/AdminPasswordResetDialog";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -64,7 +64,9 @@ export default function UserManagement() {
   const [isRoleDialogOpen, setIsRoleDialogOpen] = useState(false);
   const [isAddUserDialogOpen, setIsAddUserDialogOpen] = useState(false);
   const [isPasswordResetDialogOpen, setIsPasswordResetDialogOpen] = useState(false);
+  const [isStatusDialogOpen, setIsStatusDialogOpen] = useState(false);
   const [passwordResetUser, setPasswordResetUser] = useState<User | null>(null);
+  const [statusToggleUser, setStatusToggleUser] = useState<User | null>(null);
   const { user: currentUser } = useAuth();
   const { toast } = useToast();
 
@@ -148,6 +150,35 @@ export default function UserManagement() {
     },
   });
 
+  const updateStatusMutation = useMutation({
+    mutationFn: async ({ userId, isActive }: { userId: string; isActive: boolean }) => {
+      await apiRequest("PATCH", `/api/users/${userId}/status`, { isActive });
+    },
+    onSuccess: (data: any) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+      setIsStatusDialogOpen(false);
+      toast({
+        title: "Status Updated",
+        description: `User status has been updated successfully.`,
+      });
+    },
+    onError: (error: any) => {
+      if (isUnauthorizedError(error)) {
+        toast({
+          title: "Access Denied", 
+          description: "You don't have permission to update user status.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to update user status.",
+          variant: "destructive",
+        });
+      }
+    },
+  });
+
   const addUserMutation = useMutation({
     mutationFn: async (data: AddUserData) => {
       await apiRequest("POST", "/api/users", data);
@@ -205,6 +236,20 @@ export default function UserManagement() {
   const handlePasswordReset = (user: User) => {
     setPasswordResetUser(user);
     setIsPasswordResetDialogOpen(true);
+  };
+
+  const handleStatusToggle = (user: User) => {
+    setStatusToggleUser(user);
+    setIsStatusDialogOpen(true);
+  };
+
+  const confirmStatusToggle = () => {
+    if (statusToggleUser) {
+      updateStatusMutation.mutate({
+        userId: statusToggleUser.id,
+        isActive: !statusToggleUser.isActive,
+      });
+    }
   };
 
   const filteredUsers = users?.filter((user: User) => {
@@ -279,6 +324,23 @@ export default function UserManagement() {
           </Badge>
         );
     }
+  };
+
+  const getStatusBadge = (isActive?: boolean) => {
+    if (isActive === false) {
+      return (
+        <Badge variant="destructive" className="bg-red-100 text-red-700">
+          <UserX className="w-3 h-3 mr-1" />
+          Inactive
+        </Badge>
+      );
+    }
+    return (
+      <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+        <UserCheck className="w-3 h-3 mr-1" />
+        Active
+      </Badge>
+    );
   };
 
   // Get manager name for display
@@ -674,6 +736,7 @@ export default function UserManagement() {
                 <TableRow>
                   <TableHead>User</TableHead>
                   <TableHead>Role</TableHead>
+                  <TableHead>Status</TableHead>
                   <TableHead>Manager</TableHead>
                   <TableHead>Active Targets</TableHead>
                   <TableHead>Deals Closed</TableHead>
@@ -710,6 +773,9 @@ export default function UserManagement() {
                         {getRoleBadge(user.role)}
                       </TableCell>
                       <TableCell>
+                        {getStatusBadge(user.isActive)}
+                      </TableCell>
+                      <TableCell>
                         <div className="text-sm">
                           <p className="text-gray-600">{getManagerName(user.managerId)}</p>
                           {user.teamName && <p className="text-xs text-gray-500">{user.teamName}</p>}
@@ -734,6 +800,17 @@ export default function UserManagement() {
                           >
                             <Edit className="w-4 h-4" />
                           </Button>
+                          {currentUser?.role === 'super_admin' && !isCurrentUser && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleStatusToggle(user)}
+                              className={user.isActive ? "text-red-600 hover:text-red-800" : "text-green-600 hover:text-green-800"}
+                              title={user.isActive ? "Deactivate User" : "Activate User"}
+                            >
+                              {user.isActive ? <UserX className="w-4 h-4" /> : <UserCheck className="w-4 h-4" />}
+                            </Button>
+                          )}
                           {(currentUser?.role === 'super_admin' || 
                             (currentUser?.role === 'sales_manager' && user.managerId === currentUser.id)) && (
                             <Button
@@ -844,6 +921,76 @@ export default function UserManagement() {
             userName={passwordResetUser.employeeName}
           />
         )}
+
+        {/* Status Toggle Confirmation Dialog */}
+        <Dialog open={isStatusDialogOpen} onOpenChange={setIsStatusDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>
+                {statusToggleUser?.isActive ? "Deactivate" : "Activate"} User Account
+              </DialogTitle>
+            </DialogHeader>
+            {statusToggleUser && (
+              <div className="space-y-4">
+                <div className="flex items-center space-x-3 p-4 bg-gray-50 rounded-lg">
+                  <div className="w-10 h-10 bg-primary-100 rounded-full flex items-center justify-center">
+                    {statusToggleUser.isActive ? (
+                      <UserX className="w-5 h-5 text-red-600" />
+                    ) : (
+                      <UserCheck className="w-5 h-5 text-green-600" />
+                    )}
+                  </div>
+                  <div>
+                    <p className="font-medium text-gray-900">
+                      {statusToggleUser.employeeName}
+                    </p>
+                    <p className="text-sm text-gray-500">{statusToggleUser.email}</p>
+                  </div>
+                </div>
+
+                <div className="p-4 border border-yellow-200 bg-yellow-50 rounded-lg">
+                  <div className="flex items-start space-x-2">
+                    <AlertCircle className="w-5 h-5 text-yellow-600 mt-0.5" />
+                    <div>
+                      <p className="text-sm font-medium text-yellow-800">
+                        {statusToggleUser.isActive ? "Warning: This will deactivate the user" : "This will activate the user"}
+                      </p>
+                      <p className="text-sm text-yellow-700 mt-1">
+                        {statusToggleUser.isActive 
+                          ? "The user will no longer be able to login and cannot be assigned to new leads. Existing assignments will remain but inactive users won't appear in assignment dropdowns."
+                          : "The user will be able to login and can be assigned to leads again."
+                        }
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex justify-end space-x-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      setIsStatusDialogOpen(false);
+                      setStatusToggleUser(null);
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={confirmStatusToggle}
+                    disabled={updateStatusMutation.isPending}
+                    className={statusToggleUser.isActive ? "bg-red-600 hover:bg-red-700" : "bg-green-600 hover:bg-green-700"}
+                  >
+                    {updateStatusMutation.isPending 
+                      ? (statusToggleUser.isActive ? "Deactivating..." : "Activating...")
+                      : (statusToggleUser.isActive ? "Deactivate User" : "Activate User")
+                    }
+                  </Button>
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
       </div>
     </>
   );

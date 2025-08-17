@@ -27,6 +27,7 @@ export const users = pgTable("users", {
   role: varchar("role").notNull().default("sales_agent"), // super_admin, sales_manager, sales_agent
   managerId: varchar("manager_id"),
   teamName: varchar("team_name"), // Sales Titans or Revenue Rangers
+  isActive: boolean("is_active").default(true).notNull(), // User active status
   emailVerified: boolean("email_verified").default(false),
   verificationCode: varchar("verification_code"),
   codeExpiresAt: timestamp("code_expires_at"),

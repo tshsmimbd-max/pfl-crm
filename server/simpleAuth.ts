@@ -68,11 +68,25 @@ export function setupSimpleAuth(app: Express) {
   });
 }
 
-export const requireAuth = (req: any, res: Response, next: NextFunction) => {
+export const requireAuth = async (req: any, res: Response, next: NextFunction) => {
   if (!req.requireVerifiedEmail()) {
     return res.status(401).json({ message: "Authentication required" });
   }
-  next();
+  
+  try {
+    // Check if user is active
+    const user = await storage.getUser(req.user.id);
+    if (!user?.isActive) {
+      req.logout(() => {
+        // Force logout inactive user
+      });
+      return res.status(401).json({ message: "Account has been deactivated. Please contact your administrator." });
+    }
+    next();
+  } catch (error) {
+    console.error("Auth check error:", error);
+    return res.status(500).json({ message: "Authentication error" });
+  }
 };
 
 export const requireVerifiedEmail = async (req: any, res: Response, next: NextFunction) => {

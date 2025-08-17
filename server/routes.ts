@@ -92,6 +92,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: "Invalid email or password" });
       }
 
+      // Check if user is active
+      if (!user.isActive) {
+        return res.status(401).json({ message: "Account has been deactivated. Please contact your administrator." });
+      }
+
       // Allow login for verified users - no need to re-verify every time
       req.login(user, (err: any) => {
         if (err) {
@@ -273,6 +278,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error updating user role:", error);
       res.status(500).json({ message: "Failed to update user role" });
+    }
+  });
+
+  // Update user active status (Super Admin only)
+  app.patch('/api/users/:id/status', requireAuth, async (req: any, res) => {
+    try {
+      const currentUser = await storage.getUser(req.user.id);
+      if (currentUser?.role !== 'super_admin') {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      const { isActive } = req.body;
+      if (typeof isActive !== 'boolean') {
+        return res.status(400).json({ message: "isActive must be a boolean" });
+      }
+      
+      const updatedUser = await storage.updateUserStatus(req.params.id, isActive);
+      res.json(updatedUser);
+    } catch (error) {
+      console.error("Error updating user status:", error);
+      res.status(500).json({ message: "Failed to update user status" });
     }
   });
 
