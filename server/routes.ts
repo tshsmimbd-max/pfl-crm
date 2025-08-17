@@ -1549,12 +1549,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 continue;
               }
 
-              // Find user by employee ID or email
+              // Find user by employee ID or email (with flexible name matching)
               const users = await storage.getAllUsers();
               const assignedUser = users.find(u => 
                 u.id === row.assignedUser || 
                 u.email.toLowerCase() === row.assignedUser?.toLowerCase() ||
-                u.employeeName?.toLowerCase() === row.assignedUser?.toLowerCase()
+                u.employeeName?.toLowerCase().trim() === row.assignedUser?.toLowerCase().trim()
               );
 
               if (!assignedUser) {
