@@ -52,11 +52,16 @@ export default function AddActivityDialog({ open, onOpenChange, leadId }: AddAct
   const createActivityMutation = useMutation({
     mutationFn: async (data: InsertInteraction) => {
       const response = await apiRequest("POST", "/api/interactions", data);
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to create activity");
+      }
       return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/interactions"] });
       queryClient.invalidateQueries({ queryKey: ["/api/interactions/user"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/interactions/all"] });
       if (leadId) {
         queryClient.invalidateQueries({ queryKey: [`/api/leads/${leadId}/interactions`] });
       }
@@ -67,10 +72,11 @@ export default function AddActivityDialog({ open, onOpenChange, leadId }: AddAct
         description: "Activity added successfully",
       });
     },
-    onError: () => {
+    onError: (error: Error) => {
+      console.error("Activity creation error:", error);
       toast({
         title: "Error",
-        description: "Failed to add activity",
+        description: error.message || "Failed to add activity",
         variant: "destructive",
       });
     },
@@ -80,9 +86,14 @@ export default function AddActivityDialog({ open, onOpenChange, leadId }: AddAct
     // Convert Date objects to ISO strings for API submission
     const formattedData: any = {
       ...data,
-      scheduledAt: data.scheduledAt instanceof Date ? data.scheduledAt.toISOString() : data.scheduledAt,
       completedAt: data.completedAt instanceof Date ? data.completedAt.toISOString() : data.completedAt,
     };
+    // Remove any undefined fields to prevent validation errors
+    Object.keys(formattedData).forEach(key => {
+      if (formattedData[key] === undefined) {
+        delete formattedData[key];
+      }
+    });
     createActivityMutation.mutate(formattedData);
   };
 

@@ -277,11 +277,6 @@ export const insertInteractionSchema = createInsertSchema(interactions).omit({
   id: true,
   createdAt: true,
 }).extend({
-  scheduledAt: z.union([
-    z.string().transform(val => val ? new Date(val) : undefined),
-    z.date(),
-    z.undefined()
-  ]).optional(),
   completedAt: z.union([
     z.string().transform(val => val ? new Date(val) : undefined),
     z.date(),
