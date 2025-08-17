@@ -215,14 +215,22 @@ export default function UserManagement() {
 
   const editUserMutation = useMutation({
     mutationFn: async (data: EditUserData & { userId: string }) => {
-      await apiRequest("PATCH", `/api/users/${data.userId}`, {
-        employeeName: data.employeeName,
-        employeeCode: data.employeeCode,
-        email: data.email,
-        role: data.role,
-        managerId: data.managerId || null,
-        teamName: data.teamName,
-      });
+      console.log("Attempting to update user:", data.userId, data);
+      try {
+        const response = await apiRequest("PATCH", `/api/users/${data.userId}`, {
+          employeeName: data.employeeName,
+          employeeCode: data.employeeCode,
+          email: data.email,
+          role: data.role,
+          managerId: data.managerId || null,
+          teamName: data.teamName,
+        });
+        console.log("User update response:", response);
+        return response;
+      } catch (error) {
+        console.error("User update apiRequest failed:", error);
+        throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/users"] });
@@ -234,7 +242,8 @@ export default function UserManagement() {
         description: "User updated successfully",
       });
     },
-    onError: (error) => {
+    onError: (error: any) => {
+      console.error("User update error:", error);
       if (isUnauthorizedError(error)) {
         toast({
           title: "Unauthorized",
@@ -246,9 +255,10 @@ export default function UserManagement() {
         }, 500);
         return;
       }
+      const errorMessage = error?.response?.data?.message || error?.message || "Failed to update user";
       toast({
         title: "Error",
-        description: "Failed to update user",
+        description: errorMessage,
         variant: "destructive",
       });
     },
