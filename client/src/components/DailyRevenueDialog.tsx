@@ -29,6 +29,11 @@ export default function DailyRevenueDialog({ open, onOpenChange }: DailyRevenueD
     enabled: open,
   });
 
+  const { data: users = [] } = useQuery<any[]>({
+    queryKey: ["/api/users"],
+    enabled: open,
+  });
+
   const { data: currentUser } = useQuery<{ id: string }>({
     queryKey: ["/api/user"],
     enabled: open,
@@ -38,8 +43,8 @@ export default function DailyRevenueDialog({ open, onOpenChange }: DailyRevenueD
     resolver: zodResolver(insertDailyRevenueSchema),
     defaultValues: {
       merchantCode: "",
-      assignedUser: "",
-      createdBy: "",
+      assignedUser: currentUser?.id || "",
+      createdBy: currentUser?.id || "",
       date: new Date(),
       revenue: 0,
       orders: 1,
@@ -50,13 +55,8 @@ export default function DailyRevenueDialog({ open, onOpenChange }: DailyRevenueD
   const createRevenueMutation = useMutation({
     mutationFn: async (data: InsertDailyRevenue) => {
       console.log("Mutation called with data:", data);
-      const revenueData = {
-        ...data,
-        createdBy: currentUser?.id || "admin",
-        assignedUser: currentUser?.id || "admin",
-      };
-      console.log("Sending API request:", revenueData);
-      const result = await apiRequest("POST", "/api/daily-revenue", revenueData);
+      console.log("Sending API request:", data);
+      const result = await apiRequest("POST", "/api/daily-revenue", data);
       console.log("API response:", result);
       return result;
     },
@@ -107,7 +107,6 @@ export default function DailyRevenueDialog({ open, onOpenChange }: DailyRevenueD
     const submitData = {
       ...data,
       merchantCode: selectedCustomer.merchantCode,
-      assignedUser: currentUser?.id || "admin",
       createdBy: currentUser?.id || "admin",
     };
     
@@ -150,6 +149,31 @@ export default function DailyRevenueDialog({ open, onOpenChange }: DailyRevenueD
                 </SelectContent>
               </Select>
             </div>
+
+            <FormField
+              control={form.control}
+              name="assignedUser"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Assigned User *</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select user" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {users.map((user: any) => (
+                        <SelectItem key={user.id} value={user.id}>
+                          {user.employeeName || user.email} ({user.role})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
             <FormField
               control={form.control}
