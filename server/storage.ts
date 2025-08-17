@@ -295,6 +295,25 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
 
+  async updateUserDetails(id: string, details: {
+    employeeName?: string;
+    employeeCode?: string;
+    email?: string;
+    role?: string;
+    managerId?: string | null;
+    teamName?: string;
+  }): Promise<User> {
+    const [user] = await db
+      .update(users)
+      .set({ 
+        ...details,
+        updatedAt: new Date() 
+      })
+      .where(eq(users.id, id))
+      .returning();
+    return user;
+  }
+
   async getTeamMembers(managerId: string): Promise<User[]> {
     return await db
       .select()

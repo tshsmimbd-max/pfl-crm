@@ -24,6 +24,24 @@ const updateRoleSchema = z.object({
   role: z.enum(["super_admin", "sales_manager", "sales_agent"]),
 });
 
+const editUserSchema = z.object({
+  employeeName: z.string().min(2, "Employee name must be at least 2 characters"),
+  employeeCode: z.string().min(2, "Employee code is required"),
+  email: z.string().email("Please enter a valid email address"),
+  role: z.enum(["super_admin", "sales_manager", "sales_agent"]),
+  managerId: z.string().optional(),
+  teamName: z.enum(["Sales Titans", "Revenue Rangers"]),
+}).refine((data) => {
+  // For sales agents, managerId is required
+  if (data.role === "sales_agent" && (!data.managerId || data.managerId === "")) {
+    return false;
+  }
+  return true;
+}, {
+  message: "Sales agents must be assigned to a manager",
+  path: ["managerId"],
+});
+
 const addUserSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
   employeeName: z.string().min(2, "Employee name must be at least 2 characters"),
@@ -41,20 +59,10 @@ const addUserSchema = z.object({
 }, {
   message: "Sales agents must be assigned to a manager",
   path: ["managerId"],
-}).refine((data, ctx) => {
-  // For sales agents, manager and team must be the same
-  if (data.role === "sales_agent" && data.managerId) {
-    // This validation will be handled by the backend since we need to check manager's team
-    // The frontend will show the appropriate team based on selected manager
-    return true;
-  }
-  return true;
-}, {
-  message: "Sales agents must be assigned to the same team as their manager",
-  path: ["teamName"],
 });
 
 type UpdateRoleData = z.infer<typeof updateRoleSchema>;
+type EditUserData = z.infer<typeof editUserSchema>;
 type AddUserData = z.infer<typeof addUserSchema>;
 
 export default function UserManagement() {
@@ -62,11 +70,13 @@ export default function UserManagement() {
   const [roleFilter, setRoleFilter] = useState("all");
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [isRoleDialogOpen, setIsRoleDialogOpen] = useState(false);
+  const [isEditUserDialogOpen, setIsEditUserDialogOpen] = useState(false);
   const [isAddUserDialogOpen, setIsAddUserDialogOpen] = useState(false);
   const [isPasswordResetDialogOpen, setIsPasswordResetDialogOpen] = useState(false);
   const [isStatusDialogOpen, setIsStatusDialogOpen] = useState(false);
   const [passwordResetUser, setPasswordResetUser] = useState<User | null>(null);
   const [statusToggleUser, setStatusToggleUser] = useState<User | null>(null);
+  const [editingUser, setEditingUser] = useState<User | null>(null);
   const { user: currentUser } = useAuth();
   const { toast } = useToast();
 
@@ -102,9 +112,23 @@ export default function UserManagement() {
     },
   });
 
+  const editUserForm = useForm<EditUserData>({
+    resolver: zodResolver(editUserSchema),
+    defaultValues: {
+      employeeName: "",
+      employeeCode: "",
+      email: "",
+      role: "sales_agent",
+      managerId: "",
+      teamName: "Sales Titans",
+    },
+  });
+
   // Watch for manager selection changes to automatically set the team
   const watchedManagerId = addUserForm.watch("managerId");
   const watchedRole = addUserForm.watch("role");
+  const watchedEditManagerId = editUserForm.watch("managerId");
+  const watchedEditRole = editUserForm.watch("role");
 
   // Effect to update team when manager is selected for sales agents
   React.useEffect(() => {
@@ -115,6 +139,16 @@ export default function UserManagement() {
       }
     }
   }, [watchedManagerId, watchedRole, users, addUserForm]);
+
+  // Effect to update team when manager is selected for sales agents in edit form
+  React.useEffect(() => {
+    if (watchedEditRole === "sales_agent" && watchedEditManagerId) {
+      const selectedManager = users?.find(u => u.id === watchedEditManagerId);
+      if (selectedManager?.teamName) {
+        editUserForm.setValue("teamName", selectedManager.teamName as "Sales Titans" | "Revenue Rangers");
+      }
+    }
+  }, [watchedEditManagerId, watchedEditRole, users, editUserForm]);
 
   const updateRoleMutation = useMutation({
     mutationFn: async ({ userId, role }: { userId: string; role: string }) => {
@@ -179,6 +213,47 @@ export default function UserManagement() {
     },
   });
 
+  const editUserMutation = useMutation({
+    mutationFn: async (data: EditUserData & { userId: string }) => {
+      await apiRequest("PATCH", `/api/users/${data.userId}`, {
+        employeeName: data.employeeName,
+        employeeCode: data.employeeCode,
+        email: data.email,
+        role: data.role,
+        managerId: data.managerId || null,
+        teamName: data.teamName,
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+      setIsEditUserDialogOpen(false);
+      setEditingUser(null);
+      editUserForm.reset();
+      toast({
+        title: "Success",
+        description: "User updated successfully",
+      });
+    },
+    onError: (error) => {
+      if (isUnauthorizedError(error)) {
+        toast({
+          title: "Unauthorized",
+          description: "You are logged out. Logging in again...",
+          variant: "destructive",
+        });
+        setTimeout(() => {
+          window.location.href = "/api/login";
+        }, 500);
+        return;
+      }
+      toast({
+        title: "Error",
+        description: "Failed to update user",
+        variant: "destructive",
+      });
+    },
+  });
+
   const addUserMutation = useMutation({
     mutationFn: async (data: AddUserData) => {
       await apiRequest("POST", "/api/users", data);
@@ -227,10 +302,30 @@ export default function UserManagement() {
     addUserMutation.mutate(data);
   };
 
+  const onEditUserSubmit = (data: EditUserData) => {
+    if (editingUser) {
+      editUserMutation.mutate({
+        ...data,
+        userId: editingUser.id,
+      });
+    }
+  };
+
   const handleEditRole = (user: User) => {
     setSelectedUser(user);
     form.setValue("role", user.role as "super_admin" | "sales_manager" | "sales_agent");
     setIsRoleDialogOpen(true);
+  };
+
+  const handleEditUser = (user: User) => {
+    setEditingUser(user);
+    editUserForm.setValue("employeeName", user.employeeName || "");
+    editUserForm.setValue("employeeCode", user.employeeCode || "");
+    editUserForm.setValue("email", user.email);
+    editUserForm.setValue("role", user.role as "super_admin" | "sales_manager" | "sales_agent");
+    editUserForm.setValue("managerId", user.managerId || "");
+    editUserForm.setValue("teamName", (user.teamName as "Sales Titans" | "Revenue Rangers") || "Sales Titans");
+    setIsEditUserDialogOpen(true);
   };
 
   const handlePasswordReset = (user: User) => {
@@ -560,7 +655,7 @@ export default function UserManagement() {
                         control={addUserForm.control}
                         name="teamName"
                         render={({ field }) => {
-                          const isDisabled = watchedRole === "sales_agent" && watchedManagerId;
+                          const isDisabled = watchedRole === "sales_agent" && !!watchedManagerId;
                           return (
                             <FormItem>
                               <FormLabel>
@@ -795,8 +890,9 @@ export default function UserManagement() {
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => handleEditRole(user)}
+                            onClick={() => handleEditUser(user)}
                             disabled={isCurrentUser}
+                            title="Edit User Details"
                           >
                             <Edit className="w-4 h-4" />
                           </Button>
@@ -832,13 +928,13 @@ export default function UserManagement() {
           </CardContent>
         </Card>
 
-        {/* Role Update Dialog */}
-        <Dialog open={isRoleDialogOpen} onOpenChange={setIsRoleDialogOpen}>
-          <DialogContent>
+        {/* User Edit Dialog */}
+        <Dialog open={isEditUserDialogOpen} onOpenChange={setIsEditUserDialogOpen}>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>Update User Role</DialogTitle>
+              <DialogTitle>Edit User Details</DialogTitle>
             </DialogHeader>
-            {selectedUser && (
+            {editingUser && (
               <div className="space-y-4">
                 <div className="flex items-center space-x-3 p-4 bg-gray-50 rounded-lg">
                   <div className="w-10 h-10 bg-primary-100 rounded-full flex items-center justify-center">
@@ -846,62 +942,175 @@ export default function UserManagement() {
                   </div>
                   <div>
                     <p className="font-medium text-gray-900">
-                      {selectedUser.employeeName}
+                      {editingUser.employeeName}
                     </p>
-                    <p className="text-sm text-gray-500">{selectedUser.email}</p>
+                    <p className="text-sm text-gray-500">{editingUser.email}</p>
                   </div>
                 </div>
 
-                <Form {...form}>
-                  <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                <Form {...editUserForm}>
+                  <form onSubmit={editUserForm.handleSubmit(onEditUserSubmit)} className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <FormField
+                        control={editUserForm.control}
+                        name="employeeName"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Employee Name</FormLabel>
+                            <FormControl>
+                              <Input placeholder="John Doe" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={editUserForm.control}
+                        name="employeeCode"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Employee Code</FormLabel>
+                            <FormControl>
+                              <Input placeholder="EMP001" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+
                     <FormField
-                      control={form.control}
-                      name="role"
+                      control={editUserForm.control}
+                      name="email"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Role</FormLabel>
-                          <Select onValueChange={field.onChange} defaultValue={field.value}>
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select role" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value="super_admin">
-                                <div className="flex items-center space-x-2">
-                                  <Crown className="w-4 h-4" />
-                                  <span>Super Admin</span>
-                                </div>
-                              </SelectItem>
-                              <SelectItem value="sales_manager">
-                                <div className="flex items-center space-x-2">
-                                  <Shield className="w-4 h-4" />
-                                  <span>Sales Manager</span>
-                                </div>
-                              </SelectItem>
-                              <SelectItem value="sales_agent">
-                                <div className="flex items-center space-x-2">
-                                  <Users className="w-4 h-4" />
-                                  <span>Sales Agent</span>
-                                </div>
-                              </SelectItem>
-                            </SelectContent>
-                          </Select>
+                          <FormLabel>Email</FormLabel>
+                          <FormControl>
+                            <Input type="email" placeholder="john@company.com" {...field} />
+                          </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
+                    />
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <FormField
+                        control={editUserForm.control}
+                        name="role"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Role</FormLabel>
+                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select role" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                <SelectItem value="super_admin">
+                                  <div className="flex items-center space-x-2">
+                                    <Crown className="w-4 h-4" />
+                                    <span>Super Admin</span>
+                                  </div>
+                                </SelectItem>
+                                <SelectItem value="sales_manager">
+                                  <div className="flex items-center space-x-2">
+                                    <Shield className="w-4 h-4" />
+                                    <span>Sales Manager</span>
+                                  </div>
+                                </SelectItem>
+                                <SelectItem value="sales_agent">
+                                  <div className="flex items-center space-x-2">
+                                    <Users className="w-4 h-4" />
+                                    <span>Sales Agent</span>
+                                  </div>
+                                </SelectItem>
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={editUserForm.control}
+                        name="teamName"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Team</FormLabel>
+                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select team" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                <SelectItem value="Sales Titans">Sales Titans</SelectItem>
+                                <SelectItem value="Revenue Rangers">Revenue Rangers</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+
+                    <FormField
+                      control={editUserForm.control}
+                      name="managerId"
+                      render={({ field }) => {
+                        const currentRole = editUserForm.watch("role");
+                        const isDisabled = currentRole !== "sales_agent";
+                        
+                        return (
+                          <FormItem>
+                            <FormLabel>
+                              Manager
+                              {isDisabled && (
+                                <span className="text-xs text-gray-500 ml-2">
+                                  (Only required for Sales Agents)
+                                </span>
+                              )}
+                            </FormLabel>
+                            <Select 
+                              onValueChange={field.onChange} 
+                              defaultValue={field.value}
+                              disabled={isDisabled}
+                            >
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder={isDisabled ? "Not applicable" : "Select manager"} />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {availableManagers.map((manager: User) => (
+                                  <SelectItem key={manager.id} value={manager.id}>
+                                    {manager.employeeName} ({manager.role === 'super_admin' ? 'Super Admin' : 'Sales Manager'})
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        );
+                      }}
                     />
 
                     <div className="flex justify-end space-x-2">
                       <Button
                         type="button"
                         variant="outline"
-                        onClick={() => setIsRoleDialogOpen(false)}
+                        onClick={() => {
+                          setIsEditUserDialogOpen(false);
+                          setEditingUser(null);
+                          editUserForm.reset();
+                        }}
                       >
                         Cancel
                       </Button>
-                      <Button type="submit" disabled={updateRoleMutation.isPending}>
-                        {updateRoleMutation.isPending ? "Updating..." : "Update Role"}
+                      <Button type="submit" disabled={editUserMutation.isPending}>
+                        {editUserMutation.isPending ? "Updating..." : "Update User"}
                       </Button>
                     </div>
                   </form>
