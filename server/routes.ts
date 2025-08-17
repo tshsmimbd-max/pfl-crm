@@ -1562,10 +1562,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 continue;
               }
 
+              // Parse date more flexibly
+              let parsedDate;
+              if (row.date) {
+                // Try different date formats
+                const dateStr = row.date.toString().trim();
+                parsedDate = new Date(dateStr);
+                
+                // If still invalid, try ISO format
+                if (isNaN(parsedDate.getTime())) {
+                  const isoDateStr = dateStr.includes('T') ? dateStr : `${dateStr}T00:00:00.000Z`;
+                  parsedDate = new Date(isoDateStr);
+                }
+                
+                // If still invalid, try different format
+                if (isNaN(parsedDate.getTime())) {
+                  const parts = dateStr.split(/[-\/]/);
+                  if (parts.length === 3) {
+                    // Try YYYY-MM-DD or MM/DD/YYYY or DD/MM/YYYY
+                    if (parts[0].length === 4) {
+                      parsedDate = new Date(`${parts[0]}-${parts[1]}-${parts[2]}`);
+                    } else {
+                      parsedDate = new Date(`${parts[2]}-${parts[0]}-${parts[1]}`);
+                    }
+                  }
+                }
+              } else {
+                parsedDate = new Date();
+              }
+
               const revenueData = {
                 assignedUser: assignedUser.id,
                 merchantCode: customer.merchantCode,
-                date: new Date(row.date),
+                date: parsedDate,
                 revenue: parseInt(row.revenue),
                 orders: parseInt(row.orders) || 1,
                 description: row.description || "",
@@ -1579,7 +1608,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               }
 
               if (isNaN(revenueData.date.getTime())) {
-                errors.push(`Row ${i + 2}: Invalid date format`);
+                errors.push(`Row ${i + 2}: Invalid date format. Use YYYY-MM-DD format (e.g., 2025-08-17)`);
                 continue;
               }
 

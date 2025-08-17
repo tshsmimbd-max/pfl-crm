@@ -1,4 +1,4 @@
 assignedUser,merchantCode,date,revenue,orders,description
-Toha,C158756,2025-08-17,12000,5,Test bulk upload revenue entry
-System Administrator,C158756,2025-08-17,8000,3,Another test revenue entry
-Maruf,C158756,2025-08-17,15000,7,Third test revenue entry
+Toha,C158756,2025-08-17T00:00:00.000Z,12000,5,Test bulk upload revenue entry
+System Administrator,C158756,2025-08-17T00:00:00.000Z,8000,3,Another test revenue entry
+Maruf,C158756,2025-08-17T00:00:00.000Z,15000,7,Third test revenue entry
