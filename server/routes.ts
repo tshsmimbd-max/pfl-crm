@@ -302,6 +302,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Update user details (Super Admin only)
+  app.patch('/api/users/:id', requireAuth, async (req: any, res) => {
+    try {
+      const currentUser = await storage.getUser(req.user.id);
+      if (currentUser?.role !== 'super_admin') {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      const { employeeName, employeeCode, email, role, managerId, teamName } = req.body;
+      
+      console.log("Updating user details:", { employeeName, employeeCode, email, role, managerId, teamName });
+      
+      const updatedUser = await storage.updateUserDetails(req.params.id, {
+        employeeName,
+        employeeCode,
+        email,
+        role,
+        managerId,
+        teamName,
+      });
+      res.json(updatedUser);
+    } catch (error) {
+      console.error("Error updating user details:", error);
+      res.status(500).json({ message: "Failed to update user details" });
+    }
+  });
+
   // Get users for assignment dropdown (role-based filtering)
   app.get('/api/users/assignment', requireAuth, async (req: any, res) => {
     try {
