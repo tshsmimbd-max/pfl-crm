@@ -346,6 +346,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           employeeCode: currentUser.employeeCode || "",
           managerId: currentUser.managerId,
           teamName: currentUser.teamName,
+          isActive: currentUser.isActive,
           emailVerified: currentUser.emailVerified,
           verificationCode: currentUser.verificationCode,
           codeExpiresAt: currentUser.codeExpiresAt,
