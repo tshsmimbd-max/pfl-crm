@@ -585,18 +585,9 @@ export default function CustomerManagement() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Rate Chart</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select rate chart" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="ISD">ISD</SelectItem>
-                          <SelectItem value="Pheripheri">Pheripheri</SelectItem>
-                          <SelectItem value="OSD">OSD</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <FormControl>
+                        <Input placeholder="e.g., ISD, Pheripheri, OSD" {...field} />
+                      </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
