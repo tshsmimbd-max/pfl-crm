@@ -52,13 +52,23 @@ export default function DailyRevenueDialog({ open, onOpenChange }: DailyRevenueD
     },
   });
 
-  // Set default values when currentUser is available
+  // Set default values when currentUser is available and reset form when dialog opens
   useEffect(() => {
-    if (currentUser?.id && open) {
-      form.setValue("assignedUser", currentUser.id);
-      form.setValue("createdBy", currentUser.id);
+    if (open) {
+      // Reset form when dialog opens
+      form.reset({
+        merchantCode: "",
+        assignedUser: currentUser?.id || "",
+        createdBy: currentUser?.id || "",
+        date: new Date(),
+        revenue: 0,
+        orders: 1,
+        description: "",
+      });
+      setSelectedCustomer(null);
+      console.log("Form reset with defaults:", form.getValues());
     }
-  }, [currentUser?.id, open, form]);
+  }, [open, currentUser?.id, form]);
 
   const createRevenueMutation = useMutation({
     mutationFn: async (data: InsertDailyRevenue) => {
@@ -154,7 +164,12 @@ export default function DailyRevenueDialog({ open, onOpenChange }: DailyRevenueD
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <form onSubmit={(e) => {
+            console.log("=== FORM SUBMIT EVENT ===");
+            console.log("Form submit event:", e);
+            console.log("Form values before submit:", form.getValues());
+            return form.handleSubmit(onSubmit)(e);
+          }} className="space-y-4">
             <div>
               <Label>Customer *</Label>
               <Select onValueChange={(value) => {
@@ -167,6 +182,12 @@ export default function DailyRevenueDialog({ open, onOpenChange }: DailyRevenueD
                 if (customer?.assignedAgent) {
                   console.log("Setting assigned user to:", customer.assignedAgent);
                   form.setValue("assignedUser", customer.assignedAgent);
+                }
+                
+                // Set merchant code for form validation
+                if (customer?.merchantCode) {
+                  console.log("Setting merchant code to:", customer.merchantCode);
+                  form.setValue("merchantCode", customer.merchantCode);
                 }
               }} value={selectedCustomer?.id?.toString() || ""}>
                 <SelectTrigger>
@@ -288,7 +309,10 @@ export default function DailyRevenueDialog({ open, onOpenChange }: DailyRevenueD
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => onOpenChange(false)}
+                onClick={() => {
+                  console.log("Cancel clicked");
+                  onOpenChange(false);
+                }}
               >
                 <X className="h-4 w-4 mr-2" />
                 Cancel
@@ -297,6 +321,20 @@ export default function DailyRevenueDialog({ open, onOpenChange }: DailyRevenueD
                 type="submit"
                 disabled={createRevenueMutation.isPending}
                 className="bg-green-600 hover:bg-green-700"
+                onClick={(e) => {
+                  console.log("=== SAVE BUTTON CLICKED ===");
+                  console.log("Event:", e);
+                  console.log("Form state:", {
+                    isValid: form.formState.isValid,
+                    isDirty: form.formState.isDirty,
+                    errors: form.formState.errors,
+                    values: form.getValues()
+                  });
+                  console.log("Selected customer:", selectedCustomer);
+                  console.log("Button disabled:", createRevenueMutation.isPending);
+                  
+                  // Don't prevent default - let form handle submission
+                }}
               >
                 <Save className="h-4 w-4 mr-2" />
                 {createRevenueMutation.isPending ? "Saving..." : "Save Revenue"}
