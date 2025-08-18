@@ -1,0 +1,3 @@
+merchantCode,merchantName,rateChart,contactPerson,phoneNumber,assignedAgent,productType,notes
+BULK001,Bulk Test Company 1,ISD,Jane Smith,01234567891,69e16f20-e742-4286-95d7-d4e5228603bc,Service,Bulk upload test 1
+BULK002,Bulk Test Company 2,ISD,Bob Johnson,01234567892,55656041-9350-4c85-a1b1-10748e3d8135,E-commerce,Bulk upload test 2
