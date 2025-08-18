@@ -12,7 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Calendar as CalendarIcon, Plus, Clock, MapPin, ChevronLeft, ChevronRight, Users, User, Bell, CheckCircle, Calendar as CalendarViewIcon, List, Sun } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { insertCalendarEventSchema, type InsertCalendarEvent, type CalendarEvent, type User as UserType } from "@shared/schema";
+import { insertCalendarEventSchema, type InsertCalendarEvent, type CalendarEvent, type User as UserType, type Lead } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/useAuth";
@@ -24,13 +24,19 @@ export default function Calendar() {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [viewMode, setViewMode] = useState<'my' | 'team'>('my');
   const [calendarView, setCalendarView] = useState<'month' | 'week' | 'today' | 'upcoming'>('month');
+  
+  // Enhanced filtering states
+  const [selectedLeadId, setSelectedLeadId] = useState<string>('all');
+  const [selectedTeamMemberId, setSelectedTeamMemberId] = useState<string>('all');
+  const [selectedEventType, setSelectedEventType] = useState<string>('all');
+  
   const { toast } = useToast();
 
   // Role-based access
   const isManagerOrAdmin = user?.role === 'super_admin' || user?.role === 'sales_manager';
 
   // Get leads for event association
-  const { data: leads = [] } = useQuery({
+  const { data: leads = [] } = useQuery<Lead[]>({
     queryKey: ["/api/leads"],
   });
 
@@ -41,7 +47,7 @@ export default function Calendar() {
   });
 
   // Get calendar events based on view mode
-  const { data: calendarEvents = [], isLoading: eventsLoading, refetch: refetchEvents } = useQuery<CalendarEvent[]>({
+  const { data: rawCalendarEvents = [], isLoading: eventsLoading, refetch: refetchEvents } = useQuery<CalendarEvent[]>({
     queryKey: ["/api/calendar-events", viewMode],
     queryFn: async () => {
       if (viewMode === 'team' && isManagerOrAdmin) {
@@ -57,6 +63,33 @@ export default function Calendar() {
       }
     },
   });
+
+  // Apply filters to the events
+  const calendarEvents = rawCalendarEvents.filter((event) => {
+    // Filter by lead
+    if (selectedLeadId !== 'all' && event.leadId?.toString() !== selectedLeadId) {
+      return false;
+    }
+    
+    // Filter by team member (only in team view)
+    if (viewMode === 'team' && selectedTeamMemberId !== 'all' && event.userId !== selectedTeamMemberId) {
+      return false;
+    }
+    
+    // Filter by event type
+    if (selectedEventType !== 'all' && event.type !== selectedEventType) {
+      return false;
+    }
+    
+    return true;
+  });
+
+  // Reset team member filter when switching to personal view
+  useEffect(() => {
+    if (viewMode === 'my') {
+      setSelectedTeamMemberId('all');
+    }
+  }, [viewMode]);
 
   // Form for creating new events
   const form = useForm<InsertCalendarEvent>({
@@ -202,6 +235,7 @@ export default function Calendar() {
               </TabsList>
             </Tabs>
           )}
+
           <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
           <DialogTrigger asChild>
             <Button>
@@ -362,6 +396,114 @@ export default function Calendar() {
         </div>
       </div>
 
+      {/* Enhanced Filters Section */}
+      <Card className="p-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Lead Filter */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Filter by Lead
+            </label>
+            <Select value={selectedLeadId} onValueChange={setSelectedLeadId}>
+              <SelectTrigger>
+                <SelectValue placeholder="All leads" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Leads</SelectItem>
+                {leads.map((lead) => (
+                  <SelectItem key={lead.id} value={lead.id.toString()}>
+                    {lead.contactName} - {lead.company}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Team Member Filter (Only for Team View) */}
+          {viewMode === 'team' && isManagerOrAdmin && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Filter by Team Member
+              </label>
+              <Select value={selectedTeamMemberId} onValueChange={setSelectedTeamMemberId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="All team members" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Team Members</SelectItem>
+                  {users.map((member) => (
+                    <SelectItem key={member.id} value={member.id}>
+                      {member.employeeName || member.email}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          {/* Event Type Filter */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Filter by Type
+            </label>
+            <Select value={selectedEventType} onValueChange={setSelectedEventType}>
+              <SelectTrigger>
+                <SelectValue placeholder="All types" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Types</SelectItem>
+                <SelectItem value="meeting">Meeting</SelectItem>
+                <SelectItem value="call">Call</SelectItem>
+                <SelectItem value="task">Task</SelectItem>
+                <SelectItem value="reminder">Reminder</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Clear Filters Button */}
+          <div className="flex items-end">
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setSelectedLeadId('all');
+                setSelectedTeamMemberId('all');
+                setSelectedEventType('all');
+              }}
+              className="w-full"
+            >
+              Clear All Filters
+            </Button>
+          </div>
+        </div>
+
+        {/* Active Filters Summary */}
+        {(selectedLeadId !== 'all' || selectedTeamMemberId !== 'all' || selectedEventType !== 'all') && (
+          <div className="mt-4 pt-4 border-t">
+            <div className="flex flex-wrap gap-2">
+              <span className="text-sm text-gray-600 dark:text-gray-400">Active filters:</span>
+              {selectedLeadId !== 'all' && (
+                <Badge variant="secondary" className="text-xs">
+                  Lead: {leads.find(l => l.id.toString() === selectedLeadId)?.contactName || 'Unknown'}
+                </Badge>
+              )}
+              {selectedTeamMemberId !== 'all' && viewMode === 'team' && (
+                <Badge variant="secondary" className="text-xs">
+                  Team: {users.find(u => u.id === selectedTeamMemberId)?.employeeName || 'Unknown'}
+                </Badge>
+              )}
+              {selectedEventType !== 'all' && (
+                <Badge variant="secondary" className="text-xs">
+                  Type: {selectedEventType.charAt(0).toUpperCase() + selectedEventType.slice(1)}
+                </Badge>
+              )}
+              <Badge variant="outline" className="text-xs">
+                {calendarEvents.length} events found
+              </Badge>
+            </div>
+          </div>
+        )}
+      </Card>
+
       {/* Calendar */}
       <Card>
         <CardHeader>
@@ -401,6 +543,7 @@ export default function Calendar() {
             <TodayScheduleView 
               events={calendarEvents} 
               users={users}
+              leads={leads}
               viewMode={viewMode}
               isManagerOrAdmin={isManagerOrAdmin}
               getEventTypeColor={getEventTypeColor}
@@ -409,6 +552,7 @@ export default function Calendar() {
             <UpcomingEventsView 
               events={calendarEvents} 
               users={users}
+              leads={leads}
               viewMode={viewMode}
               isManagerOrAdmin={isManagerOrAdmin}
               getEventTypeColor={getEventTypeColor}
@@ -449,16 +593,36 @@ export default function Calendar() {
                         const eventUser = viewMode === 'team' && isManagerOrAdmin 
                           ? users.find(u => u.id === event.userId) 
                           : null;
+                        const eventLead = event.leadId 
+                          ? leads.find(l => l.id === event.leadId)
+                          : null;
+                        
+                        const tooltipText = [
+                          event.title,
+                          format(new Date(event.startDate), 'HH:mm'),
+                          eventUser ? `Assigned: ${eventUser.employeeName || eventUser.email}` : '',
+                          eventLead ? `Lead: ${eventLead.contactName} (${eventLead.company})` : '',
+                          event.description ? `Notes: ${event.description}` : ''
+                        ].filter(Boolean).join(' | ');
+
                         return (
                           <div
                             key={event.id}
                             className={`text-xs p-1 rounded text-white truncate ${getEventTypeColor(event.type)}`}
-                            title={`${event.title} - ${format(new Date(event.startDate), 'HH:mm')}${eventUser ? ` (${eventUser.employeeName || eventUser.email})` : ''}`}
+                            title={tooltipText}
                           >
                             {calendarView === 'week' && (
                               <div className="font-medium">{format(new Date(event.startDate), 'HH:mm')}</div>
                             )}
-                            {viewMode === 'team' && eventUser ? `${eventUser.employeeName?.split(' ')[0] || 'User'}: ` : ''}{event.title}
+                            <div className="truncate">
+                              {viewMode === 'team' && eventUser ? `${eventUser.employeeName?.split(' ')[0] || 'User'}: ` : ''}
+                              {event.title}
+                              {eventLead && (
+                                <span className="ml-1 text-xs opacity-80">
+                                  ({eventLead.contactName})
+                                </span>
+                              )}
+                            </div>
                           </div>
                         );
                       })}
@@ -499,6 +663,9 @@ export default function Calendar() {
                   const eventUser = viewMode === 'team' && isManagerOrAdmin 
                     ? users.find(u => u.id === event.userId) 
                     : null;
+                  const eventLead = event.leadId 
+                    ? leads.find(l => l.id === event.leadId)
+                    : null;
                   return (
                     <div key={event.id} className="flex items-center justify-between p-3 border border-gray-200 dark:border-gray-700 rounded-lg">
                       <div className="flex items-center space-x-3">
@@ -511,6 +678,11 @@ export default function Calendar() {
                             {viewMode === 'team' && eventUser && (
                               <span className="text-sm text-gray-500 ml-2">
                                 ({eventUser.employeeName || eventUser.email})
+                              </span>
+                            )}
+                            {eventLead && (
+                              <span className="text-sm text-green-600 ml-2">
+                                - {eventLead.contactName} ({eventLead.company})
                               </span>
                             )}
                           </div>
@@ -543,12 +715,13 @@ export default function Calendar() {
 interface ScheduleViewProps {
   events: CalendarEvent[];
   users: UserType[];
+  leads: Lead[];
   viewMode: 'my' | 'team';
   isManagerOrAdmin: boolean;
   getEventTypeColor: (type: string) => string;
 }
 
-function TodayScheduleView({ events, users, viewMode, isManagerOrAdmin, getEventTypeColor }: ScheduleViewProps) {
+function TodayScheduleView({ events, users, leads, viewMode, isManagerOrAdmin, getEventTypeColor }: ScheduleViewProps) {
   const today = new Date();
   const todayStart = startOfDay(today);
   const todayEnd = endOfDay(today);
@@ -587,6 +760,9 @@ function TodayScheduleView({ events, users, viewMode, isManagerOrAdmin, getEvent
           const eventUser = viewMode === 'team' && isManagerOrAdmin 
             ? users.find(u => u.id === event.userId) 
             : null;
+          const eventLead = event.leadId 
+            ? leads.find(l => l.id === event.leadId)
+            : null;
           const eventTime = format(new Date(event.startDate), 'h:mm a');
           const endTime = format(new Date(event.endDate || event.startDate), 'h:mm a');
           const isCurrentEvent = new Date() >= new Date(event.startDate) && new Date() <= new Date(event.endDate || event.startDate);
@@ -617,6 +793,11 @@ function TodayScheduleView({ events, users, viewMode, isManagerOrAdmin, getEvent
                         {eventUser.employeeName?.split(' ')[0] || 'User'}
                       </Badge>
                     )}
+                    {eventLead && (
+                      <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200">
+                        {eventLead.contactName}
+                      </Badge>
+                    )}
                   </div>
                   
                   <h3 className="font-medium text-gray-900 dark:text-gray-100 mb-1">{event.title}</h3>
@@ -633,6 +814,13 @@ function TodayScheduleView({ events, users, viewMode, isManagerOrAdmin, getEvent
                       </div>
                     )}
                   </div>
+                  
+                  {eventLead && (
+                    <div className="text-sm text-gray-600 dark:text-gray-300 mt-2">
+                      <span className="font-medium">Lead:</span> {eventLead.contactName} - {eventLead.company}
+                      {eventLead.value && <span className="text-green-600 ml-2">৳{eventLead.value.toLocaleString()}</span>}
+                    </div>
+                  )}
                   
                   {event.description && (
                     <p className="text-sm text-gray-600 dark:text-gray-300 mt-2">{event.description}</p>
@@ -663,7 +851,7 @@ function TodayScheduleView({ events, users, viewMode, isManagerOrAdmin, getEvent
   );
 }
 
-function UpcomingEventsView({ events, users, viewMode, isManagerOrAdmin, getEventTypeColor }: ScheduleViewProps) {
+function UpcomingEventsView({ events, users, leads, viewMode, isManagerOrAdmin, getEventTypeColor }: ScheduleViewProps) {
   const now = new Date();
   const nextWeek = addDays(now, 7);
   
@@ -737,6 +925,9 @@ function UpcomingEventsView({ events, users, viewMode, isManagerOrAdmin, getEven
                 const eventUser = viewMode === 'team' && isManagerOrAdmin 
                   ? users.find(u => u.id === event.userId) 
                   : null;
+                const eventLead = event.leadId 
+                  ? leads.find(l => l.id === event.leadId)
+                  : null;
                 
                 return (
                   <div key={event.id} className="p-3 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 hover:shadow-sm transition-shadow">
@@ -753,6 +944,11 @@ function UpcomingEventsView({ events, users, viewMode, isManagerOrAdmin, getEven
                                 ({eventUser.employeeName?.split(' ')[0] || 'User'})
                               </span>
                             )}
+                            {eventLead && (
+                              <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200 ml-2">
+                                {eventLead.contactName}
+                              </Badge>
+                            )}
                           </div>
                           <div className="flex items-center space-x-3 text-sm text-gray-500 dark:text-gray-400">
                             <div className="flex items-center space-x-1">
@@ -766,6 +962,13 @@ function UpcomingEventsView({ events, users, viewMode, isManagerOrAdmin, getEven
                               </div>
                             )}
                           </div>
+                          
+                          {eventLead && (
+                            <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                              Lead: {eventLead.contactName} - {eventLead.company}
+                              {eventLead.value && <span className="text-green-600 ml-1">৳{eventLead.value.toLocaleString()}</span>}
+                            </div>
+                          )}
                         </div>
                       </div>
                       <Badge variant="secondary" className="text-xs">
