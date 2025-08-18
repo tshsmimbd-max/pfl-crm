@@ -6,7 +6,7 @@ import { setupSimpleAuth, requireAuth, requireVerifiedEmail } from "./simpleAuth
 import { insertLeadSchema, insertInteractionSchema, insertTargetSchema, insertCustomerSchema, insertDailyRevenueSchema, insertNotificationSchema, insertCalendarEventSchema, loginSchema, registerSchema, verifyCodeSchema } from "@shared/schema";
 import { requirePermission, requireRole, hasPermission, canAccessResource, canAccessUser, PERMISSIONS, ROLES, Role } from "./rbac";
 import { z } from "zod";
-import { sendVerificationCode, sendPasswordResetCode } from "./emailService";
+import { sendVerificationCode, sendPasswordResetCode, sendWelcomeEmail } from "./emailService";
 import bcrypt from "bcrypt";
 import multer from "multer";
 import fs from "fs";
@@ -413,6 +413,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
         role,
         managerId: managerId || undefined,
         teamName: teamName || undefined
+      });
+
+      // Send welcome email with login credentials
+      try {
+        await sendWelcomeEmail(
+          email,
+          employeeName,
+          password, // Send original password (not hashed)
+          role,
+          currentUser.employeeName
+        );
+        console.log(`Welcome email sent to new user: ${email}`);
+      } catch (emailError) {
+        console.error("Failed to send welcome email:", emailError);
+        // Continue with user creation even if email fails
+      }
+
+      // Create notification for the creator
+      await storage.createNotification({
+        userId: currentUser.id,
+        type: "user_created",
+        title: "👤 New User Created",
+        message: `New user account created for ${employeeName} (${email}) with role ${role.replace('_', ' ').toUpperCase()}. Welcome email sent with login credentials.`,
+        read: false
       });
 
       // Remove sensitive information before sending response

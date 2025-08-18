@@ -261,6 +261,114 @@ If you didn't create an account, please ignore this email.
   }
 }
 
+// Send welcome email with login credentials to new users
+export async function sendWelcomeEmail(
+  email: string, 
+  employeeName: string, 
+  password: string,
+  role: string,
+  createdBy: string
+): Promise<boolean> {
+  try {
+    const emailSent = await sendEmail({
+      to: email,
+      subject: "Welcome to Paperfly CRM - Your Account Details",
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f9f9f9;">
+          <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; border-radius: 10px; text-align: center; color: white;">
+            <h1 style="margin: 0; font-size: 28px;">Welcome to Paperfly CRM</h1>
+            <p style="margin: 10px 0 0 0; opacity: 0.9;">Your account has been created</p>
+          </div>
+          
+          <div style="background: white; padding: 30px; border-radius: 10px; margin-top: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+            <h2 style="color: #333; margin-top: 0;">Account Created Successfully</h2>
+            <p style="color: #666; line-height: 1.6;">
+              Hello ${employeeName},
+            </p>
+            <p style="color: #666; line-height: 1.6;">
+              Your Paperfly CRM account has been created by ${createdBy}. You can now access the system using the credentials below:
+            </p>
+            
+            <div style="background: #f8f9fa; border-left: 4px solid #667eea; padding: 20px; margin: 25px 0;">
+              <h3 style="margin: 0 0 15px 0; color: #333;">Login Credentials</h3>
+              <p style="margin: 8px 0; color: #555;"><strong>Email:</strong> ${email}</p>
+              <p style="margin: 8px 0; color: #555;"><strong>Password:</strong> <span style="font-family: 'Courier New', monospace; background: #e9ecef; padding: 4px 8px; border-radius: 4px;">${password}</span></p>
+              <p style="margin: 8px 0; color: #555;"><strong>Role:</strong> ${role.replace('_', ' ').toUpperCase()}</p>
+            </div>
+            
+            <div style="background: #e3f2fd; border: 1px solid #90caf9; border-radius: 5px; padding: 15px; margin: 20px 0;">
+              <h4 style="margin: 0 0 10px 0; color: #1565c0;">Getting Started</h4>
+              <ol style="margin: 0; color: #1976d2; line-height: 1.6;">
+                <li>Visit the Paperfly CRM login page</li>
+                <li>Use your email and the provided password to log in</li>
+                <li>Change your password after first login for security</li>
+                <li>Complete your profile setup</li>
+              </ol>
+            </div>
+            
+            <div style="background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 5px; padding: 15px; margin: 20px 0;">
+              <p style="margin: 0; color: #856404; font-size: 14px;">
+                <strong>Security Note:</strong> Please change your password after your first login. Keep your credentials secure and do not share them with others.
+              </p>
+            </div>
+            
+            <p style="color: #666; line-height: 1.6;">
+              If you have any questions or need assistance, please contact your system administrator or the support team.
+            </p>
+            
+            <div style="text-align: center; margin: 30px 0;">
+              <a href="${process.env.FRONTEND_URL || 'http://localhost:5000'}" 
+                 style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; display: inline-block;">
+                Access Paperfly CRM
+              </a>
+            </div>
+            
+            <div style="border-top: 1px solid #eee; padding-top: 20px; margin-top: 30px; text-align: center; color: #888; font-size: 12px;">
+              <p>© 2025 Paperfly CRM. All rights reserved.</p>
+              <p>This email was sent because an account was created for you in the Paperfly CRM system.</p>
+            </div>
+          </div>
+        </div>
+      `,
+      text: `
+Welcome to Paperfly CRM
+
+Hello ${employeeName},
+
+Your Paperfly CRM account has been created by ${createdBy}.
+
+Login Credentials:
+Email: ${email}
+Password: ${password}
+Role: ${role.replace('_', ' ').toUpperCase()}
+
+Getting Started:
+1. Visit the Paperfly CRM login page
+2. Use your email and the provided password to log in
+3. Change your password after first login for security
+4. Complete your profile setup
+
+Security Note: Please change your password after your first login. Keep your credentials secure and do not share them with others.
+
+If you have any questions, please contact your system administrator.
+
+© 2025 Paperfly CRM. All rights reserved.
+      `
+    });
+
+    if (emailSent) {
+      console.log(`Welcome email sent successfully to ${email}`);
+      return true;
+    } else {
+      console.error(`Failed to send welcome email to ${email}`);
+      return false;
+    }
+  } catch (error: any) {
+    console.error("Error sending welcome email:", error);
+    return false;
+  }
+}
+
 // Password reset email function
 export async function sendPasswordResetCode(email: string, code: string, employeeName: string): Promise<boolean> {
   try {
