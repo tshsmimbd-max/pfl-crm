@@ -1,4 +1,3 @@
-assignedUser,merchantCode,date,revenue,orders,description
-admin,C158756,2025-01-17,15000,3,Daily revenue entry
-admin,C158757,2025-01-17,25000,5,Revenue from multiple orders
-admin,C158758,2025-01-17,8000,2,Small orders revenue
+merchantCode,assignedUser,revenue,orders,description,date
+M137699,69e16f20-e742-4286-95d7-d4e5228603bc,45000,5,Daily revenue test entry,2025-01-18
+M137700,55656041-9350-4c85-a1b1-10748e3d8135,32000,3,Bulk upload test revenue,2025-01-18

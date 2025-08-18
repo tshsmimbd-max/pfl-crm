@@ -36,7 +36,7 @@ import BulkRevenueUpload from "./BulkRevenueUpload";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { insertCustomerSchema } from "@shared/schema";
+import { insertCustomerSchema, type Customer, type DailyRevenue, type User } from "@shared/schema";
 
 const editCustomerSchema = insertCustomerSchema.omit({ createdBy: true });
 
@@ -55,15 +55,15 @@ export default function CustomerManagement() {
   const [newTag, setNewTag] = useState("");
   const [showTagDialog, setShowTagDialog] = useState(false);
 
-  const { data: customers = [], isLoading } = useQuery({
+  const { data: customers = [], isLoading } = useQuery<Customer[]>({
     queryKey: ["/api/customers"],
   });
 
-  const { data: dailyRevenue = [] } = useQuery({
+  const { data: dailyRevenue = [] } = useQuery<DailyRevenue[]>({
     queryKey: ["/api/daily-revenue"],
   });
 
-  const { data: users = [] } = useQuery({
+  const { data: users = [] } = useQuery<User[]>({
     queryKey: ["/api/users"],
   });
 
