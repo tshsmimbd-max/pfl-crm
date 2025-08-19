@@ -479,17 +479,63 @@ export class DatabaseStorage implements IStorage {
     return newEvent;
   }
 
-  async getCalendarEvents(userId?: string): Promise<CalendarEvent[]> {
+  async getCalendarEvents(userId?: string): Promise<any[]> {
+    const query = db
+      .select({
+        id: calendarEvents.id,
+        title: calendarEvents.title,
+        description: calendarEvents.description,
+        startDate: calendarEvents.startDate,
+        endDate: calendarEvents.endDate,
+        type: calendarEvents.type,
+        leadId: calendarEvents.leadId,
+        userId: calendarEvents.userId,
+        location: calendarEvents.location,
+        isAllDay: calendarEvents.isAllDay,
+        reminderMinutes: calendarEvents.reminderMinutes,
+        status: calendarEvents.status,
+        createdAt: calendarEvents.createdAt,
+        updatedAt: calendarEvents.updatedAt,
+        userName: users.employeeName,
+        userEmail: users.email,
+        leadContactName: leads.contactName,
+      })
+      .from(calendarEvents)
+      .leftJoin(users, eq(calendarEvents.userId, users.id))
+      .leftJoin(leads, eq(calendarEvents.leadId, leads.id))
+      .orderBy(calendarEvents.startDate);
+
     if (userId) {
-      return await db.select().from(calendarEvents)
-        .where(eq(calendarEvents.userId, userId))
-        .orderBy(calendarEvents.startDate);
+      return await query.where(eq(calendarEvents.userId, userId));
     }
-    return await db.select().from(calendarEvents).orderBy(calendarEvents.startDate);
+    return await query;
   }
 
-  async getAllCalendarEvents(): Promise<CalendarEvent[]> {
-    return await db.select().from(calendarEvents).orderBy(calendarEvents.startDate);
+  async getAllCalendarEvents(): Promise<any[]> {
+    return await db
+      .select({
+        id: calendarEvents.id,
+        title: calendarEvents.title,
+        description: calendarEvents.description,
+        startDate: calendarEvents.startDate,
+        endDate: calendarEvents.endDate,
+        type: calendarEvents.type,
+        leadId: calendarEvents.leadId,
+        userId: calendarEvents.userId,
+        location: calendarEvents.location,
+        isAllDay: calendarEvents.isAllDay,
+        reminderMinutes: calendarEvents.reminderMinutes,
+        status: calendarEvents.status,
+        createdAt: calendarEvents.createdAt,
+        updatedAt: calendarEvents.updatedAt,
+        userName: users.employeeName,
+        userEmail: users.email,
+        leadContactName: leads.contactName,
+      })
+      .from(calendarEvents)
+      .leftJoin(users, eq(calendarEvents.userId, users.id))
+      .leftJoin(leads, eq(calendarEvents.leadId, leads.id))
+      .orderBy(calendarEvents.startDate);
   }
 
   async getCalendarEvent(id: number): Promise<CalendarEvent | undefined> {

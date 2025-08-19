@@ -12,7 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Calendar as CalendarIcon, Plus, Clock, MapPin, ChevronLeft, ChevronRight, Users, User, Bell, CheckCircle, Calendar as CalendarViewIcon, List, Sun } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { insertCalendarEventSchema, type InsertCalendarEvent, type CalendarEvent, type User as UserType, type Lead } from "@shared/schema";
+import { insertCalendarEventSchema, type InsertCalendarEvent, type CalendarEvent, type EnhancedCalendarEvent, type User as UserType, type Lead } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/useAuth";
@@ -47,7 +47,7 @@ export default function Calendar() {
   });
 
   // Get calendar events based on view mode
-  const { data: rawCalendarEvents = [], isLoading: eventsLoading, refetch: refetchEvents } = useQuery<CalendarEvent[]>({
+  const { data: rawCalendarEvents = [], isLoading: eventsLoading, refetch: refetchEvents } = useQuery<EnhancedCalendarEvent[]>({
     queryKey: ["/api/calendar-events", viewMode],
     queryFn: async () => {
       if (viewMode === 'team' && isManagerOrAdmin) {
@@ -591,10 +591,10 @@ export default function Calendar() {
                     <div className="space-y-1">
                       {dayEvents.slice(0, calendarView === 'week' ? 8 : 3).map(event => {
                         const eventUser = viewMode === 'team' && isManagerOrAdmin 
-                          ? users.find(u => u.id === event.userId) 
+                          ? (event.userName ? { employeeName: event.userName, email: event.userEmail } : users.find(u => u.id === event.userId))
                           : null;
                         const eventLead = event.leadId 
-                          ? leads.find(l => l.id === event.leadId)
+                          ? (event.leadContactName ? { contactName: event.leadContactName, id: event.leadId } : leads.find(l => l.id === event.leadId))
                           : null;
                         
                         const tooltipText = [
@@ -619,7 +619,7 @@ export default function Calendar() {
                               {event.title}
                               {eventLead && (
                                 <span className="ml-1 text-xs opacity-80">
-                                  ({eventLead.contactName})
+                                  ({eventLead.contactName || 'Unknown'})
                                 </span>
                               )}
                             </div>
@@ -656,15 +656,15 @@ export default function Calendar() {
           ) : (
             <div className="space-y-3">
               {calendarEvents
-                .filter((event: CalendarEvent) => new Date(event.startDate) >= new Date())
-                .sort((a: CalendarEvent, b: CalendarEvent) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime())
+                .filter((event: EnhancedCalendarEvent) => new Date(event.startDate) >= new Date())
+                .sort((a: EnhancedCalendarEvent, b: EnhancedCalendarEvent) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime())
                 .slice(0, 5)
-                .map((event: CalendarEvent) => {
+                .map((event: EnhancedCalendarEvent) => {
                   const eventUser = viewMode === 'team' && isManagerOrAdmin 
-                    ? users.find(u => u.id === event.userId) 
+                    ? (event.userName ? { employeeName: event.userName, email: event.userEmail } : users.find(u => u.id === event.userId))
                     : null;
                   const eventLead = event.leadId 
-                    ? leads.find(l => l.id === event.leadId)
+                    ? (event.leadContactName ? { contactName: event.leadContactName, id: event.leadId } : leads.find(l => l.id === event.leadId))
                     : null;
                   return (
                     <div key={event.id} className="flex items-center justify-between p-3 border border-gray-200 dark:border-gray-700 rounded-lg">
@@ -713,7 +713,7 @@ export default function Calendar() {
 
 // Today's Schedule View Component
 interface ScheduleViewProps {
-  events: CalendarEvent[];
+  events: EnhancedCalendarEvent[];
   users: UserType[];
   leads: Lead[];
   viewMode: 'my' | 'team';
@@ -758,10 +758,10 @@ function TodayScheduleView({ events, users, leads, viewMode, isManagerOrAdmin, g
       <div className="space-y-3">
         {todayEvents.map((event, index) => {
           const eventUser = viewMode === 'team' && isManagerOrAdmin 
-            ? users.find(u => u.id === event.userId) 
+            ? (event.userName ? { employeeName: event.userName, email: event.userEmail } : users.find(u => u.id === event.userId))
             : null;
           const eventLead = event.leadId 
-            ? leads.find(l => l.id === event.leadId)
+            ? (event.leadContactName ? { contactName: event.leadContactName, id: event.leadId, company: 'Unknown', value: 0 } : leads.find(l => l.id === event.leadId))
             : null;
           const eventTime = format(new Date(event.startDate), 'h:mm a');
           const endTime = format(new Date(event.endDate || event.startDate), 'h:mm a');

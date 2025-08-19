@@ -228,6 +228,17 @@ export const notificationsRelations = relations(notifications, ({ one }) => ({
   }),
 }));
 
+export const calendarEventsRelations = relations(calendarEvents, ({ one }) => ({
+  user: one(users, {
+    fields: [calendarEvents.userId],
+    references: [users.id],
+  }),
+  lead: one(leads, {
+    fields: [calendarEvents.leadId],
+    references: [leads.id],
+  }),
+}));
+
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).omit({
   createdAt: true,
@@ -423,3 +434,10 @@ export const insertCalendarEventSchema = createInsertSchema(calendarEvents).omit
 
 export type CalendarEvent = typeof calendarEvents.$inferSelect;
 export type InsertCalendarEvent = z.infer<typeof insertCalendarEventSchema>;
+
+// Enhanced calendar event type with user and lead information
+export type EnhancedCalendarEvent = CalendarEvent & {
+  userName?: string | null;
+  userEmail?: string | null; 
+  leadContactName?: string | null;
+};
