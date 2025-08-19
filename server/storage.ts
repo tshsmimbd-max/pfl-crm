@@ -1111,9 +1111,9 @@ export const storage = new DatabaseStorage();
 // Initialize admin user for production
 storage.createUser({
   id: "admin",
-  email: "admin@paperfly.com", 
+  email: "shamim.ahammed@paperfly.com.bd", 
   password: "$2b$10$M/qluBLTkmxuzQnnC.5zJOEJdy64PjZSiK7zUEu2GnZY5pbqYl..6", // admin123
-  employeeName: "System Administrator",
+  employeeName: "Shamim Ahammed",
   employeeCode: "ADM001",
   role: "super_admin",
   emailVerified: true

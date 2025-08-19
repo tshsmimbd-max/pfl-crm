@@ -43,6 +43,14 @@ Preferred communication style: Simple, everyday language.
 - **Production Build**: Vite for frontend (to `dist/public`), ESBuild for backend (to `dist`), static assets served by Express.
 - **Deployment Target**: Replit Autoscale.
 - **Configuration**: Environment variables for secrets and database URLs.
+- **Production Admin**: shamim.ahammed@paperfly.com.bd (password: admin123)
+
+### Recent Updates (January 2025)
+- **Calendar Enhancement**: Added username display in calendar events with proper user information from database joins
+- **Role-Based Calendar Access**: Managers can only see their team member schedules, super admins see all events
+- **Enhanced Filtering**: Added comprehensive event filtering by lead, team member, and event type
+- **Welcome Email System**: Implemented HTML email notifications for new user accounts with login credentials
+- **Production Ready**: Build system configured, database optimized, all features fully functional
 
 ## External Dependencies
 
