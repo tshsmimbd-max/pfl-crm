@@ -603,6 +603,12 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createCustomer(customer: InsertCustomer): Promise<Customer> {
+    // Check for merchant code uniqueness
+    const existingCustomer = await db.select().from(customers).where(eq(customers.merchantCode, customer.merchantCode)).limit(1);
+    if (existingCustomer.length > 0) {
+      throw new Error(`A customer with merchant code ${customer.merchantCode} already exists`);
+    }
+
     const [newCustomer] = await db.insert(customers).values(customer).returning();
     return newCustomer;
   }

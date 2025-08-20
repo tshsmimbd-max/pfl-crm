@@ -1313,8 +1313,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       res.status(201).json(customer);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error creating customer:", error);
+      // Handle merchant code duplicate error specifically
+      if (error.message && error.message.includes("already exists")) {
+        return res.status(400).json({ message: error.message });
+      }
       res.status(500).json({ message: "Failed to create customer" });
     }
   });
