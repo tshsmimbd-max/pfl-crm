@@ -74,7 +74,7 @@ export default function LeadManagement() {
         description: "Lead created successfully",
       });
     },
-    onError: (error) => {
+    onError: (error: any) => {
       if (isUnauthorizedError(error)) {
         toast({
           title: "Unauthorized",
@@ -86,9 +86,11 @@ export default function LeadManagement() {
         }, 500);
         return;
       }
+      // Show specific error messages for better user experience
+      const errorMessage = error.response?.data?.message || error.message || "Failed to create lead";
       toast({
         title: "Error",
-        description: "Failed to create lead",
+        description: errorMessage,
         variant: "destructive",
       });
     },
