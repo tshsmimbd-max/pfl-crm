@@ -43,7 +43,7 @@ export const leads = pgTable("leads", {
   id: serial("id").primaryKey(),
   contactName: varchar("contact_name").notNull(),
   email: varchar("email").notNull(),
-  phone: varchar("phone"),
+  phone: varchar("phone").unique(), // Make phone number unique to prevent duplicates
   company: varchar("company").notNull(),
   value: integer("value").notNull(),
   stage: varchar("stage").notNull().default("Prospecting"), // Prospecting, Qualified, Proposal, Negotiation, Closed Won, Closed Lost

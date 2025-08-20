@@ -381,9 +381,15 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createLead(lead: InsertLead): Promise<Lead> {
-    // No special date conversion needed after removing preferredPickTime
-    const leadData: any = { ...lead };
+    // Check for phone number uniqueness if phone is provided
+    if (lead.phone) {
+      const existingLead = await db.select().from(leads).where(eq(leads.phone, lead.phone)).limit(1);
+      if (existingLead.length > 0) {
+        throw new Error(`A lead with phone number ${lead.phone} already exists`);
+      }
+    }
 
+    const leadData: any = { ...lead };
     const [newLead] = await db.insert(leads).values(leadData).returning();
     return newLead;
   }
