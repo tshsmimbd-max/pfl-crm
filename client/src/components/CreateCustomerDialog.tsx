@@ -79,11 +79,13 @@ export default function CreateCustomerDialog({
         description: "Customer created successfully",
       });
     },
-    onError: (error) => {
+    onError: (error: any) => {
       console.error("Mutation error:", error);
+      // Show specific error messages for better user experience
+      const errorMessage = error.response?.data?.message || error.message || "Failed to create customer";
       toast({
         title: "Error",
-        description: "Failed to create customer",
+        description: errorMessage,
         variant: "destructive",
       });
     },

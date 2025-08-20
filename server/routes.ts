@@ -1459,8 +1459,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const customer = await storage.updateCustomer(customerId, updates);
       res.json(customer);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error updating customer:", error);
+      // Handle merchant code duplicate error specifically
+      if (error.message && error.message.includes("already exists")) {
+        return res.status(400).json({ message: error.message });
+      }
       res.status(500).json({ message: "Failed to update customer" });
     }
   });

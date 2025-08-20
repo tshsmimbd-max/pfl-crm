@@ -614,6 +614,16 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateCustomer(id: number, customer: Partial<InsertCustomer>): Promise<Customer> {
+    // Check for merchant code uniqueness when updating merchant code
+    if (customer.merchantCode) {
+      const existingCustomer = await db.select().from(customers)
+        .where(and(eq(customers.merchantCode, customer.merchantCode), ne(customers.id, id)))
+        .limit(1);
+      if (existingCustomer.length > 0) {
+        throw new Error(`A customer with merchant code ${customer.merchantCode} already exists`);
+      }
+    }
+
     const [updatedCustomer] = await db
       .update(customers)
       .set({ ...customer, updatedAt: new Date() })
