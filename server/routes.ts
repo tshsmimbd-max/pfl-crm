@@ -1527,6 +1527,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           errors: error.errors 
         });
       }
+      // Handle customer assignment validation error
+      if (error.message && (error.message.includes("assigned agent") || error.message.includes("not found"))) {
+        return res.status(400).json({ message: error.message });
+      }
       res.status(500).json({ message: "Failed to create daily revenue entry" });
     }
   });
@@ -1654,6 +1658,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
               if (!assignedUser) {
                 errors.push(`Row ${i + 2}: User "${row.assignedUser}" not found`);
+                continue;
+              }
+
+              // Validate that the assigned user matches the customer's assigned agent
+              if (customer.assignedAgent !== assignedUser.id) {
+                errors.push(`Row ${i + 2}: Revenue can only be assigned to the customer's assigned agent. Customer ${customer.merchantCode} is assigned to ${customer.assignedAgent}, but revenue is being assigned to ${assignedUser.id}`);
                 continue;
               }
 

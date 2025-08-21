@@ -25,7 +25,7 @@ import {
   InsertCalendarEvent,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, and, gte, lte, sum, count, inArray, sql } from "drizzle-orm";
+import { eq, desc, and, gte, lte, sum, count, inArray, sql, ne } from "drizzle-orm";
 import * as crypto from "crypto";
 import bcrypt from 'bcrypt';
 
@@ -698,6 +698,19 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createDailyRevenue(revenue: InsertDailyRevenue): Promise<DailyRevenue> {
+    // Validate that the assigned user matches the customer's assigned agent
+    if (revenue.merchantCode) {
+      const customer = await db.select().from(customers).where(eq(customers.merchantCode, revenue.merchantCode)).limit(1);
+      if (customer.length > 0) {
+        const customerData = customer[0];
+        if (customerData.assignedAgent !== revenue.assignedUser) {
+          throw new Error(`Revenue can only be assigned to the customer's assigned agent. Customer ${revenue.merchantCode} is assigned to ${customerData.assignedAgent}, but revenue is being assigned to ${revenue.assignedUser}`);
+        }
+      } else {
+        throw new Error(`Customer with merchant code ${revenue.merchantCode} not found`);
+      }
+    }
+
     const [newRevenue] = await db.insert(dailyRevenue).values(revenue).returning();
     return newRevenue;
   }
